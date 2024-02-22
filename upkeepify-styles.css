@@ -7,3 +7,27 @@
 .upkeepify-tasks-list .task img {
     margin-top: 10px;
 }
+
+.upkeepify-tasks-list {
+    list-style-type: none; /* Removes default list styling */
+    padding: 0;
+    margin: 0;
+}
+
+.upkeepify-tasks-list li {
+    border-bottom: 1px solid #ddd; /* Light line between tasks for separation */
+    padding: 10px 0;
+}
+
+.upkeepify-tasks-list li:last-child {
+    border-bottom: none; /* Removes border from the last item */
+}
+
+.upkeepify-tasks-list strong {
+    font-weight: bold; /* Emphasize the task title */
+}
+
+.upkeepify-tasks-list span {
+    font-size: 0.9em; /* Slightly smaller font for the status */
+    color: #666; /* Subdued color for less critical information */
+}

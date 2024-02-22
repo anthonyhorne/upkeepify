@@ -121,38 +121,18 @@ function upkeepify_list_tasks_shortcode() {
     $output = '';
 
     if ($query->have_posts()) {
-        $output .= '<div class="upkeepify-tasks-list">';
+        $output .= '<ul class="upkeepify-tasks-list">';
         while ($query->have_posts()) {
             $query->the_post();
-            $progress = get_post_meta(get_the_ID(), 'progress', true);
-            $estimated_start = get_post_meta(get_the_ID(), 'estimated_start_date', true);
-            $duration = get_post_meta(get_the_ID(), 'estimated_duration', true);
-            $end_time = get_post_meta(get_the_ID(), 'estimated_end_time', true);
-            $status = get_post_meta(get_the_ID(), 'status', true);
-            $visibility = get_post_meta(get_the_ID(), 'visibility', true);
-            $images = get_post_meta(get_the_ID(), 'task_images', true); // Assuming images are stored as an array of attachment IDs
+            $status = get_post_meta(get_the_ID(), 'status', true); // Example of displaying status
 
-            $output .= '<div class="task">';
-            $output .= '<h3>' . get_the_title() . '</h3>';
-            $output .= '<p>' . get_the_content() . '</p>';
-            $output .= '<p><strong>Progress:</strong> ' . esc_html($progress) . '%</p>';
-            $output .= '<p><strong>Estimated Start:</strong> ' . esc_html($estimated_start) . '</p>';
-            $output .= '<p><strong>Duration:</strong> ' . esc_html($duration) . ' days</p>';
-            $output .= '<p><strong>Estimated End Time:</strong> ' . esc_html($end_time) . '</p>';
-            $output .= '<p><strong>Status:</strong> ' . esc_html($status) . '</p>';
-            $output .= '<p><strong>Visibility:</strong> ' . esc_html($visibility) . '</p>';
-
-            // Handle display of images, if any
-            if (!empty($images)) {
-                foreach ($images as $image_id) {
-                    $image_url = wp_get_attachment_url($image_id);
-                    $output .= '<img src="' . esc_url($image_url) . '" alt="" style="max-width:100px;">'; // Displaying images with max-width for simplicity
-                }
-            }
-
-            $output .= '</div>';
+            // Constructing a minimalist list item.
+            $output .= '<li>';
+            $output .= '<strong>' . get_the_title() . '</strong> - '; // Task Title
+            $output .= '<span>Status: ' . esc_html($status) . '</span>'; // Task Status
+            $output .= '</li>';
         }
-        $output .= '</div>';
+        $output .= '</ul>';
     } else {
         $output .= '<p>No maintenance tasks found.</p>';
     }
