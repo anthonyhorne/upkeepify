@@ -1,0 +1,9 @@
+/* File: upkeepify-styles.css */
+.upkeepify-tasks-list .task {
+    border: 1px solid #eee;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+.upkeepify-tasks-list .task img {
+    margin-top: 10px;
+}

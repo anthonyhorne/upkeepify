@@ -113,20 +113,46 @@ add_action('init', 'upkeepify_handle_task_form_submission');
 function upkeepify_list_tasks_shortcode() {
     $args = array(
         'post_type' => 'maintenance_tasks',
-        'posts_per_page' => -1, // Adjust as needed
-        'post_status' => 'publish', // Only show published tasks
+        'posts_per_page' => -1,
+        'post_status' => 'publish',
     );
 
     $query = new WP_Query($args);
     $output = '';
 
     if ($query->have_posts()) {
-        $output .= '<ul class="upkeepify-tasks-list">';
+        $output .= '<div class="upkeepify-tasks-list">';
         while ($query->have_posts()) {
             $query->the_post();
-            $output .= '<li>' . get_the_title() . ' - ' . get_the_content() . '</li>';
+            $progress = get_post_meta(get_the_ID(), 'progress', true);
+            $estimated_start = get_post_meta(get_the_ID(), 'estimated_start_date', true);
+            $duration = get_post_meta(get_the_ID(), 'estimated_duration', true);
+            $end_time = get_post_meta(get_the_ID(), 'estimated_end_time', true);
+            $status = get_post_meta(get_the_ID(), 'status', true);
+            $visibility = get_post_meta(get_the_ID(), 'visibility', true);
+            $images = get_post_meta(get_the_ID(), 'task_images', true); // Assuming images are stored as an array of attachment IDs
+
+            $output .= '<div class="task">';
+            $output .= '<h3>' . get_the_title() . '</h3>';
+            $output .= '<p>' . get_the_content() . '</p>';
+            $output .= '<p><strong>Progress:</strong> ' . esc_html($progress) . '%</p>';
+            $output .= '<p><strong>Estimated Start:</strong> ' . esc_html($estimated_start) . '</p>';
+            $output .= '<p><strong>Duration:</strong> ' . esc_html($duration) . ' days</p>';
+            $output .= '<p><strong>Estimated End Time:</strong> ' . esc_html($end_time) . '</p>';
+            $output .= '<p><strong>Status:</strong> ' . esc_html($status) . '</p>';
+            $output .= '<p><strong>Visibility:</strong> ' . esc_html($visibility) . '</p>';
+
+            // Handle display of images, if any
+            if (!empty($images)) {
+                foreach ($images as $image_id) {
+                    $image_url = wp_get_attachment_url($image_id);
+                    $output .= '<img src="' . esc_url($image_url) . '" alt="" style="max-width:100px;">'; // Displaying images with max-width for simplicity
+                }
+            }
+
+            $output .= '</div>';
         }
-        $output .= '</ul>';
+        $output .= '</div>';
     } else {
         $output .= '<p>No maintenance tasks found.</p>';
     }
@@ -137,3 +163,7 @@ function upkeepify_list_tasks_shortcode() {
 }
 add_shortcode('upkeepify_list_tasks', 'upkeepify_list_tasks_shortcode');
 
+function upkeepify_enqueue_styles() {
+    wp_enqueue_style('upkeepify-styles', plugin_dir_url(__FILE__) . 'upkeepify-styles.css');
+}
+add_action('wp_enqueue_scripts', 'upkeepify_enqueue_styles');
