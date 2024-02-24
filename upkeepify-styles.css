@@ -1,33 +1,25 @@
-/* File: upkeepify-styles.css */
-.upkeepify-tasks-list .task {
-    border: 1px solid #eee;
-    padding: 15px;
-    margin-bottom: 20px;
-}
-.upkeepify-tasks-list .task img {
-    margin-top: 10px;
-}
-
 .upkeepify-tasks-list {
-    list-style-type: none; /* Removes default list styling */
-    padding: 0;
+    list-style-type: none;
+    padding-left: 0;
     margin: 0;
 }
 
 .upkeepify-tasks-list li {
-    border-bottom: 1px solid #ddd; /* Light line between tasks for separation */
-    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+    padding: 8px 0;
+    font-size: 0.9rem;
 }
 
 .upkeepify-tasks-list li:last-child {
-    border-bottom: none; /* Removes border from the last item */
+    border-bottom: none;
 }
 
 .upkeepify-tasks-list strong {
-    font-weight: bold; /* Emphasize the task title */
+    font-weight: bold;
+    margin-right: 5px;
 }
 
 .upkeepify-tasks-list span {
-    font-size: 0.9em; /* Slightly smaller font for the status */
-    color: #666; /* Subdued color for less critical information */
+    margin-right: 10px;
+    color: #555;
 }

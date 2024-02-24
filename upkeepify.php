@@ -1,91 +1,57 @@
 <?php
 /**
  * Plugin Name: Upkeepify
- * Description: A plugin to manage maintenance tasks within a complex. It supports task submissions with categorization and service provider management.
+ * Plugin URI: https://github.com/anthonyhorne/upkeepify
+ * Description: A comprehensive plugin to manage maintenance tasks within a complex. It supports task submissions with categorization, service provider management, and customizable settings.
  * Version: 1.0
  * Author: Anthony Horne
+ * Text Domain: upkeepify
+ * License: GPL v2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2, as 
+ * published by the Free Software Foundation.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * Credits:
+ * - Anthony Horne: Plugin Development and Concept
+ * - OpenAI's ChatGPT: Assistance with Code Examples and Logic
+ * - WordPress Community: Various Tutorials and Code Snippets
  */
 
-if (!session_id()) session_start();
-
-function upkeepify_enqueue_styles() {
-    wp_enqueue_style('upkeepify-styles', plugin_dir_url(__FILE__) . 'upkeepify-styles.css');
+// Prevent direct file access
+if (!defined('WPINC')) {
+    die;
 }
-add_action('wp_enqueue_scripts', 'upkeepify_enqueue_styles');
 
-function upkeepify_register_custom_post_types_and_taxonomies() {
-    // Maintenance Tasks CPT
-    $args_tasks = [
-        'public' => true,
-        'label'  => 'Maintenance Tasks',
-        'supports' => ['title', 'editor', 'custom-fields'],
-        'show_in_rest' => true,
-        'menu_icon' => 'dashicons-hammer',
-    ];
-    register_post_type('maintenance_tasks', $args_tasks);
+define('UPKEEPIFY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
-    // Task Categories - Flat taxonomy
-    $category_args = [
-        'hierarchical' => false,
-        'label' => 'Task Categories',
-        'show_ui' => true,
-        'show_in_rest' => true,
-        'query_var' => true,
-    ];
-    register_taxonomy('task_category', ['maintenance_tasks'], $category_args);
+// Include component files
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/custom-post-types.php';
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/taxonomies.php';
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/settings.php';
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/shortcodes.php';
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/utility-functions.php';
 
-    // Task Types - Flat taxonomy
-    $type_args = [
-        'hierarchical' => false,
-        'label' => 'Task Types',
-        'show_ui' => true,
-        'show_in_rest' => true,
-        'query_var' => true,
-    ];
-    register_taxonomy('task_type', ['maintenance_tasks'], $type_args);
-
-    // Task Statuses - Flat taxonomy
-    $status_args = [
-        'hierarchical' => false,
-        'label' => 'Task Statuses',
-        'show_ui' => true,
-        'show_in_rest' => true,
-        'query_var' => true,
-    ];
-    register_taxonomy('task_status', ['maintenance_tasks'], $status_args);
-}
-add_action('init', 'upkeepify_register_custom_post_types_and_taxonomies');
-
-// Shortcode for Displaying Maintenance Tasks
-function upkeepify_list_tasks_shortcode() {
-    // Implementation
-    return '<p>[upkeepify_list_tasks] shortcode content here.</p>';
-}
-add_shortcode('upkeepify_list_tasks', 'upkeepify_list_tasks_shortcode');
-
-// Shortcode for Task Submission Form
-function upkeepify_task_form_shortcode() {
-    // Implementation
-    return '<p>[upkeepify_task_form] shortcode content here.</p>';
-}
-add_shortcode('upkeepify_task_form', 'upkeepify_task_form_shortcode');
-
-// Handle Task Form Submission
-function upkeepify_handle_form_submission() {
-    // Implementation
-}
-add_action('init', 'upkeepify_handle_form_submission');
-
-// Plugin Activation: Initialize Default Data
-function upkeepify_activate() {
-    // Default terms for 'task_category', 'task_type', 'task_status'
-    $default_categories = ['General', 'Plumbing', 'Electrical'];
-    foreach ($default_categories as $category) {
-        if (!term_exists($category, 'task_category')) {
-            wp_insert_term($category, 'task_category');
-        }
-    }
-
-    // Default types and statuses can be added similarly
-}
+// Activation and deactivation hooks
 register_activation_hook(__FILE__, 'upkeepify_activate');
+register_deactivation_hook(__FILE__, 'upkeepify_deactivate');
+
+function upkeepify_activate() {
+    // Activation code here
+}
+
+function upkeepify_deactivate() {
+    // Deactivation code here
+}
+
+function upkeepify_add_favicon() {
+    echo '<link rel="icon" type="image/png" href="' . plugins_url('favicon.png', __FILE__) . '" />';
+}
+add_action('wp_head', 'upkeepify_add_favicon');
+add_action('admin_head', 'upkeepify_add_favicon'); // Also for admin area
