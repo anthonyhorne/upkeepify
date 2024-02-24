@@ -44,6 +44,12 @@ register_deactivation_hook(__FILE__, 'upkeepify_deactivate');
 
 function upkeepify_activate() {
     // Activation code here
+
+    // Include the sample data file
+    include_once plugin_dir_path( __FILE__ ) . 'sample-data.php';
+
+    // Activation code here, like loading sample data
+    upkeepify_install_sample_data();
 }
 
 function upkeepify_deactivate() {
