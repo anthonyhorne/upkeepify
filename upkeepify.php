@@ -37,6 +37,7 @@ require_once UPKEEPIFY_PLUGIN_DIR . 'includes/taxonomies.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/settings.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/shortcodes.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/utility-functions.php';
+include_once plugin_dir_path( __FILE__ ) . 'includes/sample-data.php';
 
 // Activation and deactivation hooks
 register_activation_hook(__FILE__, 'upkeepify_activate');
@@ -46,10 +47,11 @@ function upkeepify_activate() {
     // Activation code here
 
     // Include the sample data file
-    include_once plugin_dir_path( __FILE__ ) . 'sample-data.php';
+    //include_once plugin_dir_path( __FILE__ ) . 'includes/sample-data.php';
 
     // Activation code here, like loading sample data
-    upkeepify_install_sample_data();
+    //upkeepify_install_sample_data();
+    //upkeepify_insert_sample_data()
 }
 
 function upkeepify_deactivate() {
@@ -61,3 +63,15 @@ function upkeepify_add_favicon() {
 }
 add_action('wp_head', 'upkeepify_add_favicon');
 add_action('admin_head', 'upkeepify_add_favicon'); // Also for admin area
+
+// Example function within sample-data.php that checks for and inserts sample data if needed
+function maybe_insert_sample_data() {
+    // Check if the sample data already exists, and if not, insert it
+    if (!get_option('upkeepify_sample_data_inserted')) {
+        upkeepify_insert_sample_data(); // Function that inserts the data
+        update_option('upkeepify_sample_data_inserted', 1);
+    }
+}
+
+// Call the conditional insertion function at an appropriate hook, or directly, based on your plugin's logic
+add_action('admin_init', 'maybe_insert_sample_data');

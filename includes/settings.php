@@ -16,6 +16,23 @@ function upkeepify_add_admin_menu() {
 }
 add_action('admin_menu', 'upkeepify_add_admin_menu');
 
+function upkeepify_render_settings_field($args) {
+    $options = get_option('upkeepify_settings');
+    $field_value = isset($options[$args['name']]) ? $options[$args['name']] : '';
+    $field_type = isset($args['type']) ? $args['type'] : 'text'; // Default to text if not specified
+
+    echo '<input type="' . esc_attr($field_type) . '" id="' . esc_attr($args['name']) . '" name="upkeepify_settings[' . esc_attr($args['name']) . ']" value="' . esc_attr($field_value) . '"';
+
+    // Append additional attributes if any
+    if (isset($args['attributes']) && is_array($args['attributes'])) {
+        foreach ($args['attributes'] as $attr => $value) {
+            echo ' ' . $attr . '="' . esc_attr($value) . '"';
+        }
+    }
+
+    echo '>';
+}
+
 function upkeepify_init_plugin_settings() {
     register_setting('upkeepify', 'upkeepify_settings', 'upkeepify_settings_sanitize');
 
@@ -119,6 +136,24 @@ add_settings_field(
             'checked' => '0'
         ]
     );
+
+// Number of Units
+add_settings_field(
+    'upkeepify_number_of_units',
+    __('Number of Units', 'upkeepify'),
+    'upkeepify_render_settings_field',
+    'upkeepify_settings',
+    'upkeepify_general_settings',
+    [
+        'name' => 'upkeepify_number_of_units',
+        'type' => 'number',
+        'attributes' => [
+            'min' => '0', // Example validation attribute
+            'step' => '1'
+        ]
+    ]
+);
+
 }
 
 add_action('admin_init', 'upkeepify_init_plugin_settings');
@@ -153,9 +188,10 @@ function upkeepify_text_field_callback($args) {
 function upkeepify_settings_sanitize($input) {
     $sanitized_input = [];
     foreach ($input as $key => $value) {
-        if (is_array($value)) {
-            $sanitized_input[$key] = array_map('sanitize_text_field', $value);
+        if ($key === 'upkeepify_number_of_units') { // Specific handling for number fields
+            $sanitized_input[$key] = intval($value);
         } else {
+            // Default sanitization for other types
             $sanitized_input[$key] = sanitize_text_field($value);
         }
     }
