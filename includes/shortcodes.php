@@ -38,8 +38,7 @@ add_shortcode('upkeepify_list_tasks', 'upkeepify_list_tasks_shortcode');
  * Shortcode for Task Submission Form
  */
 function upkeepify_task_form_shortcode() {
-    // Ensure session start for math CAPTCHA
-    if (session_status() == PHP_SESSION_NONE) {
+    if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
 
@@ -47,40 +46,80 @@ function upkeepify_task_form_shortcode() {
     $num2 = rand(1, 10);
     $_SESSION['upkeepify_math_result'] = $num1 + $num2;
 
-    // Fetch 'Number of Units' setting, default if not set
-    $number_of_units = get_option('upkeepify_settings')['upkeepify_number_of_units'] ?? 10;
+    ob_start();
 
-    ob_start(); // Start output buffering
+    echo '<form id="upkeepify-task-form" action="' . esc_url($_SERVER['REQUEST_URI']) . '" method="post" enctype="multipart/form-data">';
+    wp_nonce_field('upkeepify_task_submit_action', 'upkeepify_task_submit_nonce');
 
-    // Display form
-    echo '<form action="' . esc_url($_SERVER['REQUEST_URI']) . '" method="post">';
-    echo '<label for="task_title">Task Title:</label><br />';
-    echo '<input type="text" id="task_title" name="task_title" required><br />';
-    echo '<label for="task_description">Task Description:</label><br />';
-    echo '<textarea id="task_description" name="task_description" required></textarea><br />';
+    echo '<p><label for="task_title">Task Title:</label><br />';
+    echo '<input type="text" id="task_title" name="task_title" required></p>';
 
-    // Nearest Unit dropdown
-    echo '<label for="nearest_unit">Nearest Unit:</label><br />';
-    echo '<select id="nearest_unit" name="nearest_unit">';
-    for ($i = 1; $i <= $number_of_units; $i++) {
-        echo "<option value='{$i}'>{$i}</option>";
+    echo '<p><label for="task_description">Task Description:</label><br />';
+    echo '<textarea id="task_description" name="task_description" required></textarea></p>';
+
+    // Dynamically generated dropdowns for taxonomies associated with 'maintenance_tasks'
+    $taxonomies = get_object_taxonomies('maintenance_tasks', 'objects');
+    foreach ($taxonomies as $taxonomy) {
+        $terms = get_terms(array('taxonomy' => $taxonomy->name, 'hide_empty' => false));
+        if (!empty($terms)) {
+            echo '<p><label for="' . esc_attr($taxonomy->name) . '">' . esc_html($taxonomy->label) . ':</label><br />';
+            echo '<select id="' . esc_attr($taxonomy->name) . '" name="' . esc_attr($taxonomy->name) . '">';
+            foreach ($terms as $term) {
+                echo '<option value="' . esc_attr($term->term_id) . '">' . esc_html($term->name) . '</option>';
+            }
+            echo '</select></p>';
+        }
     }
-    echo '</select><br />';
 
-    echo '<label for="math">What is ' . $num1 . ' + ' . $num2 . '?</label><br />';
-    echo '<input type="text" id="math" name="math" required><br />';
-    echo '<input type="submit" name="upkeepify_task_submit" value="Submit Task">';
+    echo '<p><label for="task_photo">Upload Photo:</label><br />';
+    echo '<input type="file" id="task_photo" name="task_photo" accept="image/*" capture="environment"></p>';
+
+    echo '<p><label for="math">What is ' . $num1 . ' + ' . $num2 . '? (For spam prevention)</label><br />';
+    echo '<input type="text" id="math" name="math" required></p>';
+
+    echo '<p><input type="submit" value="Submit Task"></p>';
+
     echo '</form>';
 
-    return ob_get_clean(); // Return the buffered output
+    // Thank you message and New Task button, hidden by default
+    echo '<div id="thank-you-message" style="display: none; margin-top: 20px;">';
+    echo '<p style="color: green;">Thank you for your submission.</p>';
+    echo '<button id="new-task-button">Create a New Task</button>';
+    echo '</div>';
+
+    // JavaScript to handle form interaction
+    echo "<script>
+        document.getElementById('upkeepify-task-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            // AJAX submission logic here
+
+            this.style.display = 'none';
+            document.getElementById('thank-you-message').style.display = 'block';
+        });
+
+        document.getElementById('new-task-button').addEventListener('click', function() {
+            document.getElementById('upkeepify-task-form').style.display = 'block';
+            document.getElementById('upkeepify-task-form').reset();
+            document.getElementById('thank-you-message').style.display = 'none';
+        });
+    </script>";
+
+    return ob_get_clean();
 }
-add_shortcode('upkeepify_task_form', 'upkeepify_task_submission_form_shortcode');
+add_shortcode('upkeepify_task_form', 'upkeepify_task_form_shortcode');
+
 
 /**
  * Handle Form Submission for Task Creation
  */
 function upkeepify_handle_task_form_submission() {
-    if (isset($_POST['upkeepify_task_submit'], $_POST['math'], $_POST['task_title'], $_POST['task_description']) && isset($_SESSION['upkeepify_math_result'])) {
+    // Ensure this code only runs when the form is submitted
+    if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['upkeepify_task_submit'], $_POST['math'])) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // Verify the CAPTCHA
         $user_answer = filter_input(INPUT_POST, 'math', FILTER_SANITIZE_NUMBER_INT);
         if ($user_answer == $_SESSION['upkeepify_math_result']) {
             // Proceed if math answer is correct
@@ -88,46 +127,45 @@ function upkeepify_handle_task_form_submission() {
             $task_description = sanitize_textarea_field($_POST['task_description']);
             $nearest_unit = isset($_POST['nearest_unit']) ? intval($_POST['nearest_unit']) : 1; // Default to 1 if not set
 
-            // Insert the new task with nearest unit information
+            // Insert the new task
             $task_id = wp_insert_post([
                 'post_title'   => $task_title,
                 'post_content' => $task_description,
                 'post_status'  => 'publish',
                 'post_type'    => 'maintenance_tasks',
-                'meta_input'   => [
-                    'upkeepify_nearest_unit' => $nearest_unit, // Save nearest unit as post meta
-                ],
             ]);
 
-if ($task_id) {
-    // Output a JavaScript snippet to reset the form and append a thank you message
-    echo "<script>
-            document.addEventListener('DOMContentLoaded', function() {
-                var form = document.getElementById('upkeepify-task-submission-form');
-                form.reset(); // Reset the form to clear fields
+            if ($task_id && !is_wp_error($task_id)) {
+                // Process taxonomies
+                $taxonomies = get_object_taxonomies('maintenance_tasks');
+                foreach ($taxonomies as $taxonomy) {
+                    if (isset($_POST[$taxonomy])) {
+                        wp_set_object_terms($task_id, [intval($_POST[$taxonomy])], $taxonomy);
+                    }
+                }
 
-                // Create a thank you message element
-                var thankYouMessage = document.createElement('div');
-                thankYouMessage.innerHTML = '<p>Thank you for your submission.</p>';
-                thankYouMessage.setAttribute('id', 'upkeepify-thank-you-message');
-                thankYouMessage.style.color = 'green'; // Example styling, adjust as needed
+                // Save nearest unit as post meta
+                update_post_meta($task_id, 'upkeepify_nearest_unit', $nearest_unit);
 
-                // Append the thank you message to the form or its parent
-                form.parentNode.insertBefore(thankYouMessage, form.nextSibling);
-
-                // Optionally, remove the message after a few seconds
-                setTimeout(function() {
-                    thankYouMessage.remove();
-                }, 5000); // Adjust time as needed
-            });
-          </script>";
-} else {
-    // Handle the case where the task could not be created
-    echo '<p>Failed to create task. Please try again.</p>';
-}
-
+                // Thank you message (output as part of the response to the form submission)
+                echo '<div id="upkeepify-thank-you-message" style="color: green;">Thank you for your submission.</div>';
+                // Clear the form fields (this requires custom JavaScript to clear form fields after submission)
+                ?>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.getElementById('upkeepify-task-form').reset();
+                        // Optionally, remove the thank you message after a few seconds
+                        setTimeout(function() {
+                            var thankYouMessage = document.getElementById('upkeepify-thank-you-message');
+                            if (thankYouMessage) thankYouMessage.style.display = 'none';
+                        }, 5000);
+                    });
+                </script>
+                <?php
+            } else {
+                echo '<p>Failed to create task. Please try again.</p>';
+            }
         } else {
-            // Handle incorrect math answer
             echo '<p>Incorrect answer to the security question. Please try again.</p>';
         }
     }
