@@ -85,16 +85,14 @@ function upkeepify_add_task_categories_to_providers() {
     echo '</div>';
 }
 add_action('service_provider_add_form_fields', 'upkeepify_add_task_categories_to_providers');
-add_action('service_provider_edit_form_fields', 'upkeepify_add_task_categories_to_providers');
 
 add_action('service_provider_add_form_fields', 'upkeepify_service_provider_add_form_fields');
 
 // Display custom fields on "Service Providers" taxonomy term edit form
 function upkeepify_service_provider_edit_form_fields($term) {
-    // Retrieve existing values
+    // Retrieve existing values for phone and email
     $provider_phone = get_term_meta($term->term_id, 'provider_phone', true);
     $provider_email = get_term_meta($term->term_id, 'provider_email', true);
-    // Assuming 'associated_task_categories' is saved as an array of term IDs
     $associated_categories = get_term_meta($term->term_id, 'associated_task_categories', true) ?: array();
 
     // Fetch all task categories for selection
@@ -129,7 +127,6 @@ function upkeepify_service_provider_edit_form_fields($term) {
     </tr>
     <?php
 }
-
 add_action('service_provider_edit_form_fields', 'upkeepify_service_provider_edit_form_fields');
 
 // Save custom fields data from "Service Providers" taxonomy term form
@@ -157,5 +154,6 @@ function upkeepify_save_service_provider_custom_fields($term_id) {
     }
 }
 
-add_action('created_service_provider', 'upkeepify_save_service_provider_custom_fields');
+//add_action('created_service_provider', 'upkeepify_save_service_provider_custom_fields');
 add_action('edited_service_provider', 'upkeepify_save_service_provider_custom_fields');
+add_action('created_service_provider', 'upkeepify_save_service_provider_custom_fields');
