@@ -91,26 +91,40 @@ function upkeepify_task_form_shortcode() {
 
     // Thank you message and New Task button, hidden by default
     echo '<div id="thank-you-message" style="display: none; margin-top: 20px;">';
-    echo '<p style="color: green;">Thank you for your submission.</p>';
+    echo '<p style="color: green;">Thank you for your submission. Your task is pending review.</p>';
     echo '<button id="new-task-button">Create a New Task</button>';
     echo '</div>';
 
     // JavaScript to handle form interaction
-    echo "<script>
-        document.getElementById('upkeepify-task-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            // AJAX submission logic here
+echo "<script>
+    document.getElementById('upkeepify-task-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        // Simulate form submission here for demonstration. In production, you would handle form data properly.
 
-            this.style.display = 'none';
-            document.getElementById('thank-you-message').style.display = 'block';
-        });
+        var form = document.getElementById('upkeepify-task-form');
+        var thankYouMessage = document.getElementById('thank-you-message');
+        var gpsLatitude = document.getElementById('gps_latitude');
+        var gpsLongitude = document.getElementById('gps_longitude');
 
-        document.getElementById('new-task-button').addEventListener('click', function() {
-            document.getElementById('upkeepify-task-form').style.display = 'block';
-            document.getElementById('upkeepify-task-form').reset();
-            document.getElementById('thank-you-message').style.display = 'none';
-        });
-    </script>";
+        form.style.display = 'none'; // Hide the form
+        gpsLatitude.style.display = 'none'; // Hide GPS latitude
+        gpsLongitude.style.display = 'none'; // Hide GPS longitude
+        thankYouMessage.style.display = 'block'; // Show thank you message
+    });
+
+    document.getElementById('new-task-button').addEventListener('click', function() {
+        var form = document.getElementById('upkeepify-task-form');
+        var thankYouMessage = document.getElementById('thank-you-message');
+        var gpsLatitude = document.getElementById('gps_latitude');
+        var gpsLongitude = document.getElementById('gps_longitude');
+
+        form.style.display = 'block'; // Show the form again
+        gpsLatitude.style.display = 'block'; // Show GPS latitude
+        gpsLongitude.style.display = 'block'; // Show GPS longitude
+        thankYouMessage.style.display = 'none'; // Hide thank you message
+        form.reset(); // Reset form fields
+    });
+</script>";
 
     // Optional: Script to auto-fill coordinates if user permits
     echo '<script>
