@@ -37,6 +37,7 @@ require_once UPKEEPIFY_PLUGIN_DIR . 'includes/taxonomies.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/settings.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/shortcodes.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/utility-functions.php';
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/admin-functions.php';
 include_once plugin_dir_path( __FILE__ ) . 'includes/sample-data.php';
 
 // Activation and deactivation hooks
