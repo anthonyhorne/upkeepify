@@ -20,7 +20,15 @@ function upkeepify_list_tasks_shortcode() {
         echo '<ul class="upkeepify-tasks-list">';
         while ($query->have_posts()) {
             $query->the_post();
+            $post_id = get_the_ID();
+
+            // Retrieve the rough estimate for this task
+            $rough_estimate = get_post_meta($post_id, 'upkeepify_rough_estimate', true);
+            // Optionally fetch the currency symbol from plugin settings
+            $currency_symbol = get_option('upkeepify_settings')['upkeepify_currency'] ?? '$';
+
             echo '<li><strong>' . get_the_title() . '</strong>';
+            echo 'Rough Estimate: ' . esc_html($currency_symbol) . esc_html($rough_estimate);
             // Optionally display more details here (e.g., status, category)
             echo '</li>';
         }
@@ -104,6 +112,24 @@ function upkeepify_task_form_shortcode() {
         });
     </script>";
 
+    // Optional: Script to auto-fill coordinates if user permits
+    echo '<script>
+    function fillGPSLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                document.getElementById("gps_latitude").value = position.coords.latitude;
+                document.getElementById("gps_longitude").value = position.coords.longitude;
+            });
+        }
+    }
+    </script>';
+
+    // Fields for GPS coordinates
+    echo '<label for="gps_latitude">Latitude:</label><br />';
+    echo '<input type="text" id="gps_latitude" name="gps_latitude" required onclick="fillGPSLocation();"><br />';
+    echo '<label for="gps_longitude">Longitude:</label><br />';
+    echo '<input type="text" id="gps_longitude" name="gps_longitude" required onclick="fillGPSLocation();"><br />';
+
     return ob_get_clean();
 }
 add_shortcode('upkeepify_task_form', 'upkeepify_task_form_shortcode');
@@ -126,6 +152,8 @@ function upkeepify_handle_task_form_submission() {
             $task_title = sanitize_text_field($_POST['task_title']);
             $task_description = sanitize_textarea_field($_POST['task_description']);
             $nearest_unit = isset($_POST['nearest_unit']) ? intval($_POST['nearest_unit']) : 1; // Default to 1 if not set
+            $latitude = sanitize_text_field($_POST['gps_latitude']);
+            $longitude = sanitize_text_field($_POST['gps_longitude']);
 
             // Insert the new task
             $task_id = wp_insert_post([
@@ -133,6 +161,11 @@ function upkeepify_handle_task_form_submission() {
                 'post_content' => $task_description,
                 'post_status'  => 'publish',
                 'post_type'    => 'maintenance_tasks',
+                'meta_input'   => [
+                    'upkeepify_nearest_unit' => $nearest_unit, // Save nearest unit as post meta
+                    'upkeepify_gps_latitude' => $latitude, // Save GPS latitude
+                    'upkeepify_gps_longitude' => $longitude, // Save GPS longitude
+                ],
             ]);
 
             if ($task_id && !is_wp_error($task_id)) {

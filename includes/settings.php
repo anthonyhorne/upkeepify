@@ -154,6 +154,19 @@ add_settings_field(
     ]
 );
 
+// Add a field for specifying the currency in the 'General Settings' section
+add_settings_field(
+    'upkeepify_currency',
+    __('Currency', 'upkeepify'),
+    'upkeepify_text_field_callback', // Assuming you have a generic callback for rendering text fields
+    'upkeepify_settings',
+    'upkeepify_general_settings',
+    [
+        'label_for' => 'upkeepify_currency',
+        'description' => __('Specify the currency symbol (e.g., $, €, £).', 'upkeepify'),
+    ]
+);
+
 }
 
 add_action('admin_init', 'upkeepify_init_plugin_settings');
@@ -188,10 +201,15 @@ function upkeepify_text_field_callback($args) {
 function upkeepify_settings_sanitize($input) {
     $sanitized_input = [];
     foreach ($input as $key => $value) {
-        if ($key === 'upkeepify_number_of_units') { // Specific handling for number fields
+        if ($key === 'upkeepify_number_of_units') {
+            // Ensure the 'Number of Units' is an integer
             $sanitized_input[$key] = intval($value);
+        } else if ($key === 'upkeepify_currency') {
+            // Sanitize the 'Currency' as a text field
+            // Additional validation could be added here if necessary
+            $sanitized_input[$key] = sanitize_text_field($value);
         } else {
-            // Default sanitization for other types
+            // Default sanitization for other settings
             $sanitized_input[$key] = sanitize_text_field($value);
         }
     }

@@ -20,19 +20,6 @@ function upkeepify_register_custom_post_types() {
     );
     register_post_type('maintenance_tasks', $args_maintenance_tasks);
 
-    // Register the Service Providers CPT
-    $args_service_providers = array(
-        'public' => true,
-        'label'  => 'Service Providers',
-        'supports' => array('title', 'editor'),
-        'show_in_rest' => true, // Enables Gutenberg support
-        'show_ui' => true, // Show UI in admin
-        'show_in_menu' => 'edit.php?post_type=maintenance_tasks', // Nested under Maintenance Tasks
-        'has_archive' => true,
-        'rewrite' => array('slug' => 'service-providers'), // Custom slug for this CPT
-    );
-    register_post_type('service_provider', $args_service_providers);
-
 }
 
 add_action('init', 'upkeepify_register_custom_post_types');
@@ -85,3 +72,47 @@ function upkeepify_save_nearest_unit_meta_box_data($post_id) {
     }
 }
 add_action('save_post', 'upkeepify_save_nearest_unit_meta_box_data');
+
+// Register the 'Rough Estimate' meta box for Maintenance Tasks
+function upkeepify_add_rough_estimate_meta_box() {
+    add_meta_box(
+        'upkeepify_rough_estimate', // Unique ID for the meta box
+        __('Rough Estimate', 'upkeepify'), // Meta box title
+        'upkeepify_rough_estimate_meta_box_callback', // Callback function to display the field
+        'maintenance_tasks', // Post type where the meta box will be shown
+        'side', // Context where the box will show ('normal', 'side', 'advanced')
+        'default' // Priority within the context where the boxes should show ('high', 'low', 'default')
+    );
+}
+add_action('add_meta_boxes', 'upkeepify_add_rough_estimate_meta_box');
+
+// Display the 'Rough Estimate' field in the meta box
+function upkeepify_rough_estimate_meta_box_callback($post) {
+    // Security nonce for verification
+    wp_nonce_field('upkeepify_rough_estimate_save', 'upkeepify_rough_estimate_nonce');
+    
+    // Retrieve current 'Rough Estimate' value
+    $rough_estimate_value = get_post_meta($post->ID, 'upkeepify_rough_estimate', true);
+
+    // Output the field for entering the rough estimate
+    echo '<label for="upkeepify_rough_estimate">' . __('Rough Estimate', 'upkeepify') . ':</label>';
+    echo '<input type="text" id="upkeepify_rough_estimate" name="upkeepify_rough_estimate" value="' . esc_attr($rough_estimate_value) . '" class="widefat">';
+    echo '<p class="description">' . __('Provide a rough estimate for the task.', 'upkeepify') . '</p>';
+}
+
+// Save the 'Rough Estimate' when the post is saved
+function upkeepify_save_rough_estimate_meta_box_data($post_id) {
+    // Check nonce, autosave, user permissions
+    if (!isset($_POST['upkeepify_rough_estimate_nonce']) || 
+        !wp_verify_nonce($_POST['upkeepify_rough_estimate_nonce'], 'upkeepify_rough_estimate_save') || 
+        (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) || 
+        !current_user_can('edit_post', $post_id)) {
+        return;
+    }
+
+    // Update the 'Rough Estimate' post meta
+    if (isset($_POST['upkeepify_rough_estimate'])) {
+        update_post_meta($post_id, 'upkeepify_rough_estimate', sanitize_text_field($_POST['upkeepify_rough_estimate']));
+    }
+}
+add_action('save_post', 'upkeepify_save_rough_estimate_meta_box_data');
