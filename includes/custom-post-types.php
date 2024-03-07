@@ -116,3 +116,20 @@ function upkeepify_save_rough_estimate_meta_box_data($post_id) {
     }
 }
 add_action('save_post', 'upkeepify_save_rough_estimate_meta_box_data');
+
+function upkeepify_register_response_post_type() {
+    $args = array(
+        'public' => false, // Set to false to hide from the front end
+        'publicly_queryable' => true, // Allows querying by authorized users
+        'show_ui' => true, // Display in the admin dashboard
+        'show_in_menu' => 'edit.php?post_type=maintenance_tasks', // Nest under Maintenance Tasks
+        'supports' => array('title', 'editor', 'custom-fields'),
+        'labels' => array(
+            'name' => 'Responses',
+            'singular_name' => 'Response',
+            // Further labels as needed
+        ),
+    );
+    register_post_type('upkeepify_responses', $args);
+}
+add_action('init', 'upkeepify_register_response_post_type');
