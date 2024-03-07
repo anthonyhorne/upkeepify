@@ -39,6 +39,7 @@ require_once UPKEEPIFY_PLUGIN_DIR . 'includes/shortcodes.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/utility-functions.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/admin-functions.php';
 include_once plugin_dir_path( __FILE__ ) . 'includes/sample-data.php';
+include_once plugin_dir_path( __FILE__ ) . 'includes/task-response-handling.php';
 
 // Activation and deactivation hooks
 register_activation_hook(__FILE__, 'upkeepify_activate');

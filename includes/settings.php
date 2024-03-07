@@ -167,9 +167,48 @@ add_settings_field(
     ]
 );
 
+    // Thank You Page Setting
+    add_settings_section(
+        'upkeepify_provider_thank_you_settings',
+        __('Provider Thank You Page Settings', 'upkeepify'),
+        'upkeepify_provider_thank_you_settings_section_callback',
+        'upkeepify_settings'
+    );
+
+    // Checkbox for enabling custom thank you page
+    add_settings_field(
+        'upkeepify_enable_thank_you_page',
+        __('Enable Custom Thank You Page', 'upkeepify'),
+        'upkeepify_checkbox_field_callback',
+        'upkeepify_settings',
+        'upkeepify_provider_thank_you_settings',
+        [
+            'label_for' => 'upkeepify_enable_thank_you_page',
+            'class' => 'upkeepify_row',
+            'upkeepify_custom_data' => 'checkbox',
+        ]
+    );
+
+    // Textbox for specifying the URL of the thank you page
+    add_settings_field(
+        'upkeepify_thank_you_page_url',
+        __('Thank You Page URL', 'upkeepify'),
+        'upkeepify_text_field_callback',
+        'upkeepify_settings',
+        'upkeepify_provider_thank_you_settings',
+        [
+            'label_for' => 'upkeepify_thank_you_page_url',
+            'class' => 'upkeepify_row upkeepify_thank_you_page_url',
+        ]
+    );
+
 }
 
 add_action('admin_init', 'upkeepify_init_plugin_settings');
+
+function upkeepify_provider_thank_you_settings_section_callback() {
+    echo '<p>' . __('Configure the custom thank you page for service providers.', 'upkeepify') . '</p>';
+}
 
 function upkeepify_settings_page() {
     ?>
@@ -232,7 +271,7 @@ function upkeepify_enqueue_admin_scripts($hook_suffix) {
         'upkeepify-admin-settings-js', // Handle for the script.
         $script_url,
         array('jquery'), // Dependencies. It depends on jQuery
-        '1.0.0', // Script version number for cache busting
+        '1.0.1', // Script version number for cache busting
         true // Load in the footer to not delay page rendering.
     );
 }

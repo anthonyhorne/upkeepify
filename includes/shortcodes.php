@@ -218,3 +218,56 @@ function upkeepify_handle_task_form_submission() {
     }
 }
 add_action('init', 'upkeepify_handle_task_form_submission');
+
+//Section for Responses
+function upkeepify_provider_response_form_shortcode($atts) {
+    // Start output buffering
+    ob_start();
+
+    // Check if a token is provided
+    $attributes = shortcode_atts(['token' => ''], $atts);
+    $token = sanitize_text_field($attributes['token']);
+
+    // Find the provider response post with this token
+    $query_args = [
+        'post_type' => 'provider_responses', // Replace with your custom post type for provider responses
+        'meta_query' => [
+            [
+                'key' => 'response_token',
+                'value' => $token,
+                'compare' => '='
+            ]
+        ],
+        'posts_per_page' => 1,
+    ];
+    $query = new WP_Query($query_args);
+
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $task_id = get_post_meta(get_the_ID(), 'response_task_id', true);
+            $task_post = get_post($task_id);
+
+            // Display task details (readonly)
+            echo '<h3>Task Details</h3>';
+            echo '<p>Title: ' . esc_html($task_post->post_title) . '</p>';
+            echo '<p>Description: ' . esc_html($task_post->post_content) . '</p>';
+
+            // Form for provider to submit response
+            echo '<form action="' . esc_url(admin_url('admin-post.php')) . '" method="post">';
+            echo '<input type="hidden" name="action" value="upkeepify_provider_response_submit">';
+            echo '<input type="hidden" name="response_id" value="' . get_the_ID() . '">';
+            // Additional fields for provider's response here
+            echo '<textarea name="provider_response" placeholder="Your response"></textarea>';
+            echo '<input type="submit" value="Submit Response">';
+            echo '</form>';
+        }
+    } else {
+        echo '<p>Invalid token or response not found.</p>';
+    }
+
+    wp_reset_postdata();
+    return ob_get_clean();
+}
+add_shortcode('upkeepify_provider_response_form', 'upkeepify_provider_response_form_shortcode');
+
