@@ -10,9 +10,9 @@ jQuery(document).ready(function($) {
         console.log('Toggling Thank You Page URL');
         var isChecked = $('#upkeepify_enable_thank_you_page').is(':checked');
         console.log('Checkbox checked:', isChecked);
-        // $('.thank_you_page_url_setting').toggle(isChecked);
+        console.log($('.upkeepify_thank_you_page_url').length + " elements found.");
         $('.upkeepify_thank_you_page_url').toggle(isChecked);
-    }
+    }    
 
     // Run on document ready to apply the correct initial state
     toggleSmtpSettings();
@@ -21,4 +21,8 @@ jQuery(document).ready(function($) {
     // Attach a change event listener to the checkboxes
     $('#upkeepify_smtp_option').change(toggleSmtpSettings);
     $('#upkeepify_enable_thank_you_page').change(toggleThankYouPageUrl); // Listen for changes on the thank you page checkbox
+
+        // Attach a change event listener to the Thank You Page checkbox using delegated events
+        $(document).on('change', '#upkeepify_enable_thank_you_page', toggleThankYouPageUrl);
+
 });
