@@ -10,7 +10,8 @@ jQuery(document).ready(function($) {
         console.log('Toggling Thank You Page URL');
         var isChecked = $('#upkeepify_enable_thank_you_page').is(':checked');
         console.log('Checkbox checked:', isChecked);
-        $('.thank_you_page_url_setting').toggle(isChecked);
+        // $('.thank_you_page_url_setting').toggle(isChecked);
+        $('.upkeepify_thank_you_page_url').toggle(isChecked);
     }
 
     // Run on document ready to apply the correct initial state
