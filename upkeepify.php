@@ -42,7 +42,7 @@ include_once plugin_dir_path( __FILE__ ) . 'includes/sample-data.php';
 include_once plugin_dir_path( __FILE__ ) . 'includes/task-response-handling.php';
 // Include the upload handlers file
 require_once plugin_dir_path(__FILE__) . 'includes/upload-handlers.php';
-require_once plugin_dir_path(__FILE__) . 'notification-system.php';
+require_once plugin_dir_path(__FILE__) . 'includes/notification-system.php';
 
 // Activation and deactivation hooks
 register_activation_hook(__FILE__, 'upkeepify_activate');
