@@ -21,7 +21,7 @@ function upkeepify_register_custom_post_types() {
     register_post_type('maintenance_tasks', $args_maintenance_tasks);
 
     // Check if the post type registration was successful
-    /if ($result) {
+    if ($result) {
         // Add a success notification
         upkeepify_add_notification('Maintenance Tasks custom post type registered successfully.', 'success');
     } else {
