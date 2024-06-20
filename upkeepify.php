@@ -20,7 +20,7 @@
  *
  * Credits:
  * - Anthony Horne: Plugin Development and Concept
- * - OpenAI's ChatGPT: Assistance with Code Examples and Logic
+ * - OpenAI's ChatGPT: Assistance with Code Examples and Logic (Sometimes Passive aggressively)
  * - WordPress Community: Various Tutorials and Code Snippets
  */
 
