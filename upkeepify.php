@@ -48,6 +48,14 @@ require_once plugin_dir_path(__FILE__) . 'includes/notification-system.php';
 register_activation_hook(__FILE__, 'upkeepify_activate');
 register_deactivation_hook(__FILE__, 'upkeepify_deactivate');
 
+/**
+ * Load text domain for localization.
+ */
+function upkeepify_load_textdomain() {
+    load_plugin_textdomain( 'upkeepify', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
+}
+add_action( 'plugins_loaded', 'upkeepify_load_textdomain' );
+
 function upkeepify_activate() {
     // Activation code here
 
