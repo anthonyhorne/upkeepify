@@ -45,3 +45,57 @@ The Upkeepify plugin provides several hooks (actions and filters) that allow dev
 - `upkeepify_validate_task_update_token`: Allows you to modify the logic for validating task update tokens provided by service providers.
 
 You can hook into these actions and filters by adding your custom functions to the appropriate hooks in your theme's `functions.php` file or a custom plugin.
+
+## Examples
+
+### Adding a Custom Field to the Task Form
+
+To add a custom field to the task submission form, you can use the `upkeepify_task_form_shortcode` filter. Here's an example:
+
+```php
+add_filter('upkeepify_task_form_shortcode', 'add_custom_field_to_task_form');
+function add_custom_field_to_task_form($form_html) {
+    $custom_field_html = '<p><label for="custom_field">Custom Field:</label><br />';
+    $custom_field_html .= '<input type="text" id="custom_field" name="custom_field" class="upkeepify-input"></p>';
+    return $form_html . $custom_field_html;
+}
+```
+
+### Validating the Custom Field
+
+To validate the custom field, you can use the `upkeepify_handle_task_form_submission` action. Here's an example:
+
+```php
+add_action('upkeepify_handle_task_form_submission', 'validate_custom_field');
+function validate_custom_field() {
+    if (isset($_POST['custom_field']) && empty($_POST['custom_field'])) {
+        wp_die('The custom field is required.');
+    }
+}
+```
+
+### Saving the Custom Field
+
+To save the custom field value, you can use the `save_post` action. Here's an example:
+
+```php
+add_action('save_post', 'save_custom_field');
+function save_custom_field($post_id) {
+    if (isset($_POST['custom_field'])) {
+        update_post_meta($post_id, 'custom_field', sanitize_text_field($_POST['custom_field']));
+    }
+}
+```
+
+## Best Practices for Contributing
+
+When contributing to the Upkeepify plugin, please follow these best practices:
+
+1. **Fork the Repository**: Start by forking the Upkeepify repository on GitHub to your own account.
+2. **Create a Branch**: Create a new branch for your feature or bug fix. Use a descriptive name for the branch, such as `feature/add-custom-field` or `bugfix/fix-task-form`.
+3. **Write Clear Commit Messages**: Write clear and concise commit messages that describe the changes you made. Use the imperative mood, such as "Add custom field to task form" or "Fix validation for custom field".
+4. **Follow Coding Standards**: Ensure that your code adheres to the WordPress Coding Standards. Use a code linter to check for any issues.
+5. **Test Your Changes**: Test your changes thoroughly to ensure they work as expected and do not introduce any new issues. Write unit tests if applicable.
+6. **Submit a Pull Request**: Once you are satisfied with your changes, submit a pull request to the main Upkeepify repository. Provide a detailed description of the changes and any relevant information for the reviewers.
+
+By following these best practices, you can help maintain the quality and consistency of the Upkeepify plugin and make it easier for others to review and merge your contributions.

@@ -280,3 +280,22 @@ add_action('admin_enqueue_scripts', 'upkeepify_enqueue_admin_scripts');
 add_action('admin_enqueue_scripts', function($hook_suffix) {
     error_log('Current page hook suffix: ' . $hook_suffix);
 });
+
+// Implement caching for frequently accessed data
+function upkeepify_get_cached_option($option_name) {
+    $cache_key = 'upkeepify_' . $option_name;
+    $cached_value = wp_cache_get($cache_key, 'upkeepify');
+
+    if ($cached_value === false) {
+        $cached_value = get_option($option_name);
+        wp_cache_set($cache_key, $cached_value, 'upkeepify', 3600); // Cache for 1 hour
+    }
+
+    return $cached_value;
+}
+
+function upkeepify_update_cached_option($option_name, $option_value) {
+    $cache_key = 'upkeepify_' . $option_name;
+    update_option($option_name, $option_value);
+    wp_cache_set($cache_key, $option_value, 'upkeepify', 3600); // Cache for 1 hour
+}
