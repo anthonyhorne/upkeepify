@@ -16,6 +16,11 @@ The `[upkeepify_task_form]` shortcode generates a form for residents to submit n
 
 When a user submits the form, a new "Maintenance Task" post is created with the provided details. Administrators can then manage and assign these tasks to appropriate service providers.
 
+### Enhancements
+
+- The form now includes CSS classes for better styling.
+- JavaScript enhancements have been added for improved user interaction, including a thank you message and a button to create a new task after submission.
+
 ## Task Listing
 
 The `[upkeepify_list_tasks]` shortcode displays a list of all published maintenance tasks. For each task, the following information is shown:
@@ -27,3 +32,7 @@ The `[upkeepify_list_tasks]` shortcode displays a list of all published maintena
 - Status (optional)
 
 This shortcode provides a simple way to display the current list of maintenance tasks on your WordPress site, allowing residents to stay informed about ongoing maintenance activities.
+
+### Enhancements
+
+- The task list now includes CSS classes for better styling.
