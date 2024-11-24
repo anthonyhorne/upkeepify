@@ -85,7 +85,17 @@ function upkeepify_list_tasks_shortcode() {
     ]);
 
     if ($query->have_posts()) {
-        echo '<ul class="upkeepify-tasks-list">';
+        echo '<table class="upkeepify-tasks-table">';
+        echo '<thead>';
+        echo '<tr>';
+        echo '<th>Task Title</th>';
+        echo '<th>Rough Estimate</th>';
+        echo '<th>Category</th>';
+        echo '<th>Type</th>';
+        echo '<th>Status</th>';
+        echo '</tr>';
+        echo '</thead>';
+        echo '<tbody>';
         while ($query->have_posts()) {
             $query->the_post();
             $post_id = get_the_ID();
@@ -95,12 +105,21 @@ function upkeepify_list_tasks_shortcode() {
             // Optionally fetch the currency symbol from plugin settings
             $currency_symbol = get_option('upkeepify_settings')['upkeepify_currency'] ?? '$';
 
-            echo '<li class="upkeepify-task-item"><strong>' . get_the_title() . '</strong>';
-            echo 'Rough Estimate: ' . esc_html($currency_symbol) . esc_html($rough_estimate);
-            // Optionally display more details here (e.g., status, category)
-            echo '</li>';
+            // Retrieve the category, type, and status terms
+            $category = wp_get_post_terms($post_id, 'task_category', array('fields' => 'names'));
+            $type = wp_get_post_terms($post_id, 'task_type', array('fields' => 'names'));
+            $status = wp_get_post_terms($post_id, 'task_status', array('fields' => 'names'));
+
+            echo '<tr>';
+            echo '<td>' . get_the_title() . '</td>';
+            echo '<td>' . esc_html($currency_symbol) . esc_html($rough_estimate) . '</td>';
+            echo '<td>' . (!empty($category) ? esc_html($category[0]) : '') . '</td>';
+            echo '<td>' . (!empty($type) ? esc_html($type[0]) : '') . '</td>';
+            echo '<td>' . (!empty($status) ? esc_html($status[0]) : '') . '</td>';
+            echo '</tr>';
         }
-        echo '</ul>';
+        echo '</tbody>';
+        echo '</table>';
     } else {
         echo '<p>No maintenance tasks found.</p>';
     }

@@ -235,3 +235,30 @@
 #new-task-button:hover {
     background-color: #005177;
 }
+
+/* Styles for the tasks table */
+.upkeepify-tasks-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.upkeepify-tasks-table th,
+.upkeepify-tasks-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.upkeepify-tasks-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.upkeepify-tasks-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.upkeepify-tasks-table tr:hover {
+    background-color: #f1f1f1;
+}
