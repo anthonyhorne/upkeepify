@@ -65,7 +65,7 @@ add_settings_field(
     'upkeepify_general_settings',
     [
         'label_for' => 'upkeepify_smtp_host',
-        'class' => 'upkeepify_row smtp_setting'
+        'class' => 'smtp_setting'
     ]
 );
 
