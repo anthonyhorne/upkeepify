@@ -7,7 +7,7 @@ if (!defined('WPINC')) {
 /**
  * Register Custom Post Types
  */
-function upkeepify_register_custom_post_types() {
+function upkeepify_register_maintenance_tasks_post_type() {
     // Register the Maintenance Tasks CPT
     $args_maintenance_tasks = array(
         'public' => true,
@@ -18,20 +18,20 @@ function upkeepify_register_custom_post_types() {
         'has_archive' => true,
         'rewrite' => array('slug' => 'maintenance-tasks'), // Custom slug for this CPT
     );
-    register_post_type('maintenance_tasks', $args_maintenance_tasks);
+    $maintenance_tasks_registered = register_post_type('maintenance_tasks', $args_maintenance_tasks);
 
     // Check if the post type registration was successful
-    if ($result) {
+    if ($maintenance_tasks_registered) {
         // Add a success notification
         upkeepify_add_notification('Maintenance Tasks custom post type registered successfully.', 'success');
     } else {
         // Add an error notification
-        upkeepify_add_notification('Failed to register Maintenance Tasks custom post type.', 'error', array('additional_data' => 'value'), true);
+        upkeepify_add_notification('Failed to register Maintenance Tasks custom post type.', 'error');
     }
 
 }
 
-add_action('init', 'upkeepify_register_custom_post_types');
+add_action('init', 'upkeepify_register_maintenance_tasks_post_type');
 
 // Register the 'Nearest Unit' meta box for Maintenance Tasks
 function upkeepify_add_nearest_unit_meta_box() {
@@ -59,7 +59,7 @@ function upkeepify_nearest_unit_meta_box_callback($post) {
 
     // Output the dropdown for selecting the nearest unit
     echo '<select name="upkeepify_nearest_unit" id="upkeepify_nearest_unit" class="postbox">';
-    for ($i = 1; $i <= $number_of_units - 1; $i++) {
+    for ($i = 1; $i <= $number_of_units; $i++) {
         echo '<option value="' . esc_attr($i) . '"' . selected($nearest_unit_value, $i, false) . '>' . esc_html($i) . '</option>';
     }
     echo '</select>';

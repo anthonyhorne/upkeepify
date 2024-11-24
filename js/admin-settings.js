@@ -1,13 +1,13 @@
-jQuery(document).ready(function($) {
+$(function() {
     // Function to toggle SMTP settings visibility
     function toggleSmtpSettings() {
+        // Toggle the visibility of SMTP settings based on the checkbox state
         $('.smtp_setting').toggle(!$('#upkeepify_smtp_option').is(':checked'));
     }
 
-    // Function to toggle visibility based on the checkbox
+    // Function to toggle the visibility of the Thank You Page setting based on the checkbox state
     function toggleThankYouPageSetting() {
-        // Check if the checkbox is checked
-        var isChecked = $('#upkeepify_enable_thank_you_page').is(':checked');
+        const isChecked = $('#upkeepify_enable_thank_you_page').is(':checked');
         // Toggle the visibility of the input field
         $('.upkeepify_row.upkeepify_thank_you_page_url').toggle(isChecked);
     }
@@ -17,10 +17,10 @@ jQuery(document).ready(function($) {
     // Initial check to set correct visibility on page load
     toggleThankYouPageSetting();
 
-    // Attach a change event listener to the SMTP checkbox
+    // Setup change event listener for the SMTP checkbox
     $('#upkeepify_smtp_option').change(toggleSmtpSettings);
 
-    // Setup change event listener
+    // Setup change event listener for the Thank You Page checkbox
     $('#upkeepify_enable_thank_you_page').change(toggleThankYouPageSetting);
     
 });

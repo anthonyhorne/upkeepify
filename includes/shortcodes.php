@@ -1,12 +1,80 @@
-<?php
+<?php 
 // Prevent direct file access
 if (!defined('WPINC')) {
     die;
 }
 
-/**
- * Shortcode to Display Maintenance Tasks
- */
+// Register Custom Post Types
+function upkeepify_register_custom_post_types() {
+    // Register the Maintenance Tasks CPT
+    $args_maintenance_tasks = array(
+        'public' => true,
+        'label'  => __('Maintenance Tasks', 'upkeepify'),
+        'supports' => array('title', 'editor', 'custom-fields', 'comments'),
+        'show_in_rest' => true, // Enables Gutenberg support
+        'menu_icon' => 'dashicons-hammer', // Custom dashicon for the menu
+        'has_archive' => true,
+        'rewrite' => array('slug' => 'maintenance-tasks'), // Custom slug for this CPT
+    );
+    $result = register_post_type('maintenance_tasks', $args_maintenance_tasks);
+
+    // The $result variable holds the result of the register_post_type function, which returns a WP_Error object on failure or a boolean true on success.
+    // Check if the post type registration was successful
+    if ($result) {
+        // Add a success notification
+        upkeepify_add_notification(__('Maintenance Tasks custom post type registered successfully.', 'upkeepify'), 'success');
+    } else {
+        // Add an error notification
+        upkeepify_add_notification(__('Failed to register Maintenance Tasks custom post type.', 'upkeepify'), 'error');
+    }
+}
+add_action('init', 'upkeepify_register_custom_post_types');
+
+// Register Shortcodes
+function upkeepify_register_shortcodes() {
+    add_shortcode('maintenance_tasks', 'upkeepify_maintenance_tasks_shortcode');
+}
+add_action('init', 'upkeepify_register_shortcodes');
+
+// Shortcode handler function
+function upkeepify_maintenance_tasks_shortcode($atts) {
+    // Extract shortcode attributes
+    $atts = shortcode_atts(array(
+        'limit' => 5, // Default limit
+    ), $atts, 'maintenance_tasks');
+
+    // Query the maintenance tasks
+    $query = new WP_Query(array(
+        'post_type' => 'maintenance_tasks',
+        'posts_per_page' => intval($atts['limit']),
+    ));
+
+    // Start output buffering
+    ob_start();
+
+    // Check if there are any posts
+    if ($query->have_posts()) {
+        echo '<div class="maintenance-tasks">';
+        while ($query->have_posts()) {
+            $query->the_post();
+            echo '<div class="maintenance-task">';
+            echo '<h2>' . esc_html(get_the_title()) . '</h2>';
+            echo '<div class="content">' . wp_kses_post(get_the_content()) . '</div>';
+            echo '</div>';
+        }
+        echo '</div>';
+    } else {
+        echo '<p>' . __('No maintenance tasks found.', 'upkeepify') . '</p>';
+    }
+
+    // Reset post data
+    wp_reset_postdata();
+
+    // Return the output
+    return ob_get_clean();
+}
+
+// Shortcode to Display Maintenance Tasks
 function upkeepify_list_tasks_shortcode() {
     ob_start(); // Start output buffering
 
@@ -42,12 +110,12 @@ function upkeepify_list_tasks_shortcode() {
 }
 add_shortcode('upkeepify_list_tasks', 'upkeepify_list_tasks_shortcode');
 
-/**
- * Shortcode for Task Submission Form
- */
+// Shortcode for Task Submission Form
 function upkeepify_task_form_shortcode() {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+    if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['upkeepify_task_submit'], $_POST['math'])) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
     }
 
     $num1 = rand(1, 10);
@@ -149,9 +217,7 @@ echo "<script>
 add_shortcode('upkeepify_task_form', 'upkeepify_task_form_shortcode');
 
 
-/**
- * Handle Form Submission for Task Creation
- */
+// Handle Form Submission for Task Creation
 function upkeepify_handle_task_form_submission() {
     // Ensure this code only runs when the form is submitted
     if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['upkeepify_task_submit'], $_POST['math'])) {
@@ -208,7 +274,7 @@ function upkeepify_handle_task_form_submission() {
                         }, 5000);
                     });
                 </script>
-                <?php
+                <?php 
             } else {
                 echo '<p>Failed to create task. Please try again.</p>';
             }

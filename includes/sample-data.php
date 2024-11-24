@@ -1,7 +1,7 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-function upkeepify_insert_sample_data() {
+function insert_upkeepify_sample_data() {
     // Insert Sample Categories
     $categories = ['General Maintenance', 'Electrical', 'Plumbing', 'Landscaping'];
     foreach ($categories as $category) {
