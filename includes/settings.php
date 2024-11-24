@@ -133,7 +133,7 @@ add_settings_field(
         'upkeepify_general_settings',
         [
             'label_for' => 'upkeepify_enable_token_update',
-            'checked' => '0'
+        'checked' => '0'
         ]
     );
 
@@ -301,14 +301,13 @@ function upkeepify_update_cached_option($option_name, $option_value) {
 }
 
 function upkeepify_setup_wizard() {
-    add_menu_page(
+    add_submenu_page(
+        'edit.php?post_type=maintenance_tasks',
         'Upkeepify Setup Wizard',
         'Setup Wizard',
         'manage_options',
         'upkeepify_setup_wizard',
-        'upkeepify_setup_wizard_page',
-        'dashicons-admin-generic',
-        2
+        'upkeepify_setup_wizard_page'
     );
 }
 
