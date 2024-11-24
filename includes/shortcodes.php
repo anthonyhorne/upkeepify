@@ -337,3 +337,172 @@ function upkeepify_provider_response_form_shortcode($atts) {
 }
 add_shortcode('upkeepify_provider_response_form', 'upkeepify_provider_response_form_shortcode');
 
+// Shortcode to display tasks by category
+function upkeepify_tasks_by_category_shortcode($atts) {
+    $atts = shortcode_atts(array(
+        'category' => '',
+    ), $atts, 'upkeepify_tasks_by_category');
+
+    $query = new WP_Query(array(
+        'post_type' => 'maintenance_tasks',
+        'tax_query' => array(
+            array(
+                'taxonomy' => 'task_category',
+                'field'    => 'slug',
+                'terms'    => $atts['category'],
+            ),
+        ),
+    ));
+
+    ob_start();
+
+    if ($query->have_posts()) {
+        echo '<ul class="upkeepify-tasks-by-category">';
+        while ($query->have_posts()) {
+            $query->the_post();
+            echo '<li>' . get_the_title() . '</li>';
+        }
+        echo '</ul>';
+    } else {
+        echo '<p>No tasks found in this category.</p>';
+    }
+
+    wp_reset_postdata();
+    return ob_get_clean();
+}
+add_shortcode('upkeepify_tasks_by_category', 'upkeepify_tasks_by_category_shortcode');
+
+// Shortcode to display tasks assigned to a specific service provider
+function upkeepify_tasks_by_provider_shortcode($atts) {
+    $atts = shortcode_atts(array(
+        'provider' => '',
+    ), $atts, 'upkeepify_tasks_by_provider');
+
+    $query = new WP_Query(array(
+        'post_type' => 'maintenance_tasks',
+        'meta_query' => array(
+            array(
+                'key'     => 'assigned_service_provider',
+                'value'   => $atts['provider'],
+                'compare' => '=',
+            ),
+        ),
+    ));
+
+    ob_start();
+
+    if ($query->have_posts()) {
+        echo '<ul class="upkeepify-tasks-by-provider">';
+        while ($query->have_posts()) {
+            $query->the_post();
+            echo '<li>' . get_the_title() . '</li>';
+        }
+        echo '</ul>';
+    } else {
+        echo '<p>No tasks found for this service provider.</p>';
+    }
+
+    wp_reset_postdata();
+    return ob_get_clean();
+}
+add_shortcode('upkeepify_tasks_by_provider', 'upkeepify_tasks_by_provider_shortcode');
+
+// Shortcode to display tasks with a specific status
+function upkeepify_tasks_by_status_shortcode($atts) {
+    $atts = shortcode_atts(array(
+        'status' => '',
+    ), $atts, 'upkeepify_tasks_by_status');
+
+    $query = new WP_Query(array(
+        'post_type' => 'maintenance_tasks',
+        'tax_query' => array(
+            array(
+                'taxonomy' => 'task_status',
+                'field'    => 'slug',
+                'terms'    => $atts['status'],
+            ),
+        ),
+    ));
+
+    ob_start();
+
+    if ($query->have_posts()) {
+        echo '<ul class="upkeepify-tasks-by-status">';
+        while ($query->have_posts()) {
+            $query->the_post();
+            echo '<li>' . get_the_title() . '</li>';
+        }
+        echo '</ul>';
+    } else {
+        echo '<p>No tasks found with this status.</p>';
+    }
+
+    wp_reset_postdata();
+    return ob_get_clean();
+}
+add_shortcode('upkeepify_tasks_by_status', 'upkeepify_tasks_by_status_shortcode');
+
+// Shortcode to display a summary of tasks, including counts of tasks by status
+function upkeepify_task_summary_shortcode() {
+    $statuses = get_terms(array(
+        'taxonomy'   => 'task_status',
+        'hide_empty' => false,
+    ));
+
+    ob_start();
+
+    if (!empty($statuses)) {
+        echo '<ul class="upkeepify-task-summary">';
+        foreach ($statuses as $status) {
+            $count = new WP_Query(array(
+                'post_type' => 'maintenance_tasks',
+                'tax_query' => array(
+                    array(
+                        'taxonomy' => 'task_status',
+                        'field'    => 'slug',
+                        'terms'    => $status->slug,
+                    ),
+                ),
+            ));
+            echo '<li>' . esc_html($status->name) . ': ' . $count->found_posts . '</li>';
+        }
+        echo '</ul>';
+    } else {
+        echo '<p>No task statuses found.</p>';
+    }
+
+    return ob_get_clean();
+}
+add_shortcode('upkeepify_task_summary', 'upkeepify_task_summary_shortcode');
+
+// Shortcode to display a calendar view of tasks, showing due dates and deadlines
+function upkeepify_task_calendar_shortcode() {
+    $tasks = new WP_Query(array(
+        'post_type'      => 'maintenance_tasks',
+        'posts_per_page' => -1,
+        'meta_key'       => 'due_date',
+        'orderby'        => 'meta_value',
+        'order'          => 'ASC',
+    ));
+
+    ob_start();
+
+    if ($tasks->have_posts()) {
+        echo '<div id="upkeepify-task-calendar">';
+        while ($tasks->have_posts()) {
+            $tasks->the_post();
+            $due_date = get_post_meta(get_the_ID(), 'due_date', true);
+            echo '<div class="task">';
+            echo '<h3>' . get_the_title() . '</h3>';
+            echo '<p>Due Date: ' . esc_html($due_date) . '</p>';
+            echo '</div>';
+        }
+        echo '</div>';
+    } else {
+        echo '<p>No tasks found.</p>';
+    }
+
+    wp_reset_postdata();
+    return ob_get_clean();
+}
+add_shortcode('upkeepify_task_calendar', 'upkeepify_task_calendar_shortcode');
