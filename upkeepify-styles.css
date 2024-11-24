@@ -262,3 +262,43 @@
 .upkeepify-tasks-table tr:hover {
     background-color: #f1f1f1;
 }
+
+/* Responsive design for tasks table */
+@media (max-width: 768px) {
+    .upkeepify-tasks-table th:nth-child(2),
+    .upkeepify-tasks-table th:nth-child(4),
+    .upkeepify-tasks-table td:nth-child(2),
+    .upkeepify-tasks-table td:nth-child(4) {
+        display: none;
+    }
+}
+
+/* Responsive design for task form */
+@media (min-width: 769px) {
+    .upkeepify-form-table {
+        display: table;
+        width: 100%;
+    }
+
+    .upkeepify-form-table .upkeepify-form-row {
+        display: table-row;
+    }
+
+    .upkeepify-form-table .upkeepify-form-cell {
+        display: table-cell;
+        padding: 8px;
+        vertical-align: top;
+    }
+
+    .upkeepify-form-table .upkeepify-form-cell label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .upkeepify-form-table .upkeepify-form-cell input[type="text"],
+    .upkeepify-form-table .upkeepify-form-cell textarea,
+    .upkeepify-form-table .upkeepify-form-cell select,
+    .upkeepify-form-table .upkeepify-form-cell input[type="file"] {
+        width: 100%;
+    }
+}
