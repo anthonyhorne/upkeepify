@@ -47,3 +47,16 @@ function insert_upkeepify_sample_data() {
         }
     }
 }
+
+function upkeepify_insert_sample_data() {
+    insert_upkeepify_sample_data();
+}
+
+function upkeepify_maybe_insert_sample_data() {
+    if (!get_option('upkeepify_sample_data_inserted')) {
+        upkeepify_insert_sample_data();
+        update_option('upkeepify_sample_data_inserted', 1);
+    }
+}
+
+add_action('admin_init', 'upkeepify_maybe_insert_sample_data');

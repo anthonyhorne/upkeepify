@@ -299,3 +299,33 @@ function upkeepify_update_cached_option($option_name, $option_value) {
     update_option($option_name, $option_value);
     wp_cache_set($cache_key, $option_value, 'upkeepify', 3600); // Cache for 1 hour
 }
+
+function upkeepify_setup_wizard() {
+    add_menu_page(
+        'Upkeepify Setup Wizard',
+        'Setup Wizard',
+        'manage_options',
+        'upkeepify_setup_wizard',
+        'upkeepify_setup_wizard_page',
+        'dashicons-admin-generic',
+        2
+    );
+}
+
+function upkeepify_setup_wizard_page() {
+    ?>
+    <div class="wrap">
+        <h1><?php echo esc_html__('Upkeepify Setup Wizard', 'upkeepify'); ?></h1>
+        <p><?php echo esc_html__('Welcome to the Upkeepify Setup Wizard. Follow the steps below to configure the plugin.', 'upkeepify'); ?></p>
+        <form method="post" action="options.php">
+            <?php
+            settings_fields('upkeepify');
+            do_settings_sections('upkeepify_settings');
+            submit_button(__('Save Settings', 'upkeepify'));
+            ?>
+        </form>
+    </div>
+    <?php
+}
+
+add_action('admin_menu', 'upkeepify_setup_wizard');

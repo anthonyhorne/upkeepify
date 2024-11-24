@@ -64,7 +64,7 @@ function upkeepify_activate() {
 
     // Activation code here, like loading sample data
     //upkeepify_install_sample_data();
-    //upkeepify_insert_sample_data()
+    upkeepify_maybe_insert_sample_data(); // P0fe6
 }
 
 function upkeepify_deactivate() {
