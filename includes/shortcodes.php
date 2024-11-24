@@ -95,7 +95,7 @@ function upkeepify_list_tasks_shortcode() {
             // Optionally fetch the currency symbol from plugin settings
             $currency_symbol = get_option('upkeepify_settings')['upkeepify_currency'] ?? '$';
 
-            echo '<li><strong>' . get_the_title() . '</strong>';
+            echo '<li class="upkeepify-task-item"><strong>' . get_the_title() . '</strong>';
             echo 'Rough Estimate: ' . esc_html($currency_symbol) . esc_html($rough_estimate);
             // Optionally display more details here (e.g., status, category)
             echo '</li>';
@@ -124,14 +124,14 @@ function upkeepify_task_form_shortcode() {
 
     ob_start();
 
-    echo '<form id="upkeepify-task-form" action="' . esc_url($_SERVER['REQUEST_URI']) . '" method="post" enctype="multipart/form-data">';
+    echo '<form id="upkeepify-task-form" class="upkeepify-form" action="' . esc_url($_SERVER['REQUEST_URI']) . '" method="post" enctype="multipart/form-data">';
     wp_nonce_field('upkeepify_task_submit_action', 'upkeepify_task_submit_nonce');
 
     echo '<p><label for="task_title">Task Title:</label><br />';
-    echo '<input type="text" id="task_title" name="task_title" required></p>';
+    echo '<input type="text" id="task_title" name="task_title" required class="upkeepify-input"></p>';
 
     echo '<p><label for="task_description">Task Description:</label><br />';
-    echo '<textarea id="task_description" name="task_description" required></textarea></p>';
+    echo '<textarea id="task_description" name="task_description" required class="upkeepify-textarea"></textarea></p>';
 
     // Dynamically generated dropdowns for taxonomies associated with 'maintenance_tasks'
     $taxonomies = get_object_taxonomies('maintenance_tasks', 'objects');
@@ -139,7 +139,7 @@ function upkeepify_task_form_shortcode() {
         $terms = get_terms(array('taxonomy' => $taxonomy->name, 'hide_empty' => false));
         if (!empty($terms)) {
             echo '<p><label for="' . esc_attr($taxonomy->name) . '">' . esc_html($taxonomy->label) . ':</label><br />';
-            echo '<select id="' . esc_attr($taxonomy->name) . '" name="' . esc_attr($taxonomy->name) . '">';
+            echo '<select id="' . esc_attr($taxonomy->name) . '" name="' . esc_attr($taxonomy->name) . '" class="upkeepify-select">';
             foreach ($terms as $term) {
                 echo '<option value="' . esc_attr($term->term_id) . '">' . esc_html($term->name) . '</option>';
             }
@@ -148,19 +148,19 @@ function upkeepify_task_form_shortcode() {
     }
 
     echo '<p><label for="task_photo">Upload Photo:</label><br />';
-    echo '<input type="file" id="task_photo" name="task_photo" accept="image/*" capture="environment"></p>';
+    echo '<input type="file" id="task_photo" name="task_photo" accept="image/*" capture="environment" class="upkeepify-file-input"></p>';
 
     echo '<p><label for="math">What is ' . $num1 . ' + ' . $num2 . '? (For spam prevention)</label><br />';
-    echo '<input type="text" id="math" name="math" required></p>';
+    echo '<input type="text" id="math" name="math" required class="upkeepify-input"></p>';
 
-    echo '<p><input type="submit" value="Submit Task"></p>';
+    echo '<p><input type="submit" value="Submit Task" class="upkeepify-submit-button"></p>';
 
     echo '</form>';
 
     // Thank you message and New Task button, hidden by default
     echo '<div id="thank-you-message" style="display: none; margin-top: 20px;">';
     echo '<p style="color: green;">Thank you for your submission. Your task is pending review.</p>';
-    echo '<button id="new-task-button">Create a New Task</button>';
+    echo '<button id="new-task-button" class="upkeepify-button">Create a New Task</button>';
     echo '</div>';
 
     // JavaScript to handle form interaction
@@ -208,9 +208,9 @@ echo "<script>
 
     // Fields for GPS coordinates
     echo '<label for="gps_latitude">Latitude:</label><br />';
-    echo '<input type="text" id="gps_latitude" name="gps_latitude" required onclick="fillGPSLocation();"><br />';
+    echo '<input type="text" id="gps_latitude" name="gps_latitude" required onclick="fillGPSLocation();" class="upkeepify-input"><br />';
     echo '<label for="gps_longitude">Longitude:</label><br />';
-    echo '<input type="text" id="gps_longitude" name="gps_longitude" required onclick="fillGPSLocation();"><br />';
+    echo '<input type="text" id="gps_longitude" name="gps_longitude" required onclick="fillGPSLocation();" class="upkeepify-input"><br />';
 
     return ob_get_clean();
 }
@@ -324,8 +324,8 @@ function upkeepify_provider_response_form_shortcode($atts) {
             echo '<input type="hidden" name="action" value="upkeepify_provider_response_submit">';
             echo '<input type="hidden" name="response_id" value="' . get_the_ID() . '">';
             // Additional fields for provider's response here
-            echo '<textarea name="provider_response" placeholder="Your response"></textarea>';
-            echo '<input type="submit" value="Submit Response">';
+            echo '<textarea name="provider_response" placeholder="Your response" class="upkeepify-textarea"></textarea>';
+            echo '<input type="submit" value="Submit Response" class="upkeepify-submit-button">';
             echo '</form>';
         }
     } else {
