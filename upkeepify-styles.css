@@ -160,3 +160,78 @@
 #upkeepify-task-calendar .task:last-child {
     border-bottom: none;
 }
+
+/* Modern styling for task list */
+.upkeepify-tasks-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.upkeepify-tasks-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #e0e0e0;
+    transition: background-color 0.3s ease;
+}
+
+.upkeepify-tasks-list li:hover {
+    background-color: #f9f9f9;
+}
+
+.upkeepify-tasks-list li:last-child {
+    border-bottom: none;
+}
+
+.upkeepify-tasks-list strong {
+    font-weight: bold;
+    color: #333;
+}
+
+.upkeepify-tasks-list span {
+    color: #666;
+}
+
+/* Consistent font sizes, colors, and spacing across all shortcodes */
+.upkeepify-tasks-list,
+.upkeepify-form,
+.upkeepify-tasks-by-category,
+.upkeepify-tasks-by-provider,
+.upkeepify-tasks-by-status,
+.upkeepify-task-summary,
+#upkeepify-task-calendar {
+    font-size: 1rem;
+    color: #333;
+    line-height: 1.5;
+}
+
+.upkeepify-tasks-list li,
+.upkeepify-form input[type="text"],
+.upkeepify-form textarea,
+.upkeepify-form select,
+.upkeepify-form input[type="file"],
+.upkeepify-tasks-by-category li,
+.upkeepify-tasks-by-provider li,
+.upkeepify-tasks-by-status li,
+.upkeepify-task-summary li,
+#upkeepify-task-calendar .task {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.upkeepify-form input[type="submit"],
+#new-task-button {
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.upkeepify-form input[type="submit"]:hover,
+#new-task-button:hover {
+    background-color: #005177;
+}
