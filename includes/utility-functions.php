@@ -70,9 +70,15 @@ function upkeepify_send_status_change_email($task_id, $new_status) {
  * @uses update_post_meta()
  */
 function upkeepify_generate_task_update_token($task_id) {
-    // This is a simplified example. You should use a more secure method for generating and storing tokens.
     $token = wp_generate_password(20, false);
+
+    $validation = upkeepify_validate_task_meta(UPKEEPIFY_META_KEY_TASK_UPDATE_TOKEN, $token);
+    if (is_wp_error($validation)) {
+        return '';
+    }
+
     update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_UPDATE_TOKEN, $token);
+
     return $token;
 }
 

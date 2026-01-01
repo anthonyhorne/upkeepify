@@ -132,7 +132,17 @@ function upkeepify_save_nearest_unit_meta_box_data($post_id) {
     // Only update if the nearest unit field was submitted in the form
     // This check prevents overwriting with empty values during partial saves
     if (isset($_POST['upkeepify_nearest_unit'])) {
-        update_post_meta($post_id, UPKEEPIFY_META_KEY_NEAREST_UNIT, sanitize_text_field($_POST['upkeepify_nearest_unit']));
+        $nearest_unit = intval($_POST['upkeepify_nearest_unit']);
+        $validation = upkeepify_validate_task_meta(UPKEEPIFY_META_KEY_NEAREST_UNIT, $nearest_unit);
+
+        if (is_wp_error($validation)) {
+            if (WP_DEBUG) {
+                error_log('Upkeepify Validation: ' . $validation->get_error_message());
+            }
+            return;
+        }
+
+        update_post_meta($post_id, UPKEEPIFY_META_KEY_NEAREST_UNIT, $nearest_unit);
     }
 }
 add_action('save_post', 'upkeepify_save_nearest_unit_meta_box_data');
@@ -219,9 +229,18 @@ function upkeepify_save_rough_estimate_meta_box_data($post_id) {
 
     // Only update if rough estimate field was submitted in the form
     // This check prevents overwriting with empty values during partial saves
-    // Sanitize the input to remove any potentially harmful content
     if (isset($_POST['upkeepify_rough_estimate'])) {
-        update_post_meta($post_id, UPKEEPIFY_META_KEY_ROUGH_ESTIMATE, sanitize_text_field($_POST['upkeepify_rough_estimate']));
+        $rough_estimate = sanitize_text_field($_POST['upkeepify_rough_estimate']);
+        $validation = upkeepify_validate_task_meta(UPKEEPIFY_META_KEY_ROUGH_ESTIMATE, $rough_estimate);
+
+        if (is_wp_error($validation)) {
+            if (WP_DEBUG) {
+                error_log('Upkeepify Validation: ' . $validation->get_error_message());
+            }
+            return;
+        }
+
+        update_post_meta($post_id, UPKEEPIFY_META_KEY_ROUGH_ESTIMATE, $rough_estimate);
     }
 }
 add_action('save_post', 'upkeepify_save_rough_estimate_meta_box_data');
@@ -247,9 +266,34 @@ function upkeepify_register_response_post_type() {
         'labels' => array(
             'name' => 'Responses',
             'singular_name' => 'Response',
-            // Further labels as needed
         ),
     );
     register_post_type(UPKEEPIFY_POST_TYPE_RESPONSES, $args);
 }
 add_action('init', 'upkeepify_register_response_post_type');
+
+/**
+ * Register the Provider Responses custom post type.
+ *
+ * Stores a draft response per provider, tied to a maintenance task via meta.
+ *
+ * @since 1.0
+ * @uses register_post_type()
+ * @hook init
+ */
+function upkeepify_register_provider_response_post_type() {
+    $args = array(
+        'public' => false,
+        'publicly_queryable' => true,
+        'show_ui' => true,
+        'show_in_menu' => 'edit.php?post_type=maintenance_tasks',
+        'supports' => array('title', 'editor', 'custom-fields'),
+        'labels' => array(
+            'name' => UPKEEPIFY_LABEL_PROVIDER_RESPONSES,
+            'singular_name' => 'Provider Response',
+        ),
+    );
+
+    register_post_type(UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES, $args);
+}
+add_action('init', 'upkeepify_register_provider_response_post_type');

@@ -332,21 +332,20 @@ function upkeepify_text_field_callback($args) {
  * @uses intval()
  */
 function upkeepify_settings_sanitize($input) {
-    $sanitized_input = [];
-    foreach ($input as $key => $value) {
-        if ($key === UPKEEPIFY_SETTING_NUMBER_OF_UNITS) {
-            // Ensure the 'Number of Units' is an integer
-            $sanitized_input[$key] = intval($value);
-        } else if ($key === UPKEEPIFY_SETTING_CURRENCY) {
-            // Sanitize the 'Currency' as a text field
-            // Additional validation could be added here if necessary
-            $sanitized_input[$key] = sanitize_text_field($value);
-        } else {
-            // Default sanitization for other settings
-            $sanitized_input[$key] = sanitize_text_field($value);
-        }
+    $validated = upkeepify_validate_settings(is_array($input) ? $input : array());
+
+    if (is_wp_error($validated)) {
+        add_settings_error(
+            'upkeepify',
+            'upkeepify_settings_validation',
+            $validated->get_error_message(),
+            'error'
+        );
+
+        return upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
     }
-    return $sanitized_input;
+
+    return $validated;
 }
 
 /**
