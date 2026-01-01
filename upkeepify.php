@@ -34,6 +34,9 @@ define('UPKEEPIFY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 // Include constants first
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/constants.php';
 
+// Include caching system
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/caching.php';
+
 // Include component files
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/custom-post-types.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/taxonomies.php';
@@ -46,6 +49,8 @@ include_once plugin_dir_path( __FILE__ ) . 'includes/task-response-handling.php'
 // Include the upload handlers file
 require_once plugin_dir_path(__FILE__) . 'includes/upload-handlers.php';
 require_once plugin_dir_path(__FILE__) . 'includes/notification-system.php';
+// Include database optimization helpers
+require_once plugin_dir_path(__FILE__) . 'includes/database-optimization.php';
 
 // Activation and deactivation hooks
 register_activation_hook(__FILE__, 'upkeepify_activate');

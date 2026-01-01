@@ -18,19 +18,24 @@ function upkeepify_adjust_admin_view($query) {
         return;
     }
 
-    // Check if the current user is an admin or has the capability to edit posts
-        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
 
-        // Check if we're on the correct post type in admin
-        if ($screen && $screen->post_type === $post_type) {
-        // Check if we're on the correct post type in admin
-        if ($screen && $screen->post_type === $post_type) {
-            // Admin users see all statuses including pending
-            $query->set('post_status', ['publish', 'pending', 'draft']);
-        }
-    } else {
-        // Non-admin users (in the admin area, for any potential cases) see only published posts
-        $query->set('post_status', 'publish');
+    // Check if we're on the correct post type in admin
+    if ($screen && $screen->post_type === UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS) {
+        // Add query optimizations for admin queries
+        $query->set('no_found_rows', false); // Keep found_rows for pagination in admin
+        $query->set('posts_per_page', 20); // Reasonable limit for admin listings
+
+        // Admin users see all statuses including pending
+        $query->set('post_status', ['publish', 'pending', 'draft']);
+    } else if ($screen && $screen->post_type === UPKEEPIFY_POST_TYPE_RESPONSES) {
+        // Optimize responses list queries
+        $query->set('no_found_rows', false);
+        $query->set('posts_per_page', 20);
+    } else if ($screen && $screen->post_type === UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES) {
+        // Optimize provider responses list queries
+        $query->set('no_found_rows', false);
+        $query->set('posts_per_page', 20);
     }
 }
 add_action('pre_get_posts', 'upkeepify_adjust_admin_view');

@@ -42,7 +42,7 @@ add_action('admin_menu', 'upkeepify_add_admin_menu');
  * @uses get_option()
  */
 function upkeepify_render_settings_field($args) {
-    $options = get_option(UPKEEPIFY_OPTION_SETTINGS);
+    $options = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
     $field_value = isset($options[$args['name']]) ? $options[$args['name']] : '';
     $field_type = isset($args['type']) ? $args['type'] : 'text'; // Default to text if not specified
 
@@ -295,7 +295,7 @@ function upkeepify_settings_page() {
  * @uses checked()
  */
 function upkeepify_checkbox_field_callback($args) {
-    $options = get_option(UPKEEPIFY_OPTION_SETTINGS);
+    $options = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
     $checked = isset($options[$args['label_for']]) ? (bool) $options[$args['label_for']] : false;
     echo '<input id="' . esc_attr($args['label_for']) . '" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']" type="checkbox" value="1" ' . checked($checked, true, false) . '>';
 }
@@ -314,7 +314,7 @@ function upkeepify_checkbox_field_callback($args) {
  * @uses get_option()
  */
 function upkeepify_text_field_callback($args) {
-    $options = get_option(UPKEEPIFY_OPTION_SETTINGS);
+    $options = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
     $value = isset($options[$args['label_for']]) ? $options[$args['label_for']] : '';
     echo '<input id="' . esc_attr($args['label_for']) . '" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']" type="text" value="' . esc_attr($value) . '">';
 }
@@ -348,6 +348,22 @@ function upkeepify_settings_sanitize($input) {
     }
     return $sanitized_input;
 }
+
+/**
+ * Clear cache after settings update.
+ *
+ * Hooked to run after settings are sanitized and saved.
+ *
+ * @since 1.0
+ * @param mixed $value The new, un-sanitized value.
+ * @param array $old_value The old (sanitized) value.
+ * @param array $new_value The new (sanitized) value.
+ */
+function upkeepify_settings_update_clear_cache($value, $old_value, $new_value) {
+    // Clear settings cache group
+    upkeepify_invalidate_cache_group('settings');
+}
+add_action('update_option_' . UPKEEPIFY_OPTION_SETTINGS, 'upkeepify_settings_update_clear_cache', 10, 3);
 
 /**
  * Enqueue admin scripts for settings page.

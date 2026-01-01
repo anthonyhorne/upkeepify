@@ -473,6 +473,41 @@ Upkeepify is open-sourced software licensed under the [GPLv2 license](https://ww
 - **Issues**: [GitHub Issues](https://github.com/anthonyhorne/upkeepify/issues)
 - **Repository**: [https://github.com/anthonyhorne/upkeepify](https://github.com/anthonyhorne/upkeepify)
 
+## Performance & Optimization
+
+### Caching System
+
+Upkeepify includes a comprehensive caching system to improve performance:
+
+- **Settings Caching**: Plugin settings are cached to reduce database queries
+- **Taxonomy Caching**: Service providers, categories, and terms are cached
+- **Shortcode Output Caching**: Shortcode results are cached for faster page loads
+- **Query Result Caching**: Frequently used query results are cached
+
+Cache is automatically cleared when posts, terms, or settings are updated.
+
+### Query Optimizations
+
+All WP_Query calls in Upkeepify use performance optimizations:
+
+- `no_found_rows`: Disabled when pagination is not needed
+- `fields`: Limits returned data to only what's needed
+- `posts_per_page`: Explicit limits instead of unlimited queries
+- Proper indexing on frequently queried meta fields
+
+For more details on database optimization, see [Database Optimization Guide](docs/DATABASE_OPTIMIZATION.md).
+
+### Debug Mode
+
+Enable `WP_DEBUG` to log query performance:
+
+```php
+define('WP_DEBUG', true);
+define('WP_DEBUG_LOG', true);
+```
+
+Performance logs will appear in your WordPress debug log file.
+
 ## Roadmap
 
 Future planned features:
