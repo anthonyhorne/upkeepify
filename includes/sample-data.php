@@ -1,6 +1,19 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+/**
+ * Insert sample data for the plugin.
+ *
+ * Creates default taxonomies (categories, types, statuses) and
+ * sample service providers to help users get started quickly.
+ *
+ * @since 1.0
+ * @uses term_exists()
+ * @uses wp_insert_term()
+ * @uses get_page_by_title()
+ * @uses wp_insert_post()
+ * @uses get_current_user_id()
+ */
 function upkeepify_insert_sample_data() {
     // Insert Sample Categories
     $categories = ['General Maintenance', 'Electrical', 'Plumbing', 'Landscaping'];
@@ -48,6 +61,18 @@ function upkeepify_insert_sample_data() {
     }
 }
 
+/**
+ * Conditionally insert sample data.
+ *
+ * Checks if sample data has already been inserted and
+ * inserts it only once on activation.
+ *
+ * @since 1.0
+ * @uses get_option()
+ * @uses update_option()
+ * @uses upkeepify_insert_sample_data()
+ * @hook admin_init
+ */
 function upkeepify_maybe_insert_sample_data() {
     if (!get_option(UPKEEPIFY_OPTION_SAMPLE_DATA_INSERTED)) {
         upkeepify_insert_sample_data();

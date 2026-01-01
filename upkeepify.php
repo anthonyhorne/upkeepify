@@ -53,12 +53,29 @@ register_deactivation_hook(__FILE__, 'upkeepify_deactivate');
 
 /**
  * Load text domain for localization.
+ *
+ * Loads the plugin's translation files for internationalization support.
+ * Translation files should be placed in the /languages/ directory.
+ *
+ * @since 1.0
+ * @uses load_plugin_textdomain()
+ * @hook plugins_loaded
  */
 function upkeepify_load_textdomain() {
     load_plugin_textdomain( 'upkeepify', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
 }
 add_action( 'plugins_loaded', 'upkeepify_load_textdomain' );
 
+/**
+ * Plugin activation callback.
+ *
+ * Fires when the plugin is activated. Handles initialization tasks
+ * such as inserting sample data.
+ *
+ * @since 1.0
+ * @hook register_activation_hook
+ * @uses upkeepify_maybe_insert_sample_data()
+ */
 function upkeepify_activate() {
     // Activation code here
 
@@ -70,16 +87,47 @@ function upkeepify_activate() {
     upkeepify_maybe_insert_sample_data(); // P0fe6
 }
 
+/**
+ * Plugin deactivation callback.
+ *
+ * Fires when the plugin is deactivated. Handles cleanup tasks if needed.
+ *
+ * @since 1.0
+ * @hook register_deactivation_hook
+ */
 function upkeepify_deactivate() {
     // Deactivation code here
 }
 
+/**
+ * Add favicon to the site.
+ *
+ * Adds a custom favicon to both the front-end and admin areas.
+ * The favicon is loaded from the plugin's root directory.
+ *
+ * @since 1.0
+ * @uses plugins_url()
+ * @hook wp_head
+ * @hook admin_head
+ */
 function upkeepify_add_favicon() {
     echo '<link rel="icon" type="image/png" href="' . plugins_url('favicon.png', __FILE__) . '" />';
 }
 add_action('wp_head', 'upkeepify_add_favicon');
 add_action('admin_head', 'upkeepify_add_favicon'); // Also for admin area
 
+/**
+ * Fallback handler to ensure sample data is inserted.
+ *
+ * Checks if sample data has been inserted and inserts it if not.
+ * This runs on admin_init as a safety mechanism.
+ *
+ * @since 1.0
+ * @uses get_option()
+ * @uses update_option()
+ * @uses upkeepify_insert_sample_data()
+ * @hook admin_init
+ */
 function upkeepify_maybe_insert_sample_data_fallback() {
     if (!get_option(UPKEEPIFY_OPTION_SAMPLE_DATA_INSERTED)) {
         upkeepify_insert_sample_data();
