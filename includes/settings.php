@@ -6,18 +6,18 @@ if (!defined('WPINC')) {
 
 function upkeepify_add_admin_menu() {
     add_submenu_page(
-        'edit.php?post_type=maintenance_tasks',
+        'edit.php?post_type=' . UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
         'Upkeepify Settings',
         'Settings',
         'manage_options',
-        'upkeepify_settings',
+        UPKEEPIFY_OPTION_SETTINGS,
         'upkeepify_settings_page'
     );
 }
 add_action('admin_menu', 'upkeepify_add_admin_menu');
 
 function upkeepify_render_settings_field($args) {
-    $options = get_option('upkeepify_settings');
+    $options = get_option(UPKEEPIFY_OPTION_SETTINGS);
     $field_value = isset($options[$args['name']]) ? $options[$args['name']] : '';
     $field_type = isset($args['type']) ? $args['type'] : 'text'; // Default to text if not specified
 
@@ -34,37 +34,37 @@ function upkeepify_render_settings_field($args) {
 }
 
 function upkeepify_init_plugin_settings() {
-    register_setting('upkeepify', 'upkeepify_settings', 'upkeepify_settings_sanitize');
+    register_setting('upkeepify', UPKEEPIFY_OPTION_SETTINGS, 'upkeepify_settings_sanitize');
 
     add_settings_section(
         'upkeepify_general_settings',
         __('General Settings', 'upkeepify'),
         null,
-        'upkeepify_settings'
+        UPKEEPIFY_OPTION_SETTINGS
     );
 
     // SMTP Option
     add_settings_field(
-        'upkeepify_smtp_option',
+        UPKEEPIFY_SETTING_SMTP_OPTION,
         __('Use Built-in SMTP Provider', 'upkeepify'),
         'upkeepify_checkbox_field_callback',
-        'upkeepify_settings',
+        UPKEEPIFY_OPTION_SETTINGS,
         'upkeepify_general_settings',
         [
-            'label_for' => 'upkeepify_smtp_option',
+            'label_for' => UPKEEPIFY_SETTING_SMTP_OPTION,
             'checked' => '1'
         ]
     );
 
 // Add a field for SMTP Host if using built-in SMTP
 add_settings_field(
-    'upkeepify_smtp_host',
+    UPKEEPIFY_SETTING_SMTP_HOST,
     __('SMTP Host', 'upkeepify'),
     'upkeepify_text_field_callback',
-    'upkeepify_settings',
+    UPKEEPIFY_OPTION_SETTINGS,
     'upkeepify_general_settings',
     [
-        'label_for' => 'upkeepify_smtp_host',
+        'label_for' => UPKEEPIFY_SETTING_SMTP_HOST,
         'class' => 'smtp_setting'
     ]
 );
@@ -75,77 +75,77 @@ add_settings_field(
 
     // Notify Option
     add_settings_field(
-        'upkeepify_notify_option',
+        UPKEEPIFY_SETTING_NOTIFY_OPTION,
         __('Notify on Status Change', 'upkeepify'),
         'upkeepify_checkbox_field_callback',
-        'upkeepify_settings',
+        UPKEEPIFY_OPTION_SETTINGS,
         'upkeepify_general_settings',
         [
-            'label_for' => 'upkeepify_notify_option',
+            'label_for' => UPKEEPIFY_SETTING_NOTIFY_OPTION,
             'checked' => '1'
         ]
     );
 
     // Provider Delete Task
     add_settings_field(
-        'upkeepify_provider_delete_task',
+        UPKEEPIFY_SETTING_PROVIDER_DELETE_TASK,
         __('Allow Service Provider to Delete Task', 'upkeepify'),
         'upkeepify_checkbox_field_callback',
-        'upkeepify_settings',
+        UPKEEPIFY_OPTION_SETTINGS,
         'upkeepify_general_settings',
         [
-            'label_for' => 'upkeepify_provider_delete_task',
+            'label_for' => UPKEEPIFY_SETTING_PROVIDER_DELETE_TASK,
             'checked' => '0'
         ]
     );
 
     // Public Task Logging
     add_settings_field(
-        'upkeepify_public_task_logging',
+        UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING,
         __('Allow Public Task Logging', 'upkeepify'),
         'upkeepify_checkbox_field_callback',
-        'upkeepify_settings',
+        UPKEEPIFY_OPTION_SETTINGS,
         'upkeepify_general_settings',
         [
-            'label_for' => 'upkeepify_public_task_logging',
+            'label_for' => UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING,
             'checked' => '0'
         ]
     );
 
     // Override Email Address
     add_settings_field(
-        'upkeepify_override_email',
+        UPKEEPIFY_SETTING_OVERRIDE_EMAIL,
         __('Override Email Address for Notifications', 'upkeepify'),
         'upkeepify_text_field_callback',
-        'upkeepify_settings',
+        UPKEEPIFY_OPTION_SETTINGS,
         'upkeepify_general_settings',
         [
-            'label_for' => 'upkeepify_override_email'
+            'label_for' => UPKEEPIFY_SETTING_OVERRIDE_EMAIL
         ]
     );
 
     // Enable Token-based Status Update
     add_settings_field(
-        'upkeepify_enable_token_update',
+        UPKEEPIFY_SETTING_ENABLE_TOKEN_UPDATE,
         __('Enable Token-based Status Update for Providers', 'upkeepify'),
         'upkeepify_checkbox_field_callback',
-        'upkeepify_settings',
+        UPKEEPIFY_OPTION_SETTINGS,
         'upkeepify_general_settings',
         [
-            'label_for' => 'upkeepify_enable_token_update',
+            'label_for' => UPKEEPIFY_SETTING_ENABLE_TOKEN_UPDATE,
         'checked' => '0'
         ]
     );
 
 // Number of Units
 add_settings_field(
-    'upkeepify_number_of_units',
+    UPKEEPIFY_SETTING_NUMBER_OF_UNITS,
     __('Number of Units', 'upkeepify'),
     'upkeepify_render_settings_field',
-    'upkeepify_settings',
+    UPKEEPIFY_OPTION_SETTINGS,
     'upkeepify_general_settings',
     [
-        'name' => 'upkeepify_number_of_units',
+        'name' => UPKEEPIFY_SETTING_NUMBER_OF_UNITS,
         'type' => 'number',
         'attributes' => [
             'min' => '0', // Example validation attribute
@@ -156,13 +156,13 @@ add_settings_field(
 
 // Add a field for specifying the currency in the 'General Settings' section
 add_settings_field(
-    'upkeepify_currency',
+    UPKEEPIFY_SETTING_CURRENCY,
     __('Currency', 'upkeepify'),
     'upkeepify_text_field_callback', // Assuming you have a generic callback for rendering text fields
-    'upkeepify_settings',
+    UPKEEPIFY_OPTION_SETTINGS,
     'upkeepify_general_settings',
     [
-        'label_for' => 'upkeepify_currency',
+        'label_for' => UPKEEPIFY_SETTING_CURRENCY,
         'description' => __('Specify the currency symbol (e.g., $, €, £).', 'upkeepify'),
     ]
 );
@@ -172,18 +172,18 @@ add_settings_field(
         'upkeepify_provider_thank_you_settings',
         __('Provider Thank You Page Settings', 'upkeepify'),
         'upkeepify_provider_thank_you_settings_section_callback',
-        'upkeepify_settings'
+        UPKEEPIFY_OPTION_SETTINGS
     );
 
     // Checkbox for enabling custom thank you page
     add_settings_field(
-        'upkeepify_enable_thank_you_page',
+        UPKEEPIFY_SETTING_ENABLE_THANK_YOU_PAGE,
         __('Enable Custom Thank You Page', 'upkeepify'),
         'upkeepify_checkbox_field_callback',
-        'upkeepify_settings',
+        UPKEEPIFY_OPTION_SETTINGS,
         'upkeepify_provider_thank_you_settings',
         [
-            'label_for' => 'upkeepify_enable_thank_you_page',
+            'label_for' => UPKEEPIFY_SETTING_ENABLE_THANK_YOU_PAGE,
             'class' => 'upkeepify_row',
             'upkeepify_custom_data' => 'checkbox',
         ]
@@ -191,13 +191,13 @@ add_settings_field(
 
     // Textbox for specifying the URL of the thank you page
     add_settings_field(
-        'upkeepify_thank_you_page_url',
+        UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL,
         __('Thank You Page URL', 'upkeepify'),
         'upkeepify_text_field_callback',
-        'upkeepify_settings',
+        UPKEEPIFY_OPTION_SETTINGS,
         'upkeepify_provider_thank_you_settings',
         [
-            'label_for' => 'upkeepify_thank_you_page_url',
+            'label_for' => UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL,
             'class' => 'upkeepify_row upkeepify_thank_you_page_url',
         ]
     );
@@ -217,7 +217,7 @@ function upkeepify_settings_page() {
         <form action="options.php" method="post">
             <?php
             settings_fields('upkeepify');
-            do_settings_sections('upkeepify_settings');
+            do_settings_sections(UPKEEPIFY_MENU_SETTINGS_PAGE);
             submit_button(__('Save Settings', 'upkeepify'));
             ?>
         </form>
@@ -226,13 +226,13 @@ function upkeepify_settings_page() {
 }
 
 function upkeepify_checkbox_field_callback($args) {
-    $options = get_option('upkeepify_settings');
+    $options = get_option(UPKEEPIFY_OPTION_SETTINGS);
     $checked = isset($options[$args['label_for']]) ? (bool) $options[$args['label_for']] : false;
     echo '<input id="' . esc_attr($args['label_for']) . '" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']" type="checkbox" value="1" ' . checked($checked, true, false) . '>';
 }
 
 function upkeepify_text_field_callback($args) {
-    $options = get_option('upkeepify_settings');
+    $options = get_option(UPKEEPIFY_OPTION_SETTINGS);
     $value = isset($options[$args['label_for']]) ? $options[$args['label_for']] : '';
     echo '<input id="' . esc_attr($args['label_for']) . '" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']" type="text" value="' . esc_attr($value) . '">';
 }
@@ -240,10 +240,10 @@ function upkeepify_text_field_callback($args) {
 function upkeepify_settings_sanitize($input) {
     $sanitized_input = [];
     foreach ($input as $key => $value) {
-        if ($key === 'upkeepify_number_of_units') {
+        if ($key === UPKEEPIFY_SETTING_NUMBER_OF_UNITS) {
             // Ensure the 'Number of Units' is an integer
             $sanitized_input[$key] = intval($value);
-        } else if ($key === 'upkeepify_currency') {
+        } else if ($key === UPKEEPIFY_SETTING_CURRENCY) {
             // Sanitize the 'Currency' as a text field
             // Additional validation could be added here if necessary
             $sanitized_input[$key] = sanitize_text_field($value);
@@ -288,7 +288,7 @@ function upkeepify_get_cached_option($option_name) {
 
     if ($cached_value === false) {
         $cached_value = get_option($option_name);
-        wp_cache_set($cache_key, $cached_value, 'upkeepify', 3600); // Cache for 1 hour
+        wp_cache_set($cache_key, $cached_value, UPKEEPIFY_CACHE_GROUP, 3600); // Cache for 1 hour
     }
 
     return $cached_value;
@@ -297,16 +297,16 @@ function upkeepify_get_cached_option($option_name) {
 function upkeepify_update_cached_option($option_name, $option_value) {
     $cache_key = 'upkeepify_' . $option_name;
     update_option($option_name, $option_value);
-    wp_cache_set($cache_key, $option_value, 'upkeepify', 3600); // Cache for 1 hour
+    wp_cache_set($cache_key, $option_value, UPKEEPIFY_CACHE_GROUP, 3600); // Cache for 1 hour
 }
 
 function upkeepify_setup_wizard() {
     add_submenu_page(
-        'edit.php?post_type=maintenance_tasks',
+        'edit.php?post_type=' . UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
         'Upkeepify Setup Wizard',
         'Setup Wizard',
         'manage_options',
-        'upkeepify_setup_wizard',
+        UPKEEPIFY_MENU_SETUP_WIZARD_PAGE,
         'upkeepify_setup_wizard_page'
     );
 }
@@ -319,7 +319,7 @@ function upkeepify_setup_wizard_page() {
         <form method="post" action="options.php">
             <?php
             settings_fields('upkeepify');
-            do_settings_sections('upkeepify_settings');
+            do_settings_sections(UPKEEPIFY_MENU_SETTINGS_PAGE);
             submit_button(__('Save Settings', 'upkeepify'));
             ?>
         </form>
@@ -327,4 +327,4 @@ function upkeepify_setup_wizard_page() {
     <?php
 }
 
-add_action('admin_menu', 'upkeepify_setup_wizard');
+add_action('admin_menu', UPKEEPIFY_MENU_SETUP_WIZARD_PAGE);

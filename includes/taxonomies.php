@@ -17,7 +17,7 @@ function upkeepify_register_taxonomies() {
         'query_var' => true,
         'rewrite' => array('slug' => 'task-category'),
     );
-    register_taxonomy('task_category', array('maintenance_tasks'), $args_task_category);
+    register_taxonomy(UPKEEPIFY_TAXONOMY_TASK_CATEGORY, array(UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS), $args_task_category);
 
     // Task Types - Non-hierarchical (like tags)
     $args_task_type = array(
@@ -28,7 +28,7 @@ function upkeepify_register_taxonomies() {
         'query_var' => true,
         'rewrite' => array('slug' => 'task-type'),
     );
-    register_taxonomy('task_type', array('maintenance_tasks'), $args_task_type);
+    register_taxonomy(UPKEEPIFY_TAXONOMY_TASK_TYPE, array(UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS), $args_task_type);
 
     // Task Statuses - Non-hierarchical (like tags)
     $args_task_status = array(
@@ -39,7 +39,7 @@ function upkeepify_register_taxonomies() {
         'query_var' => true,
         'rewrite' => array('slug' => 'task-status'),
     );
-    register_taxonomy('task_status', array('maintenance_tasks'), $args_task_status);
+    register_taxonomy(UPKEEPIFY_TAXONOMY_TASK_STATUS, array(UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS), $args_task_status);
 
     // Service Providers - Non-hierarchical (like tags), associated with multiple categories
     $args_service_provider = array(
@@ -50,7 +50,7 @@ function upkeepify_register_taxonomies() {
         'query_var' => true,
         'rewrite' => array('slug' => 'service-provider'),
     );
-    register_taxonomy('service_provider', array('maintenance_tasks'), $args_service_provider);
+    register_taxonomy(UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER, array(UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS), $args_service_provider);
 }
 
 add_action('init', 'upkeepify_register_taxonomies');
@@ -59,24 +59,24 @@ add_action('init', 'upkeepify_register_taxonomies');
 function upkeepify_service_provider_add_form_fields() {
     // Custom field for Phone Number
     ?><div class="form-field term-group">
-        <label for="provider_phone"><?php _e('Phone Number', 'upkeepify'); ?></label>
-        <input type="text" id="provider_phone" name="provider_phone">
+        <label for=UPKEEPIFY_TERM_META_PROVIDER_PHONE><?php _e('Phone Number', 'upkeepify'); ?></label>
+        <input type="text" id=UPKEEPIFY_TERM_META_PROVIDER_PHONE name=UPKEEPIFY_TERM_META_PROVIDER_PHONE>
         <p><?php _e('The phone number of the service provider.', 'upkeepify'); ?></p>
     </div><?php
     // Custom field for Email Address
     ?><div class="form-field term-group">
-        <label for="provider_email"><?php _e('Email Address', 'upkeepify'); ?></label>
-        <input type="email" id="provider_email" name="provider_email">
+        <label for=UPKEEPIFY_TERM_META_PROVIDER_EMAIL><?php _e('Email Address', 'upkeepify'); ?></label>
+        <input type="email" id=UPKEEPIFY_TERM_META_PROVIDER_EMAIL name=UPKEEPIFY_TERM_META_PROVIDER_EMAIL>
         <p><?php _e('The email address of the service provider.', 'upkeepify'); ?></p>
     </div><?php
 }
 
 function upkeepify_add_task_categories_to_providers() {
-    $categories = get_terms(['taxonomy' => 'task_category', 'hide_empty' => false]);
+    $categories = get_terms(['taxonomy' => UPKEEPIFY_TAXONOMY_TASK_CATEGORY, 'hide_empty' => false]);
 
     // Output a checkbox list or a multi-select field for all "Task Categories"
     echo '<div class="form-field term-group">';
-    echo '<label for="associated_task_categories">Associated Task Categories</label>';
+    echo '<label for=UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES>Associated Task Categories</label>';
     echo '<select name="associated_task_categories[]" multiple style="width:100%;">';
     foreach ($categories as $category) {
         echo '<option value="' . esc_attr($category->term_id) . '">' . esc_html($category->name) . '</option>';
@@ -91,31 +91,31 @@ add_action('service_provider_add_form_fields', 'upkeepify_service_provider_add_f
 // Display custom fields on "Service Providers" taxonomy term edit form
 function upkeepify_service_provider_edit_form_fields($term) {
     // Retrieve existing values for phone and email
-    $provider_phone = get_term_meta($term->term_id, 'provider_phone', true);
-    $provider_email = get_term_meta($term->term_id, 'provider_email', true);
-    $associated_categories = get_term_meta($term->term_id, 'associated_task_categories', true) ?: array();
+    $provider_phone = get_term_meta($term->term_id, UPKEEPIFY_TERM_META_PROVIDER_PHONE, true);
+    $provider_email = get_term_meta($term->term_id, UPKEEPIFY_TERM_META_PROVIDER_EMAIL, true);
+    $associated_categories = get_term_meta($term->term_id, UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES, true) ?: array();
 
     // Fetch all task categories for selection
-    $task_categories = get_terms(['taxonomy' => 'task_category', 'hide_empty' => false]);
+    $task_categories = get_terms(['taxonomy' => UPKEEPIFY_TAXONOMY_TASK_CATEGORY, 'hide_empty' => false]);
     ?>
     <tr class="form-field term-group-wrap">
-        <th scope="row"><label for="provider_phone"><?php _e('Phone Number', 'upkeepify'); ?></label></th>
+        <th scope="row"><label for=UPKEEPIFY_TERM_META_PROVIDER_PHONE><?php _e('Phone Number', 'upkeepify'); ?></label></th>
         <td>
-            <input type="text" id="provider_phone" name="provider_phone" value="<?php echo esc_attr($provider_phone); ?>">
+            <input type="text" id=UPKEEPIFY_TERM_META_PROVIDER_PHONE name=UPKEEPIFY_TERM_META_PROVIDER_PHONE value="<?php echo esc_attr($provider_phone); ?>">
             <p class="description"><?php _e('The phone number of the service provider.', 'upkeepify'); ?></p>
         </td>
     </tr>
     <tr class="form-field term-group-wrap">
-        <th scope="row"><label for="provider_email"><?php _e('Email Address', 'upkeepify'); ?></label></th>
+        <th scope="row"><label for=UPKEEPIFY_TERM_META_PROVIDER_EMAIL><?php _e('Email Address', 'upkeepify'); ?></label></th>
         <td>
-            <input type="email" id="provider_email" name="provider_email" value="<?php echo esc_attr($provider_email); ?>">
+            <input type="email" id=UPKEEPIFY_TERM_META_PROVIDER_EMAIL name=UPKEEPIFY_TERM_META_PROVIDER_EMAIL value="<?php echo esc_attr($provider_email); ?>">
             <p class="description"><?php _e('The email address of the service provider.', 'upkeepify'); ?></p>
         </td>
     </tr>
     <tr class="form-field term-group-wrap">
-        <th scope="row"><label for="associated_task_categories"><?php _e('Associated Task Categories', 'upkeepify'); ?></label></th>
+        <th scope="row"><label for=UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES><?php _e('Associated Task Categories', 'upkeepify'); ?></label></th>
         <td>
-            <select name="associated_task_categories[]" id="associated_task_categories" multiple class="postform">
+            <select name="associated_task_categories[]" id=UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES multiple class="postform">
                 <?php foreach ($task_categories as $category) : ?>
                     <option value="<?php echo esc_attr($category->term_id); ?>" <?php echo in_array($category->term_id, $associated_categories) ? 'selected' : ''; ?>>
                         <?php echo esc_html($category->name); ?>
@@ -131,25 +131,25 @@ add_action('service_provider_edit_form_fields', 'upkeepify_service_provider_edit
 
 // Save custom fields data from "Service Providers" taxonomy term form
 function upkeepify_save_service_provider_custom_fields($term_id) {
-    // Check if the 'associated_task_categories' field is set in the submitted form
-    if (isset($_POST['associated_task_categories'])) {
+    // Check if the UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES field is set in the submitted form
+    if (isset($_POST[UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES])) {
         // Sanitize the input to ensure it's an array of integers (term IDs)
-        $category_ids = array_map('intval', $_POST['associated_task_categories']);
+        $category_ids = array_map('intval', $_POST[UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES]);
 
         // Update the term meta with the selected 'Task Categories' IDs
-        update_term_meta($term_id, 'associated_task_categories', $category_ids);
+        update_term_meta($term_id, UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES, $category_ids);
     } else {
         // If no categories are selected, clear the existing associations
-        delete_term_meta($term_id, 'associated_task_categories');
+        delete_term_meta($term_id, UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES);
     }
 
     // Continue with saving other fields (e.g., phone number, email)
-    if (isset($_POST['provider_phone'])) {
-        update_term_meta($term_id, 'provider_phone', sanitize_text_field($_POST['provider_phone']));
+    if (isset($_POST[UPKEEPIFY_TERM_META_PROVIDER_PHONE])) {
+        update_term_meta($term_id, UPKEEPIFY_TERM_META_PROVIDER_PHONE, sanitize_text_field($_POST[UPKEEPIFY_TERM_META_PROVIDER_PHONE]));
     }
-    if (isset($_POST['provider_email']) && is_email($_POST['provider_email'])) {
-        update_term_meta($term_id, 'provider_email', sanitize_email($_POST['provider_email']));
-    } elseif (isset($_POST['provider_email'])) {
+    if (isset($_POST[UPKEEPIFY_TERM_META_PROVIDER_EMAIL]) && is_email($_POST[UPKEEPIFY_TERM_META_PROVIDER_EMAIL])) {
+        update_term_meta($term_id, UPKEEPIFY_TERM_META_PROVIDER_EMAIL, sanitize_email($_POST[UPKEEPIFY_TERM_META_PROVIDER_EMAIL]));
+    } elseif (isset($_POST[UPKEEPIFY_TERM_META_PROVIDER_EMAIL])) {
         // Optional: Add error handling for invalid email
     }
 }

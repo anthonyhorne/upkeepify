@@ -6,14 +6,14 @@
  */
 
 // File size limit
-add_filter('wp_max_upload_size', 'upkeepify_upload_size_limit');
-function upkeepify_upload_size_limit($size) {
-    return 2 * 1024 * 1024; // 2MB
+add_filter('wp_max_upload_size', 'upkeepify_get_upload_size_limit');
+function upkeepify_get_upload_size_limit($size) {
+    return UPKEEPIFY_MAX_UPLOAD_SIZE;
 }
 
 // Allowed file types
-add_filter('upload_mimes', 'upkeepify_allowed_file_types');
-function upkeepify_allowed_file_types($existing_mimes) {
+add_filter('upload_mimes', 'upkeepify_get_allowed_file_types');
+function upkeepify_get_allowed_file_types($existing_mimes) {
     $allowed_mimes = array(
         'jpg|jpeg|jpe' => 'image/jpeg',
         'png'          => 'image/png',
@@ -32,7 +32,7 @@ function upkeepify_upload_prefilter($file) {
     }
 
     // Check file size
-    if ($file['size'] > 2 * 1024 * 1024) {
+    if ($file['size'] > UPKEEPIFY_MAX_UPLOAD_SIZE) {
         $file['error'] = 'File size exceeds the 2MB limit.';
         return $file;
     }

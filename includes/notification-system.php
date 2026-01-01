@@ -6,22 +6,22 @@
  */
 
  function upkeepify_add_notification($message, $type = 'success', $data = array(), $send_email = false) {
-    $notifications = get_option('upkeepify_notifications', array());
+    $notifications = get_option(UPKEEPIFY_OPTION_NOTIFICATIONS, array());
     $notifications[] = array(
         'message' => $message,
         'type' => $type,
         'data' => $data
     );
-    update_option('upkeepify_notifications', $notifications);
+    update_option(UPKEEPIFY_OPTION_NOTIFICATIONS, $notifications);
 
     // Send email notification if requested
     if ($send_email) {
-        send_upkeepify_email_notification($message, $type, $data);
+        upkeepify_send_email_notification($message, $type, $data);
     }
 }
 
 function upkeepify_display_notifications() {
-    $notifications = get_option('upkeepify_notifications', array());
+    $notifications = get_option(UPKEEPIFY_OPTION_NOTIFICATIONS, array());
 
     if (!empty($notifications)) {
         foreach ($notifications as $notification) {
@@ -30,12 +30,12 @@ function upkeepify_display_notifications() {
         }
 
         // After displaying the notifications, clear them from the database
-        delete_option('upkeepify_notifications');
+        delete_option(UPKEEPIFY_OPTION_NOTIFICATIONS);
     }
 }
 add_action('admin_notices', 'upkeepify_display_notifications');
 
-function send_upkeepify_email_notification($message, $type, $data = array()) {
+function upkeepify_send_email_notification($message, $type, $data = array()) {
     // Set up email recipient, subject, and headers
     $recipient = get_option('admin_email'); // You can modify this to use a custom email address
     $subject = 'Upkeepify Notification';
