@@ -83,8 +83,9 @@ function upkeepify_nearest_unit_meta_box_callback($post) {
     // Retrieve current 'Nearest Unit' value
     $nearest_unit_value = get_post_meta($post->ID, UPKEEPIFY_META_KEY_NEAREST_UNIT, true);
 
-    // Fetch 'Number of Units' setting, default to 10 if not set
-    $number_of_units = get_option(UPKEEPIFY_OPTION_SETTINGS)[UPKEEPIFY_SETTING_NUMBER_OF_UNITS] ?? 10;
+    // Fetch 'Number of Units' setting from cache, default to 10 if not set
+    $settings = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
+    $number_of_units = isset($settings[UPKEEPIFY_SETTING_NUMBER_OF_UNITS]) ? $settings[UPKEEPIFY_SETTING_NUMBER_OF_UNITS] : 10;
 
     // Output the dropdown for selecting the nearest unit
     echo '<select name="upkeepify_nearest_unit" id="upkeepify_nearest_unit" class="postbox">';

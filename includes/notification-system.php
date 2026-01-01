@@ -42,7 +42,7 @@
         }
 
         // Get existing notifications
-        $notifications = get_option(UPKEEPIFY_OPTION_NOTIFICATIONS, array());
+        $notifications = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_NOTIFICATIONS, array());
         if (!is_array($notifications)) {
             $notifications = array();
         }
@@ -150,8 +150,8 @@ function upkeepify_send_email_notification($message, $type, $data = array()) {
             return false;
         }
 
-        // Get settings
-        $settings = get_option(UPKEEPIFY_OPTION_SETTINGS, array());
+        // Get settings from cache
+        $settings = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
         if (!is_array($settings)) {
             $settings = array();
         }

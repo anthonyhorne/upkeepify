@@ -44,35 +44,52 @@ function upkeepify_maintenance_tasks_shortcode($atts) {
         'limit' => 5, // Default limit
     ), $atts, UPKEEPIFY_SHORTCODE_MAINTENANCE_TASKS);
 
-    // Query the maintenance tasks
-    $query = new WP_Query(array(
-        'post_type' => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
-        'posts_per_page' => intval($atts['limit']),
-    ));
+    // Use callback with caching
+    return upkeepify_get_shortcode_output_cached(
+        UPKEEPIFY_SHORTCODE_MAINTENANCE_TASKS,
+        $atts,
+        function() use ($atts) {
+            $start_time = microtime(true);
 
-    // Start output buffering
-    ob_start();
+            // Query the maintenance tasks with optimizations
+            $query = new WP_Query(array(
+                'post_type' => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
+                'posts_per_page' => intval($atts['limit']),
+                'post_status' => 'publish',
+                'no_found_rows' => true, // Disable SQL_CALC_FOUND_ROWS for performance
+                'update_post_meta_cache' => false, // Skip post meta cache if not needed
+                'update_post_term_cache' => false, // Skip term cache if not needed
+            ));
 
-    // Check if there are any posts
-    if ($query->have_posts()) {
-        echo '<div class="maintenance-tasks">';
-        while ($query->have_posts()) {
-            $query->the_post();
-            echo '<div class="maintenance-task">';
-            echo '<h2>' . esc_html(get_the_title()) . '</h2>';
-            echo '<div class="content">' . wp_kses_post(get_the_content()) . '</div>';
-            echo '</div>';
-        }
-        echo '</div>';
-    } else {
-        echo '<p>' . __('No maintenance tasks found.', 'upkeepify') . '</p>';
-    }
+            // Log query performance
+            upkeepify_log_query_performance('maintenance_tasks_shortcode', $start_time);
 
-    // Reset post data
-    wp_reset_postdata();
+            // Start output buffering
+            ob_start();
 
-    // Return the output
-    return ob_get_clean();
+            // Check if there are any posts
+            if ($query->have_posts()) {
+                echo '<div class="maintenance-tasks">';
+                while ($query->have_posts()) {
+                    $query->the_post();
+                    echo '<div class="maintenance-task">';
+                    echo '<h2>' . esc_html(get_the_title()) . '</h2>';
+                    echo '<div class="content">' . wp_kses_post(get_the_content()) . '</div>';
+                    echo '</div>';
+                }
+                echo '</div>';
+            } else {
+                echo '<p>' . __('No maintenance tasks found.', 'upkeepify') . '</p>';
+            }
+
+            // Reset post data
+            wp_reset_postdata();
+
+            // Return the output
+            return ob_get_clean();
+        },
+        UPKEEPIFY_CACHE_EXPIRE_VERY_LONG
+    );
 }
 
 /**

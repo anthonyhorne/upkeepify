@@ -118,3 +118,16 @@ define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT', 'upkeepify_provider_re
 // Menu Positions
 define('UPKEEPIFY_MENU_SETTINGS_PAGE', 'upkeepify_settings');
 define('UPKEEPIFY_MENU_SETUP_WIZARD_PAGE', 'upkeepify_setup_wizard');
+
+// Cache Groups
+define('UPKEEPIFY_CACHE_GROUP', 'upkeepify');
+define('UPKEEPIFY_CACHE_GROUP_SETTINGS', 'upkeepify_settings');
+define('UPKEEPIFY_CACHE_GROUP_TERMS', 'upkeepify_terms');
+define('UPKEEPIFY_CACHE_GROUP_SHORTCODES', 'upkeepify_shortcodes');
+define('UPKEEPIFY_CACHE_GROUP_QUERIES', 'upkeepify_queries');
+
+// Cache Expiration Times (in seconds)
+define('UPKEEPIFY_CACHE_EXPIRE_SHORT', 1800); // 30 minutes
+define('UPKEEPIFY_CACHE_EXPIRE_MEDIUM', 3600); // 1 hour
+define('UPKEEPIFY_CACHE_EXPIRE_LONG', 7200); // 2 hours
+define('UPKEEPIFY_CACHE_EXPIRE_VERY_LONG', 21600); // 6 hours
