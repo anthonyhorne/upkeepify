@@ -120,7 +120,7 @@ add_action('admin_head', 'upkeepify_add_favicon'); // Also for admin area
  * Fallback handler to ensure sample data is inserted.
  *
  * Checks if sample data has been inserted and inserts it if not.
- * This runs on admin_init as a safety mechanism.
+ * This runs on admin_init as a safety mechanism. Includes error handling.
  *
  * @since 1.0
  * @uses get_option()
@@ -129,9 +129,36 @@ add_action('admin_head', 'upkeepify_add_favicon'); // Also for admin area
  * @hook admin_init
  */
 function upkeepify_maybe_insert_sample_data_fallback() {
-    if (!get_option(UPKEEPIFY_OPTION_SAMPLE_DATA_INSERTED)) {
-        upkeepify_insert_sample_data();
-        update_option(UPKEEPIFY_OPTION_SAMPLE_DATA_INSERTED, 1);
+    try {
+        // Check if sample data has already been marked as inserted
+        $sample_data_inserted = get_option(UPKEEPIFY_OPTION_SAMPLE_DATA_INSERTED, false);
+
+        if (!$sample_data_inserted) {
+            if (WP_DEBUG) {
+                error_log('Upkeepify Fallback: Starting sample data insertion');
+            }
+
+            // Insert sample data
+            $result = upkeepify_insert_sample_data();
+
+            // Mark as inserted only if successful
+            if ($result) {
+                update_option(UPKEEPIFY_OPTION_SAMPLE_DATA_INSERTED, time());
+                if (WP_DEBUG) {
+                    error_log('Upkeepify Fallback: Successfully completed sample data insertion');
+                }
+            } else {
+                error_log('Upkeepify Fallback Warning: Sample data insertion completed with errors. Will retry on next admin_init.');
+                // Don't mark as inserted if there were errors, so we can retry
+            }
+        } else {
+            if (WP_DEBUG) {
+                error_log('Upkeepify Fallback: Sample data already inserted at ' . date('Y-m-d H:i:s', $sample_data_inserted));
+            }
+        }
+    } catch (Exception $e) {
+        error_log('Upkeepify Fallback Exception: ' . $e->getMessage());
+        // Don't mark as inserted on exception, allowing retry
     }
 }
 
