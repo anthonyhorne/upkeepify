@@ -384,24 +384,115 @@ function upkeepify_enqueue_admin_scripts($hook_suffix) {
         return; // Not our settings page, do not enqueue the script
     }
 
-    // Correct path to your JS file
-    $script_url = plugin_dir_url(dirname(__FILE__)) . 'js/admin-settings.js';
+    $js_dir = plugin_dir_url(dirname(__FILE__)) . 'js/';
 
-
-    // Enqueue the admin-settings.js script
+    // Enqueue utils.js first (required by other scripts)
     wp_enqueue_script(
-        'upkeepify-admin-settings-js', // Handle for the script.
-        $script_url,
-        array('jquery'), // Dependencies. It depends on jQuery
-        '1.0.1', // Script version number for cache busting
-        true // Load in the footer to not delay page rendering.
+        'upkeepify-utils-js',
+        $js_dir . 'utils.js',
+        array('jquery'),
+        '1.0.0',
+        true
+    );
+
+    // Enqueue notifications.js
+    wp_enqueue_script(
+        'upkeepify-notifications-js',
+        $js_dir . 'notifications.js',
+        array('jquery', 'upkeepify-utils-js'),
+        '1.0.0',
+        true
+    );
+
+    // Enqueue admin-settings.js
+    wp_enqueue_script(
+        'upkeepify-admin-settings-js',
+        $js_dir . 'admin-settings.js',
+        array('jquery', 'upkeepify-utils-js', 'upkeepify-notifications-js'),
+        '1.0.1',
+        true
     );
 }
 add_action('admin_enqueue_scripts', 'upkeepify_enqueue_admin_scripts');
 
-add_action('admin_enqueue_scripts', function($hook_suffix) {
-    error_log('Current page hook suffix: ' . $hook_suffix);
-});
+/**
+ * Enqueue frontend scripts and styles.
+ *
+ * Loads JavaScript files on front-end pages for forms, filters, and calendar.
+ *
+ * @since 1.0
+ * @uses plugin_dir_url()
+ * @uses wp_enqueue_script()
+ * @uses wp_enqueue_style()
+ * @hook wp_enqueue_scripts
+ */
+function upkeepify_enqueue_frontend_scripts() {
+    $js_dir = plugin_dir_url(dirname(__FILE__)) . 'js/';
+    $css_dir = plugin_dir_url(dirname(__FILE__)) . '';
+
+    // Enqueue utils.js
+    wp_enqueue_script(
+        'upkeepify-utils-js',
+        $js_dir . 'utils.js',
+        array('jquery'),
+        '1.0.0',
+        true
+    );
+
+    // Enqueue notifications.js
+    wp_enqueue_script(
+        'upkeepify-notifications-js',
+        $js_dir . 'notifications.js',
+        array('jquery', 'upkeepify-utils-js'),
+        '1.0.0',
+        true
+    );
+
+    // Enqueue form-validation.js
+    wp_enqueue_script(
+        'upkeepify-form-validation-js',
+        $js_dir . 'form-validation.js',
+        array('jquery', 'upkeepify-utils-js'),
+        '1.0.0',
+        true
+    );
+
+    // Enqueue upload-handler.js
+    wp_enqueue_script(
+        'upkeepify-upload-handler-js',
+        $js_dir . 'upload-handler.js',
+        array('jquery', 'upkeepify-utils-js'),
+        '1.0.0',
+        true
+    );
+
+    // Enqueue task-filters.js
+    wp_enqueue_script(
+        'upkeepify-task-filters-js',
+        $js_dir . 'task-filters.js',
+        array('jquery', 'upkeepify-utils-js'),
+        '1.0.0',
+        true
+    );
+
+    // Enqueue calendar-interactions.js
+    wp_enqueue_script(
+        'upkeepify-calendar-interactions-js',
+        $js_dir . 'calendar-interactions.js',
+        array('jquery', 'upkeepify-utils-js'),
+        '1.0.0',
+        true
+    );
+
+    // Enqueue enhanced styles
+    wp_enqueue_style(
+        'upkeepify-enhanced-styles',
+        $css_dir . 'upkeepify-styles.css',
+        array(),
+        '1.0.0'
+    );
+}
+add_action('wp_enqueue_scripts', 'upkeepify_enqueue_frontend_scripts');
 
 // Implement caching for frequently accessed data
 /**

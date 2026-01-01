@@ -302,3 +302,974 @@
         width: 100%;
     }
 }
+
+/* =========================================
+   FORM VALIDATION STYLES
+   ========================================= */
+
+.field-error {
+    display: block;
+    color: #dc3232;
+    font-size: 0.85rem;
+    margin-top: 5px;
+}
+
+.form-error {
+    background-color: #fde8e8;
+    border: 1px solid #dc3232;
+    border-radius: 4px;
+    color: #dc3232;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+}
+
+.upkeepify-input.error,
+.upkeepify-textarea.error,
+.upkeepify-select.error {
+    border-color: #dc3232;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(220, 50, 50, 0.2);
+}
+
+.upkeepify-input.valid,
+.upkeepify-textarea.valid,
+.upkeepify-select.valid {
+    border-color: #46b450;
+    box-shadow: 0 0 0 2px rgba(70, 180, 80, 0.2);
+}
+
+.upkeepify-input:focus,
+.upkeepify-textarea:focus,
+.upkeepify-select:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: -1px;
+}
+
+/* =========================================
+   FILE UPLOAD STYLES
+   ========================================= */
+
+.upkeepify-upload-preview {
+    margin-top: 15px;
+}
+
+.upkeepify-drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #f9f9f9;
+}
+
+.upkeepify-drop-zone:hover {
+    border-color: #0073aa;
+    background-color: #f0f7fc;
+}
+
+.upkeepify-drop-zone.drag-over {
+    border-color: #0073aa;
+    background-color: #e8f4f8;
+}
+
+.upkeepify-drop-zone.error {
+    border-color: #dc3232;
+    background-color: #fde8e8;
+}
+
+.upkeepify-drop-zone .upload-icon {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.upkeepify-drop-zone p {
+    margin: 5px 0;
+    color: #666;
+}
+
+.upkeepify-drop-zone .file-size-limit {
+    font-size: 0.85rem;
+    color: #999;
+}
+
+.upkeepify-file-info {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 10px;
+}
+
+.upkeepify-file-info .file-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.upkeepify-file-info .file-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.upkeepify-file-info .file-size {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.upkeepify-file-info .file-status.success {
+    color: #46b450;
+    font-weight: 500;
+}
+
+.upkeepify-image-preview {
+    margin-top: 10px;
+}
+
+.upkeepify-image-preview .preview-wrapper {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    display: inline-block;
+}
+
+.upkeepify-image-preview img {
+    max-width: 200px;
+    max-height: 200px;
+    display: block;
+}
+
+.upkeepify-upload-error {
+    background-color: #fde8e8;
+    border: 1px solid #dc3232;
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 10px;
+    color: #dc3232;
+}
+
+.upkeepify-upload-error .error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.upkeepify-upload-error .error-icon {
+    color: #dc3232;
+    flex-shrink: 0;
+}
+
+.upkeepify-remove-file {
+    background-color: #dc3232;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.upkeepify-remove-file:hover {
+    background-color: #b32d2d;
+}
+
+.upkeepify-upload-progress {
+    margin-top: 15px;
+}
+
+.upkeepify-upload-progress .progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.upkeepify-upload-progress .progress-fill {
+    height: 100%;
+    background-color: #0073aa;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.upkeepify-upload-progress .progress-text {
+    text-align: center;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.upkeepify-upload-progress .loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3f;
+    border-top: 3px solid #0073aa;
+    border-radius: 50%;
+    animation: upkeepify-spin 1s linear infinite;
+    margin: 10px auto;
+}
+
+@keyframes upkeepify-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* =========================================
+   TASK FILTERS STYLES
+   ========================================= */
+
+.upkeepify-filter-bar {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.upkeepify-filter-group {
+    display: inline-block;
+    margin-right: 15px;
+    margin-bottom: 10px;
+    vertical-align: top;
+}
+
+.upkeepify-filter-group label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    display: block;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.upkeepify-filter-select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    min-width: 150px;
+    cursor: pointer;
+}
+
+.upkeepify-filter-select:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: -1px;
+}
+
+.upkeepify-date-range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.upkeepify-filter-date {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    min-width: 130px;
+}
+
+.upkeepify-active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+}
+
+.upkeepify-active-filter {
+    background-color: #0073aa;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 15px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.upkeepify-active-filter:hover {
+    background-color: #005177;
+}
+
+.upkeepify-active-filter .remove-filter {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.upkeepify-clear-filters {
+    background-color: #666;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-left: 15px;
+    transition: background-color 0.3s ease;
+}
+
+.upkeepify-clear-filters:hover {
+    background-color: #444;
+}
+
+.upkeepify-filter-results-count {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.upkeepify-filter-results-count .count {
+    font-weight: bold;
+    color: #0073aa;
+}
+
+.upkeepify-results-count {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+/* =========================================
+   CALENDAR INTERACTIONS STYLES
+   ========================================= */
+
+#upkeepify-task-calendar {
+    margin: 20px 0;
+}
+
+.upkeepify-calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.upkeepify-calendar-month {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.upkeepify-calendar-nav {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: background-color 0.3s ease;
+}
+
+.upkeepify-calendar-nav:hover {
+    background-color: #f0f0f0;
+}
+
+.upkeepify-calendar-nav:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: -1px;
+}
+
+.upkeepify-calendar-daynames {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.upkeepify-calendar-daynames .dayname {
+    padding: 10px;
+    font-size: 0.9rem;
+}
+
+.upkeepify-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+
+.upkeepify-calendar-grid.month-transitioning {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    background-color: white;
+    transition: all 0.3s ease;
+}
+
+.calendar-day.empty {
+    background-color: transparent;
+    border: none;
+}
+
+.calendar-day.today {
+    border-color: #0073aa;
+    background-color: #e8f4f8;
+}
+
+.calendar-day.selected {
+    background-color: #0073aa;
+    color: white;
+    border-color: #005177;
+}
+
+.calendar-day.clickable {
+    cursor: pointer;
+}
+
+.calendar-day.clickable:hover {
+    background-color: #f0f7fc;
+    border-color: #0073aa;
+}
+
+.calendar-day.has-tasks {
+    background-color: #fff3cd;
+    border-color: #ffc107;
+}
+
+.calendar-day.today.has-tasks {
+    background-color: #ffe6a7;
+}
+
+.calendar-day.selected.has-tasks {
+    background-color: #0073aa;
+}
+
+.calendar-day .day-number {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.calendar-day .task-count {
+    background-color: #0073aa;
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    margin-top: 5px;
+}
+
+.calendar-day.today .task-count {
+    background-color: #005177;
+}
+
+.upkeepify-calendar-tasks {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-top: 20px;
+}
+
+.upkeepify-calendar-tasks .task-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #ddd;
+    background-color: #f9f9f9;
+}
+
+.upkeepify-calendar-tasks .task-panel-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #333;
+}
+
+.upkeepify-calendar-tasks .close-task-panel {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.upkeepify-calendar-tasks .close-task-panel:hover {
+    background-color: #e0e0e0;
+}
+
+.upkeepify-calendar-tasks .task-panel-content {
+    padding: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.upkeepify-calendar-tasks .no-tasks {
+    text-align: center;
+    color: #666;
+    padding: 30px;
+}
+
+.calendar-task-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.calendar-task-item {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.calendar-task-item:last-child {
+    border-bottom: none;
+}
+
+.calendar-task-item .task-status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.calendar-task-item .task-status-indicator.status-pending {
+    background-color: #ffc107;
+}
+
+.calendar-task-item .task-status-indicator.status-in-progress {
+    background-color: #0073aa;
+}
+
+.calendar-task-item .task-status-indicator.status-completed {
+    background-color: #46b450;
+}
+
+.calendar-task-item .task-title {
+    font-weight: 500;
+    color: #0073aa;
+    text-decoration: none;
+    flex-grow: 1;
+}
+
+.calendar-task-item .task-title:hover {
+    text-decoration: underline;
+}
+
+.calendar-task-item .task-status {
+    font-size: 0.85rem;
+    color: #666;
+    background-color: #f5f5f5;
+    padding: 3px 8px;
+    border-radius: 10px;
+}
+
+/* =========================================
+   NOTIFICATIONS STYLES
+   ========================================= */
+
+#upkeepify-notifications {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.upkeepify-notification {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 15px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    animation: slideIn 0.3s ease;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.upkeepify-notification.show {
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.upkeepify-notification.notification-success {
+    border-left: 4px solid #46b450;
+}
+
+.upkeepify-notification.notification-error {
+    border-left: 4px solid #dc3232;
+}
+
+.upkeepify-notification.notification-warning {
+    border-left: 4px solid #ffc107;
+}
+
+.upkeepify-notification.notification-info {
+    border-left: 4px solid #0073aa;
+}
+
+.upkeepify-notification .notification-content {
+    flex-grow: 1;
+}
+
+.upkeepify-notification .notification-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.upkeepify-notification.notification-success .notification-icon {
+    color: #46b450;
+}
+
+.upkeepify-notification.notification-error .notification-icon {
+    color: #dc3232;
+}
+
+.upkeepify-notification.notification-warning .notification-icon {
+    color: #ffc107;
+}
+
+.upkeepify-notification.notification-info .notification-icon {
+    color: #0073aa;
+}
+
+.upkeepify-notification .notification-message {
+    color: #333;
+    line-height: 1.4;
+    margin-bottom: 8px;
+}
+
+.upkeepify-notification .notification-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.upkeepify-notification .notification-action {
+    padding: 6px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    border: 1px solid #ddd;
+    background-color: white;
+    transition: all 0.3s ease;
+}
+
+.upkeepify-notification .notification-action:hover {
+    background-color: #f5f5f5;
+}
+
+.upkeepify-notification .notification-action.primary {
+    background-color: #0073aa;
+    border-color: #0073aa;
+    color: white;
+}
+
+.upkeepify-notification .notification-action.primary:hover {
+    background-color: #005177;
+}
+
+.upkeepify-notification .notification-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    color: #999;
+    transition: color 0.3s ease;
+}
+
+.upkeepify-notification .notification-close:hover {
+    color: #666;
+}
+
+/* =========================================
+   ADMIN SETTINGS STYLES
+   ========================================= */
+
+.connection-status {
+    margin-left: 10px;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.connection-status.checking {
+    color: #0073aa;
+}
+
+.connection-status.connected {
+    color: #46b450;
+    font-weight: 500;
+}
+
+.field-error {
+    display: block;
+    color: #dc3232;
+    font-size: 0.85rem;
+    margin-top: 5px;
+}
+
+.section-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    margin-left: 10px;
+    color: #666;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.section-toggle:hover {
+    background-color: #f0f0f0;
+}
+
+.section-toggle:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: -1px;
+}
+
+.section-content {
+    transition: max-height 0.3s ease;
+}
+
+.email-preview-btn {
+    margin-left: 10px;
+}
+
+.upkeepify-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.upkeepify-modal .modal-content {
+    background-color: white;
+    border-radius: 8px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.upkeepify-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.upkeepify-modal .modal-header h3 {
+    margin: 0;
+    color: #333;
+}
+
+.upkeepify-modal .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.upkeepify-modal .modal-close:hover {
+    background-color: #e0e0e0;
+}
+
+.upkeepify-modal .modal-body {
+    padding: 20px;
+}
+
+.email-preview {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+}
+
+.email-preview p {
+    margin-bottom: 10px;
+}
+
+.email-preview hr {
+    margin: 15px 0;
+    border: none;
+    border-top: 1px solid #ddd;
+}
+
+.settings-reset-btn {
+    margin-left: 10px;
+    background-color: #666;
+}
+
+.settings-reset-btn:hover {
+    background-color: #444;
+}
+
+.provider-field-group,
+.unit-field {
+    margin-bottom: 15px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.provider-field-group h4,
+.unit-field label {
+    margin-top: 0;
+    color: #333;
+}
+
+/* =========================================
+   ACCESSIBILITY STYLES
+   ========================================= */
+
+/* Focus indicators */
+:focus-visible {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+}
+
+/* Skip to content link for keyboard users */
+.skip-to-content {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #0073aa;
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    z-index: 100;
+}
+
+.skip-to-content:focus {
+    top: 0;
+}
+
+/* Screen reader only */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+    .upkeepify-notification,
+    .upkeepify-modal .modal-content {
+        border: 2px solid #000;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* =========================================
+   RESPONSIVE DESIGN
+   ========================================= */
+
+@media (max-width: 768px) {
+    #upkeepify-notifications {
+        left: 10px;
+        right: 10px;
+        max-width: none;
+    }
+
+    .upkeepify-filter-group {
+        display: block;
+        margin-right: 0;
+        width: 100%;
+    }
+
+    .upkeepify-filter-select,
+    .upkeepify-filter-date {
+        width: 100%;
+    }
+
+    .upkeepify-calendar-daynames .dayname,
+    .calendar-day .day-number {
+        font-size: 0.8rem;
+    }
+
+    .calendar-day .task-count {
+        width: 18px;
+        height: 18px;
+        font-size: 0.65rem;
+    }
+
+    .upkeepify-notification {
+        padding: 12px;
+    }
+}
