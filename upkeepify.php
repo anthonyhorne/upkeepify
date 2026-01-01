@@ -31,6 +31,9 @@ if (!defined('WPINC')) {
 
 define('UPKEEPIFY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
+// Include constants first
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/constants.php';
+
 // Include component files
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/custom-post-types.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/taxonomies.php';
@@ -77,14 +80,11 @@ function upkeepify_add_favicon() {
 add_action('wp_head', 'upkeepify_add_favicon');
 add_action('admin_head', 'upkeepify_add_favicon'); // Also for admin area
 
-// Example function within sample-data.php that checks for and inserts sample data if needed
-function maybe_insert_sample_data() {
-    // Check if the sample data already exists, and if not, insert it
-    if (!get_option('upkeepify_sample_data_inserted')) {
-        upkeepify_insert_sample_data(); // Function that inserts the data
-        update_option('upkeepify_sample_data_inserted', 1);
+function upkeepify_maybe_insert_sample_data_fallback() {
+    if (!get_option(UPKEEPIFY_OPTION_SAMPLE_DATA_INSERTED)) {
+        upkeepify_insert_sample_data();
+        update_option(UPKEEPIFY_OPTION_SAMPLE_DATA_INSERTED, 1);
     }
 }
 
-// Call the conditional insertion function at an appropriate hook, or directly, based on your plugin's logic
-add_action('admin_init', 'maybe_insert_sample_data');
+add_action('admin_init', 'upkeepify_maybe_insert_sample_data_fallback');

@@ -1,28 +1,28 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-function insert_upkeepify_sample_data() {
+function upkeepify_insert_sample_data() {
     // Insert Sample Categories
     $categories = ['General Maintenance', 'Electrical', 'Plumbing', 'Landscaping'];
     foreach ($categories as $category) {
-        if (!term_exists($category, 'task_category')) {
-            wp_insert_term($category, 'task_category');
+        if (!term_exists($category, UPKEEPIFY_TAXONOMY_TASK_CATEGORY)) {
+            wp_insert_term($category, UPKEEPIFY_TAXONOMY_TASK_CATEGORY);
         }
     }
 
     // Insert Sample Types
     $types = ['Repair', 'Inspection', 'Installation'];
     foreach ($types as $type) {
-        if (!term_exists($type, 'task_type')) {
-            wp_insert_term($type, 'task_type');
+        if (!term_exists($type, UPKEEPIFY_TAXONOMY_TASK_TYPE)) {
+            wp_insert_term($type, UPKEEPIFY_TAXONOMY_TASK_TYPE);
         }
     }
 
     // Insert Sample Statuses
     $statuses = ['Open', 'In Progress', 'Completed', 'On Hold'];
     foreach ($statuses as $status) {
-        if (!term_exists($status, 'task_status')) {
-            wp_insert_term($status, 'task_status');
+        if (!term_exists($status, UPKEEPIFY_TAXONOMY_TASK_STATUS)) {
+            wp_insert_term($status, UPKEEPIFY_TAXONOMY_TASK_STATUS);
         }
     }
 
@@ -35,27 +35,23 @@ function insert_upkeepify_sample_data() {
     ];
 
     foreach ($providers as $provider) {
-        $provider_exists = get_page_by_title($provider['name'], OBJECT, 'service_provider');
+        $provider_exists = get_page_by_title($provider['name'], OBJECT, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER);
         if (!$provider_exists) {
             wp_insert_post([
                 'post_title'    => $provider['name'],
                 'post_content'  => $provider['description'],
                 'post_status'   => 'publish',
                 'post_author'   => get_current_user_id(),
-                'post_type'     => 'service_provider',
+                'post_type'     => UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER,
             ]);
         }
     }
 }
 
-function upkeepify_insert_sample_data() {
-    insert_upkeepify_sample_data();
-}
-
 function upkeepify_maybe_insert_sample_data() {
-    if (!get_option('upkeepify_sample_data_inserted')) {
+    if (!get_option(UPKEEPIFY_OPTION_SAMPLE_DATA_INSERTED)) {
         upkeepify_insert_sample_data();
-        update_option('upkeepify_sample_data_inserted', 1);
+        update_option(UPKEEPIFY_OPTION_SAMPLE_DATA_INSERTED, 1);
     }
 }
 

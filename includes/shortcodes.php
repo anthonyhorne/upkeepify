@@ -4,35 +4,9 @@ if (!defined('WPINC')) {
     die;
 }
 
-// Register Custom Post Types
-function upkeepify_register_custom_post_types() {
-    // Register the Maintenance Tasks CPT
-    $args_maintenance_tasks = array(
-        'public' => true,
-        'label'  => __('Maintenance Tasks', 'upkeepify'),
-        'supports' => array('title', 'editor', 'custom-fields', 'comments'),
-        'show_in_rest' => true, // Enables Gutenberg support
-        'menu_icon' => 'dashicons-hammer', // Custom dashicon for the menu
-        'has_archive' => true,
-        'rewrite' => array('slug' => 'maintenance-tasks'), // Custom slug for this CPT
-    );
-    $result = register_post_type('maintenance_tasks', $args_maintenance_tasks);
-
-    // The $result variable holds the result of the register_post_type function, which returns a WP_Error object on failure or a boolean true on success.
-    // Check if the post type registration was successful
-    if ($result) {
-        // Add a success notification
-        //upkeepify_add_notification(__('Maintenance Tasks custom post type registered successfully.', 'upkeepify'), 'success');
-    } else {
-        // Add an error notification
-        upkeepify_add_notification(__('Failed to register Maintenance Tasks custom post type.', 'upkeepify'), 'error');
-    }
-}
-add_action('init', 'upkeepify_register_custom_post_types');
-
 // Register Shortcodes
 function upkeepify_register_shortcodes() {
-    add_shortcode('maintenance_tasks', 'upkeepify_maintenance_tasks_shortcode');
+    add_shortcode(UPKEEPIFY_SHORTCODE_MAINTENANCE_TASKS, 'upkeepify_maintenance_tasks_shortcode');
 }
 add_action('init', 'upkeepify_register_shortcodes');
 
@@ -41,11 +15,11 @@ function upkeepify_maintenance_tasks_shortcode($atts) {
     // Extract shortcode attributes
     $atts = shortcode_atts(array(
         'limit' => 5, // Default limit
-    ), $atts, 'maintenance_tasks');
+    ), $atts, UPKEEPIFY_SHORTCODE_MAINTENANCE_TASKS);
 
     // Query the maintenance tasks
     $query = new WP_Query(array(
-        'post_type' => 'maintenance_tasks',
+        'post_type' => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
         'posts_per_page' => intval($atts['limit']),
     ));
 
@@ -79,7 +53,7 @@ function upkeepify_list_tasks_shortcode() {
     ob_start(); // Start output buffering
 
     $query = new WP_Query([
-        'post_type' => 'maintenance_tasks',
+        'post_type' => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
         'post_status' => 'publish',
         'posts_per_page' => -1,
     ]);
@@ -101,14 +75,14 @@ function upkeepify_list_tasks_shortcode() {
             $post_id = get_the_ID();
 
             // Retrieve the rough estimate for this task
-            $rough_estimate = get_post_meta($post_id, 'upkeepify_rough_estimate', true);
+            $rough_estimate = get_post_meta($post_id, UPKEEPIFY_META_KEY_ROUGH_ESTIMATE, true);
             // Optionally fetch the currency symbol from plugin settings
-            $currency_symbol = get_option('upkeepify_settings')['upkeepify_currency'] ?? '$';
+            $currency_symbol = get_option(UPKEEPIFY_OPTION_SETTINGS)[UPKEEPIFY_SETTING_CURRENCY] ?? '$';
 
             // Retrieve the category, type, and status terms
-            $category = wp_get_post_terms($post_id, 'task_category', array('fields' => 'names'));
-            $type = wp_get_post_terms($post_id, 'task_type', array('fields' => 'names'));
-            $status = wp_get_post_terms($post_id, 'task_status', array('fields' => 'names'));
+            $category = wp_get_post_terms($post_id, UPKEEPIFY_TAXONOMY_TASK_CATEGORY, array('fields' => 'names'));
+            $type = wp_get_post_terms($post_id, UPKEEPIFY_TAXONOMY_TASK_TYPE, array('fields' => 'names'));
+            $status = wp_get_post_terms($post_id, UPKEEPIFY_TAXONOMY_TASK_STATUS, array('fields' => 'names'));
 
             echo '<tr>';
             echo '<td>' . get_the_title() . '</td>';
@@ -127,7 +101,7 @@ function upkeepify_list_tasks_shortcode() {
     wp_reset_postdata();
     return ob_get_clean(); // Return the buffered output
 }
-add_shortcode('upkeepify_list_tasks', 'upkeepify_list_tasks_shortcode');
+add_shortcode(UPKEEPIFY_SHORTCODE_LIST_TASKS, 'upkeepify_list_tasks_shortcode');
 
 // Shortcode for Task Submission Form
 function upkeepify_task_form_shortcode() {
@@ -139,12 +113,12 @@ function upkeepify_task_form_shortcode() {
 
     $num1 = rand(1, 10);
     $num2 = rand(1, 10);
-    $_SESSION['upkeepify_math_result'] = $num1 + $num2;
+    $_SESSION[UPKEEPIFY_SESSION_MATH_RESULT] = $num1 + $num2;
 
     ob_start();
 
     echo '<form id="upkeepify-task-form" class="upkeepify-form" action="' . esc_url($_SERVER['REQUEST_URI']) . '" method="post" enctype="multipart/form-data">';
-    wp_nonce_field('upkeepify_task_submit_action', 'upkeepify_task_submit_nonce');
+    wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT, UPKEEPIFY_NONCE_TASK_SUBMIT);
 
     echo '<p><label for="task_title">Task Title:</label><br />';
     echo '<input type="text" id="task_title" name="task_title" required class="upkeepify-input"></p>';
@@ -152,8 +126,8 @@ function upkeepify_task_form_shortcode() {
     echo '<p><label for="task_description">Task Description:</label><br />';
     echo '<textarea id="task_description" name="task_description" required class="upkeepify-textarea"></textarea></p>';
 
-    // Dynamically generated dropdowns for taxonomies associated with 'maintenance_tasks'
-    $taxonomies = get_object_taxonomies('maintenance_tasks', 'objects');
+    // Dynamically generated dropdowns for taxonomies associated with UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS
+    $taxonomies = get_object_taxonomies(UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS, 'objects');
     foreach ($taxonomies as $taxonomy) {
         $terms = get_terms(array('taxonomy' => $taxonomy->name, 'hide_empty' => false));
         if (!empty($terms)) {
@@ -233,7 +207,7 @@ echo "<script>
 
     return ob_get_clean();
 }
-add_shortcode('upkeepify_task_form', 'upkeepify_task_form_shortcode');
+add_shortcode(UPKEEPIFY_SHORTCODE_TASK_FORM, 'upkeepify_task_form_shortcode');
 
 
 // Handle Form Submission for Task Creation
@@ -246,7 +220,7 @@ function upkeepify_handle_task_form_submission() {
 
         // Verify the CAPTCHA
         $user_answer = filter_input(INPUT_POST, 'math', FILTER_SANITIZE_NUMBER_INT);
-        if ($user_answer == $_SESSION['upkeepify_math_result']) {
+        if ($user_answer == $_SESSION[UPKEEPIFY_SESSION_MATH_RESULT]) {
             // Proceed if math answer is correct
             $task_title = sanitize_text_field($_POST['task_title']);
             $task_description = sanitize_textarea_field($_POST['task_description']);
@@ -259,17 +233,17 @@ function upkeepify_handle_task_form_submission() {
                 'post_title'   => $task_title,
                 'post_content' => $task_description,
                 'post_status'  => 'publish',
-                'post_type'    => 'maintenance_tasks',
+                'post_type'    => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
                 'meta_input'   => [
-                    'upkeepify_nearest_unit' => $nearest_unit, // Save nearest unit as post meta
-                    'upkeepify_gps_latitude' => $latitude, // Save GPS latitude
-                    'upkeepify_gps_longitude' => $longitude, // Save GPS longitude
+                    UPKEEPIFY_META_KEY_NEAREST_UNIT => $nearest_unit, // Save nearest unit as post meta
+                    UPKEEPIFY_META_KEY_GPS_LATITUDE => $latitude, // Save GPS latitude
+                    UPKEEPIFY_META_KEY_GPS_LONGITUDE => $longitude, // Save GPS longitude
                 ],
             ]);
 
             if ($task_id && !is_wp_error($task_id)) {
                 // Process taxonomies
-                $taxonomies = get_object_taxonomies('maintenance_tasks');
+                $taxonomies = get_object_taxonomies(UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS);
                 foreach ($taxonomies as $taxonomy) {
                     if (isset($_POST[$taxonomy])) {
                         wp_set_object_terms($task_id, [intval($_POST[$taxonomy])], $taxonomy);
@@ -277,7 +251,7 @@ function upkeepify_handle_task_form_submission() {
                 }
 
                 // Save nearest unit as post meta
-                update_post_meta($task_id, 'upkeepify_nearest_unit', $nearest_unit);
+                update_post_meta($task_id, UPKEEPIFY_META_KEY_NEAREST_UNIT, $nearest_unit);
 
                 // Thank you message (output as part of the response to the form submission)
                 echo '<div id="upkeepify-thank-you-message" style="color: green;">Thank you for your submission.</div>';
@@ -315,10 +289,10 @@ function upkeepify_provider_response_form_shortcode($atts) {
 
     // Find the provider response post with this token
     $query_args = [
-        'post_type' => 'provider_responses', // Replace with your custom post type for provider responses
+        'post_type' => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES, // Replace with your custom post type for provider responses
         'meta_query' => [
             [
-                'key' => 'response_token',
+                'key' => UPKEEPIFY_META_KEY_RESPONSE_TOKEN,
                 'value' => $token,
                 'compare' => '='
             ]
@@ -330,7 +304,7 @@ function upkeepify_provider_response_form_shortcode($atts) {
     if ($query->have_posts()) {
         while ($query->have_posts()) {
             $query->the_post();
-            $task_id = get_post_meta(get_the_ID(), 'response_task_id', true);
+            $task_id = get_post_meta(get_the_ID(), UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true);
             $task_post = get_post($task_id);
 
             // Display task details (readonly)
@@ -354,19 +328,19 @@ function upkeepify_provider_response_form_shortcode($atts) {
     wp_reset_postdata();
     return ob_get_clean();
 }
-add_shortcode('upkeepify_provider_response_form', 'upkeepify_provider_response_form_shortcode');
+add_shortcode(UPKEEPIFY_SHORTCODE_PROVIDER_RESPONSE_FORM, 'upkeepify_provider_response_form_shortcode');
 
 // Shortcode to display tasks by category
 function upkeepify_tasks_by_category_shortcode($atts) {
     $atts = shortcode_atts(array(
         'category' => '',
-    ), $atts, 'upkeepify_tasks_by_category');
+    ), $atts, UPKEEPIFY_SHORTCODE_TASKS_BY_CATEGORY);
 
     $query = new WP_Query(array(
-        'post_type' => 'maintenance_tasks',
+        'post_type' => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
         'tax_query' => array(
             array(
-                'taxonomy' => 'task_category',
+                'taxonomy' => UPKEEPIFY_TAXONOMY_TASK_CATEGORY,
                 'field'    => 'slug',
                 'terms'    => $atts['category'],
             ),
@@ -389,19 +363,19 @@ function upkeepify_tasks_by_category_shortcode($atts) {
     wp_reset_postdata();
     return ob_get_clean();
 }
-add_shortcode('upkeepify_tasks_by_category', 'upkeepify_tasks_by_category_shortcode');
+add_shortcode(UPKEEPIFY_SHORTCODE_TASKS_BY_CATEGORY, 'upkeepify_tasks_by_category_shortcode');
 
 // Shortcode to display tasks assigned to a specific service provider
 function upkeepify_tasks_by_provider_shortcode($atts) {
     $atts = shortcode_atts(array(
         'provider' => '',
-    ), $atts, 'upkeepify_tasks_by_provider');
+    ), $atts, UPKEEPIFY_SHORTCODE_TASKS_BY_PROVIDER);
 
     $query = new WP_Query(array(
-        'post_type' => 'maintenance_tasks',
+        'post_type' => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
         'meta_query' => array(
             array(
-                'key'     => 'assigned_service_provider',
+                'key'     => UPKEEPIFY_META_KEY_ASSIGNED_SERVICE_PROVIDER,
                 'value'   => $atts['provider'],
                 'compare' => '=',
             ),
@@ -424,19 +398,19 @@ function upkeepify_tasks_by_provider_shortcode($atts) {
     wp_reset_postdata();
     return ob_get_clean();
 }
-add_shortcode('upkeepify_tasks_by_provider', 'upkeepify_tasks_by_provider_shortcode');
+add_shortcode(UPKEEPIFY_SHORTCODE_TASKS_BY_PROVIDER, 'upkeepify_tasks_by_provider_shortcode');
 
 // Shortcode to display tasks with a specific status
 function upkeepify_tasks_by_status_shortcode($atts) {
     $atts = shortcode_atts(array(
         'status' => '',
-    ), $atts, 'upkeepify_tasks_by_status');
+    ), $atts, UPKEEPIFY_SHORTCODE_TASKS_BY_STATUS);
 
     $query = new WP_Query(array(
-        'post_type' => 'maintenance_tasks',
+        'post_type' => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
         'tax_query' => array(
             array(
-                'taxonomy' => 'task_status',
+                'taxonomy' => UPKEEPIFY_TAXONOMY_TASK_STATUS,
                 'field'    => 'slug',
                 'terms'    => $atts['status'],
             ),
@@ -459,12 +433,12 @@ function upkeepify_tasks_by_status_shortcode($atts) {
     wp_reset_postdata();
     return ob_get_clean();
 }
-add_shortcode('upkeepify_tasks_by_status', 'upkeepify_tasks_by_status_shortcode');
+add_shortcode(UPKEEPIFY_SHORTCODE_TASKS_BY_STATUS, 'upkeepify_tasks_by_status_shortcode');
 
 // Shortcode to display a summary of tasks, including counts of tasks by status
 function upkeepify_task_summary_shortcode() {
     $statuses = get_terms(array(
-        'taxonomy'   => 'task_status',
+        'taxonomy'   => UPKEEPIFY_TAXONOMY_TASK_STATUS,
         'hide_empty' => false,
     ));
 
@@ -474,10 +448,10 @@ function upkeepify_task_summary_shortcode() {
         echo '<ul class="upkeepify-task-summary">';
         foreach ($statuses as $status) {
             $count = new WP_Query(array(
-                'post_type' => 'maintenance_tasks',
+                'post_type' => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
                 'tax_query' => array(
                     array(
-                        'taxonomy' => 'task_status',
+                        'taxonomy' => UPKEEPIFY_TAXONOMY_TASK_STATUS,
                         'field'    => 'slug',
                         'terms'    => $status->slug,
                     ),
@@ -492,12 +466,12 @@ function upkeepify_task_summary_shortcode() {
 
     return ob_get_clean();
 }
-add_shortcode('upkeepify_task_summary', 'upkeepify_task_summary_shortcode');
+add_shortcode(UPKEEPIFY_SHORTCODE_TASK_SUMMARY, 'upkeepify_task_summary_shortcode');
 
 // Shortcode to display a calendar view of tasks, showing due dates and deadlines
 function upkeepify_task_calendar_shortcode() {
     $tasks = new WP_Query(array(
-        'post_type'      => 'maintenance_tasks',
+        'post_type'      => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
         'posts_per_page' => -1,
         'meta_key'       => 'due_date',
         'orderby'        => 'meta_value',
@@ -524,4 +498,4 @@ function upkeepify_task_calendar_shortcode() {
     wp_reset_postdata();
     return ob_get_clean();
 }
-add_shortcode('upkeepify_task_calendar', 'upkeepify_task_calendar_shortcode');
+add_shortcode(UPKEEPIFY_SHORTCODE_TASK_CALENDAR, 'upkeepify_task_calendar_shortcode');

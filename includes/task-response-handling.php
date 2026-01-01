@@ -2,15 +2,15 @@
 //Function hooked into save to create response posts per task for each
 //eligible service provider. 
 function upkeepify_generate_provider_tokens($post_id, $post, $update) {
-    // Check if this is a 'maintenance_tasks' post type
-    if ($post->post_type !== 'maintenance_tasks') {
+    // Check if this is a UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS post type
+    if ($post->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS) {
         return;
     }
 
     // Check if the post is being published for the first time
     if (!$update) {
         // Fetch all service providers capable of performing the task
-        $service_providers = get_terms(['taxonomy' => 'service_provider', 'hide_empty' => false]);
+        $service_providers = get_terms(['taxonomy' => UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER, 'hide_empty' => false]);
 
         foreach ($service_providers as $provider) {
             // Generate a unique token for each provider
@@ -20,11 +20,11 @@ function upkeepify_generate_provider_tokens($post_id, $post, $update) {
             $provider_response_data = [
                 'post_title'   => 'Response for Task #' . $post_id . ' - Provider: ' . $provider->name,
                 'post_status'  => 'draft', // Start as a draft
-                'post_type'    => 'provider_responses', // Assuming 'provider_responses' is your custom post type for storing responses
+                'post_type'    => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES, // Assuming UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES is your custom post type for storing responses
                 'meta_input'   => [
-                    'response_task_id' => $post_id, // ID of the maintenance task
-                    'provider_id' => $provider->term_id, // ID of the service provider
-                    'response_token' => $token, // Unique token for the provider to edit this response
+                    UPKEEPIFY_META_KEY_RESPONSE_TASK_ID => $post_id, // ID of the maintenance task
+                    UPKEEPIFY_META_KEY_PROVIDER_ID => $provider->term_id, // ID of the service provider
+                    UPKEEPIFY_META_KEY_RESPONSE_TOKEN => $token, // Unique token for the provider to edit this response
                 ],
             ];
 

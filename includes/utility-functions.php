@@ -33,10 +33,10 @@ function upkeepify_send_status_change_email($task_id, $new_status) {
     }
 
     // Fetch plugin settings to see if notifications are enabled
-    $settings = get_option('upkeepify_settings');
-    if (isset($settings['upkeepify_notify_option']) && $settings['upkeepify_notify_option']) {
+    $settings = get_option(UPKEEPIFY_OPTION_SETTINGS);
+    if (isset($settings[UPKEEPIFY_SETTING_NOTIFY_OPTION]) && $settings[UPKEEPIFY_SETTING_NOTIFY_OPTION]) {
         // Construct the email
-        $to = $settings['upkeepify_override_email'] ?? get_option('admin_email');
+        $to = $settings[UPKEEPIFY_SETTING_OVERRIDE_EMAIL] ?? get_option('admin_email');
         $subject = "Task Status Updated: {$task->post_title}";
         $message = "The status of task '{$task->post_title}' has been updated to '{$new_status}'.";
         // Send the email
@@ -53,7 +53,7 @@ function upkeepify_send_status_change_email($task_id, $new_status) {
 function upkeepify_generate_task_update_token($task_id) {
     // This is a simplified example. You should use a more secure method for generating and storing tokens.
     $token = wp_generate_password(20, false);
-    update_post_meta($task_id, '_upkeepify_task_update_token', $token);
+    update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_UPDATE_TOKEN, $token);
     return $token;
 }
 
@@ -65,6 +65,6 @@ function upkeepify_generate_task_update_token($task_id) {
  * @return bool True if the token is valid, false otherwise.
  */
 function upkeepify_validate_task_update_token($task_id, $token) {
-    $stored_token = get_post_meta($task_id, '_upkeepify_task_update_token', true);
+    $stored_token = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_UPDATE_TOKEN, true);
     return $token === $stored_token;
 }
