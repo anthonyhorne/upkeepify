@@ -4,6 +4,15 @@ if (!defined('WPINC')) {
     die;
 }
 
+/**
+ * Add admin menu page for plugin settings.
+ *
+ * Registers a submenu page under Maintenance Tasks in the WordPress admin menu.
+ *
+ * @since 1.0
+ * @uses add_submenu_page()
+ * @hook admin_menu
+ */
 function upkeepify_add_admin_menu() {
     add_submenu_page(
         'edit.php?post_type=' . UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
@@ -16,6 +25,22 @@ function upkeepify_add_admin_menu() {
 }
 add_action('admin_menu', 'upkeepify_add_admin_menu');
 
+/**
+ * Render a settings field with optional attributes.
+ *
+ * Callback function to render input fields for settings.
+ * Supports various field types and custom attributes.
+ *
+ * @since 1.0
+ * @param array $args {
+ *     Field arguments.
+ *
+ *     @type string $name        Field name.
+ *     @type string $type        Field type (defaults to 'text').
+ *     @type array  $attributes   Optional associative array of HTML attributes.
+ * }
+ * @uses get_option()
+ */
 function upkeepify_render_settings_field($args) {
     $options = get_option(UPKEEPIFY_OPTION_SETTINGS);
     $field_value = isset($options[$args['name']]) ? $options[$args['name']] : '';
@@ -33,6 +58,18 @@ function upkeepify_render_settings_field($args) {
     echo '>';
 }
 
+/**
+ * Initialize plugin settings.
+ *
+ * Registers settings, sections, and fields for the Upkeepify settings page.
+ * Includes general settings and thank you page configuration.
+ *
+ * @since 1.0
+ * @uses register_setting()
+ * @uses add_settings_section()
+ * @uses add_settings_field()
+ * @hook admin_init
+ */
 function upkeepify_init_plugin_settings() {
     register_setting('upkeepify', UPKEEPIFY_OPTION_SETTINGS, 'upkeepify_settings_sanitize');
 
@@ -206,10 +243,28 @@ add_settings_field(
 
 add_action('admin_init', 'upkeepify_init_plugin_settings');
 
+/**
+ * Callback for provider thank you settings section.
+ *
+ * Displays a description for the thank you page settings section.
+ *
+ * @since 1.0
+ */
 function upkeepify_provider_thank_you_settings_section_callback() {
     echo '<p>' . __('Configure the custom thank you page for service providers.', 'upkeepify') . '</p>';
 }
 
+/**
+ * Render the settings page.
+ *
+ * Outputs the HTML for the Upkeepify settings page including
+ * form fields and submit button.
+ *
+ * @since 1.0
+ * @uses settings_fields()
+ * @uses do_settings_sections()
+ * @uses submit_button()
+ */
 function upkeepify_settings_page() {
     ?>
     <div class="wrap">
@@ -225,18 +280,57 @@ function upkeepify_settings_page() {
     <?php
 }
 
+/**
+ * Callback to render checkbox settings fields.
+ *
+ * Outputs a checkbox input field for settings that require boolean values.
+ *
+ * @since 1.0
+ * @param array $args {
+ *     Field arguments.
+ *
+ *     @type string $label_for The field ID.
+ * }
+ * @uses get_option()
+ * @uses checked()
+ */
 function upkeepify_checkbox_field_callback($args) {
     $options = get_option(UPKEEPIFY_OPTION_SETTINGS);
     $checked = isset($options[$args['label_for']]) ? (bool) $options[$args['label_for']] : false;
     echo '<input id="' . esc_attr($args['label_for']) . '" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']" type="checkbox" value="1" ' . checked($checked, true, false) . '>';
 }
 
+/**
+ * Callback to render text settings fields.
+ *
+ * Outputs a text input field for settings that require string values.
+ *
+ * @since 1.0
+ * @param array $args {
+ *     Field arguments.
+ *
+ *     @type string $label_for The field ID.
+ * }
+ * @uses get_option()
+ */
 function upkeepify_text_field_callback($args) {
     $options = get_option(UPKEEPIFY_OPTION_SETTINGS);
     $value = isset($options[$args['label_for']]) ? $options[$args['label_for']] : '';
     echo '<input id="' . esc_attr($args['label_for']) . '" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']" type="text" value="' . esc_attr($value) . '">';
 }
 
+/**
+ * Sanitize plugin settings before saving.
+ *
+ * Validates and sanitizes all settings input before storing in the database.
+ * Applies appropriate sanitization based on the setting type.
+ *
+ * @since 1.0
+ * @param array $input The raw settings input from the form.
+ * @return array The sanitized settings array.
+ * @uses sanitize_text_field()
+ * @uses intval()
+ */
 function upkeepify_settings_sanitize($input) {
     $sanitized_input = [];
     foreach ($input as $key => $value) {
@@ -255,6 +349,18 @@ function upkeepify_settings_sanitize($input) {
     return $sanitized_input;
 }
 
+/**
+ * Enqueue admin scripts for settings page.
+ *
+ * Loads JavaScript files only on the Upkeepify settings page.
+ * Includes jQuery dependency and loads in footer for performance.
+ *
+ * @since 1.0
+ * @param string $hook_suffix The current admin page hook.
+ * @uses plugin_dir_url()
+ * @uses wp_enqueue_script()
+ * @hook admin_enqueue_scripts
+ */
 function upkeepify_enqueue_admin_scripts($hook_suffix) {
     // Check if on the Upkeepify settings page
     if ('maintenance_tasks_page_upkeepify_settings' !== $hook_suffix) {
@@ -282,6 +388,20 @@ add_action('admin_enqueue_scripts', function($hook_suffix) {
 });
 
 // Implement caching for frequently accessed data
+/**
+ * Retrieve an option value from cache or database.
+ *
+ * Implements a caching layer for frequently accessed options.
+ * Returns cached value if available, otherwise fetches from database
+ * and stores in cache for 1 hour.
+ *
+ * @since 1.0
+ * @param string $option_name The option name to retrieve.
+ * @return mixed The option value.
+ * @uses wp_cache_get()
+ * @uses get_option()
+ * @uses wp_cache_set()
+ */
 function upkeepify_get_cached_option($option_name) {
     $cache_key = 'upkeepify_' . $option_name;
     $cached_value = wp_cache_get($cache_key, 'upkeepify');
@@ -294,12 +414,33 @@ function upkeepify_get_cached_option($option_name) {
     return $cached_value;
 }
 
+/**
+ * Update an option value and refresh cache.
+ *
+ * Updates both the database option and the cached value.
+ * Ensures cache and database stay synchronized.
+ *
+ * @since 1.0
+ * @param string $option_name The option name to update.
+ * @param mixed $option_value The new option value.
+ * @uses update_option()
+ * @uses wp_cache_set()
+ */
 function upkeepify_update_cached_option($option_name, $option_value) {
     $cache_key = 'upkeepify_' . $option_name;
     update_option($option_name, $option_value);
     wp_cache_set($cache_key, $option_value, UPKEEPIFY_CACHE_GROUP, 3600); // Cache for 1 hour
 }
 
+/**
+ * Register setup wizard menu page.
+ *
+ * Adds a submenu page for the plugin setup wizard under Maintenance Tasks.
+ *
+ * @since 1.0
+ * @uses add_submenu_page()
+ * @hook admin_menu
+ */
 function upkeepify_setup_wizard() {
     add_submenu_page(
         'edit.php?post_type=' . UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
@@ -311,6 +452,17 @@ function upkeepify_setup_wizard() {
     );
 }
 
+/**
+ * Render the setup wizard page.
+ *
+ * Outputs HTML for the initial plugin setup wizard page.
+ * Allows users to configure basic plugin settings.
+ *
+ * @since 1.0
+ * @uses settings_fields()
+ * @uses do_settings_sections()
+ * @uses submit_button()
+ */
 function upkeepify_setup_wizard_page() {
     ?>
     <div class="wrap">

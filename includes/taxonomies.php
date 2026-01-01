@@ -5,7 +5,17 @@ if (!defined('WPINC')) {
 }
 
 /**
- * Register Custom Taxonomies
+ * Register Custom Taxonomies.
+ *
+ * Registers all custom taxonomies for the Maintenance Tasks post type:
+ * - Task Categories: Categorize tasks by type
+ * - Task Types: Classify tasks by their nature
+ * - Task Statuses: Track task progress and status
+ * - Service Providers: Manage service providers and their contact info
+ *
+ * @since 1.0
+ * @uses register_taxonomy()
+ * @hook init
  */
 function upkeepify_register_taxonomies() {
     // Task Categories - Non-hierarchical (like tags)
@@ -55,7 +65,15 @@ function upkeepify_register_taxonomies() {
 
 add_action('init', 'upkeepify_register_taxonomies');
 
-// Add custom fields to "Service Providers" taxonomy term form
+/**
+ * Add custom fields to "Service Providers" add new term form.
+ *
+ * Displays custom meta fields for phone number and email address
+ * when adding a new service provider term.
+ *
+ * @since 1.0
+ * @hook service_provider_add_form_fields
+ */
 function upkeepify_service_provider_add_form_fields() {
     // Custom field for Phone Number
     ?><div class="form-field term-group">
@@ -71,6 +89,16 @@ function upkeepify_service_provider_add_form_fields() {
     </div><?php
 }
 
+/**
+ * Add task categories selection field to service provider form.
+ *
+ * Displays a multi-select dropdown to associate task categories
+ * with a service provider.
+ *
+ * @since 1.0
+ * @uses get_terms()
+ * @hook service_provider_add_form_fields
+ */
 function upkeepify_add_task_categories_to_providers() {
     $categories = get_terms(['taxonomy' => UPKEEPIFY_TAXONOMY_TASK_CATEGORY, 'hide_empty' => false]);
 
@@ -88,7 +116,18 @@ add_action('service_provider_add_form_fields', 'upkeepify_add_task_categories_to
 
 add_action('service_provider_add_form_fields', 'upkeepify_service_provider_add_form_fields');
 
-// Display custom fields on "Service Providers" taxonomy term edit form
+/**
+ * Display custom fields on "Service Providers" edit term form.
+ *
+ * Renders the custom meta fields for phone, email, and associated
+ * categories when editing an existing service provider term.
+ *
+ * @since 1.0
+ * @param WP_Term $term The term object being edited.
+ * @uses get_term_meta()
+ * @uses get_terms()
+ * @hook service_provider_edit_form_fields
+ */
 function upkeepify_service_provider_edit_form_fields($term) {
     // Retrieve existing values for phone and email
     $provider_phone = get_term_meta($term->term_id, UPKEEPIFY_TERM_META_PROVIDER_PHONE, true);
@@ -129,7 +168,22 @@ function upkeepify_service_provider_edit_form_fields($term) {
 }
 add_action('service_provider_edit_form_fields', 'upkeepify_service_provider_edit_form_fields');
 
-// Save custom fields data from "Service Providers" taxonomy term form
+/**
+ * Save custom fields data from "Service Providers" taxonomy term form.
+ *
+ * Saves the phone, email, and associated categories meta fields
+ * when a service provider term is created or updated.
+ *
+ * @since 1.0
+ * @param int $term_id The ID of the term being saved.
+ * @uses update_term_meta()
+ * @uses delete_term_meta()
+ * @uses sanitize_text_field()
+ * @uses sanitize_email()
+ * @uses is_email()
+ * @hook edited_service_provider
+ * @hook created_service_provider
+ */
 function upkeepify_save_service_provider_custom_fields($term_id) {
     // Check if the UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES field is set in the submitted form
     if (isset($_POST[UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES])) {

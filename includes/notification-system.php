@@ -5,6 +5,21 @@
  * @package Upkeepify
  */
 
+/**
+ * Add a notification to the queue.
+ *
+ * Stores a notification message in the database for later display.
+ * Optionally sends an email notification as well.
+ *
+ * @since 1.0
+ * @param string $message The notification message.
+ * @param string $type    Notification type (success, error, warning, info).
+ * @param array  $data    Optional additional data to attach to the notification.
+ * @param bool   $send_email Whether to send an email notification.
+ * @uses get_option()
+ * @uses update_option()
+ * @uses upkeepify_send_email_notification()
+ */
  function upkeepify_add_notification($message, $type = 'success', $data = array(), $send_email = false) {
     $notifications = get_option(UPKEEPIFY_OPTION_NOTIFICATIONS, array());
     $notifications[] = array(
@@ -20,6 +35,17 @@
     }
 }
 
+/**
+ * Display queued notifications in the admin area.
+ *
+ * Retrieves and displays all pending notifications as WordPress admin notices.
+ * Clears the notification queue after display.
+ *
+ * @since 1.0
+ * @uses get_option()
+ * @uses delete_option()
+ * @hook admin_notices
+ */
 function upkeepify_display_notifications() {
     $notifications = get_option(UPKEEPIFY_OPTION_NOTIFICATIONS, array());
 
@@ -35,6 +61,19 @@ function upkeepify_display_notifications() {
 }
 add_action('admin_notices', 'upkeepify_display_notifications');
 
+/**
+ * Send an email notification.
+ *
+ * Sends a notification email to the admin email address
+ * with HTML formatting.
+ *
+ * @since 1.0
+ * @param string $message The notification message to send.
+ * @param string $type    The notification type.
+ * @param array  $data    Optional additional data to include.
+ * @uses get_option()
+ * @uses wp_mail()
+ */
 function upkeepify_send_email_notification($message, $type, $data = array()) {
     // Set up email recipient, subject, and headers
     $recipient = get_option('admin_email'); // You can modify this to use a custom email address

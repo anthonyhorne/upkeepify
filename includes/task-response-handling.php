@@ -1,6 +1,19 @@
 <?php
-//Function hooked into save to create response posts per task for each
-//eligible service provider. 
+/**
+ * Generate provider response posts for new tasks.
+ *
+ * When a new maintenance task is created, generates a draft response post
+ * for each service provider with a unique token for access.
+ *
+ * @since 1.0
+ * @param int     $post_id The ID of post being saved.
+ * @param WP_Post $post    The post object being saved.
+ * @param bool    $update  Whether this is an update to an existing post.
+ * @uses get_terms()
+ * @uses wp_generate_password()
+ * @uses wp_insert_post()
+ * @hook save_post
+ */
 function upkeepify_generate_provider_tokens($post_id, $post, $update) {
     // Check if this is a UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS post type
     if ($post->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS) {
