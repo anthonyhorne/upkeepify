@@ -98,11 +98,21 @@ function upkeepify_generate_provider_tokens($post_id, $post, $update) {
                 continue;
             }
 
+            $token_validation = upkeepify_validate_task_meta(UPKEEPIFY_META_KEY_RESPONSE_TOKEN, $token);
+            if (is_wp_error($token_validation)) {
+                error_log('Upkeepify Task Response Error: Invalid token generated for provider ID ' . $provider->term_id);
+                $error_count++;
+                continue;
+            }
+
             // Validate metadata before assignment
             $task_id = intval($post_id);
             $provider_id = intval($provider->term_id);
 
-            if ($task_id <= 0 || $provider_id <= 0) {
+            $task_id_validation = upkeepify_validate_task_meta(UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, $task_id);
+            $provider_id_validation = upkeepify_validate_task_meta(UPKEEPIFY_META_KEY_PROVIDER_ID, $provider_id);
+
+            if (is_wp_error($task_id_validation) || is_wp_error($provider_id_validation)) {
                 error_log('Upkeepify Task Response Error: Invalid metadata values (task_id: ' . $task_id . ', provider_id: ' . $provider_id . ')');
                 $error_count++;
                 continue;

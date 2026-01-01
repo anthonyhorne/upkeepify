@@ -37,6 +37,11 @@ require_once UPKEEPIFY_PLUGIN_DIR . 'includes/constants.php';
 // Include caching system
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/caching.php';
 
+// Meta registry + validation + migrations
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/meta-registry.php';
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/data-validation.php';
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/migrations.php';
+
 // Include component files
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/custom-post-types.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/taxonomies.php';
@@ -46,9 +51,11 @@ require_once UPKEEPIFY_PLUGIN_DIR . 'includes/utility-functions.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/admin-functions.php';
 include_once plugin_dir_path( __FILE__ ) . 'includes/sample-data.php';
 include_once plugin_dir_path( __FILE__ ) . 'includes/task-response-handling.php';
+
 // Include the upload handlers file
 require_once plugin_dir_path(__FILE__) . 'includes/upload-handlers.php';
 require_once plugin_dir_path(__FILE__) . 'includes/notification-system.php';
+
 // Include database optimization helpers
 require_once plugin_dir_path(__FILE__) . 'includes/database-optimization.php';
 
@@ -82,14 +89,14 @@ add_action( 'plugins_loaded', 'upkeepify_load_textdomain' );
  * @uses upkeepify_maybe_insert_sample_data()
  */
 function upkeepify_activate() {
-    // Activation code here
+    // Ensure logical schema and defaults exist
+    upkeepify_setup_database();
 
-    // Include the sample data file
-    //include_once plugin_dir_path( __FILE__ ) . 'includes/sample-data.php';
+    // Run any pending migrations
+    upkeepify_run_migrations();
 
-    // Activation code here, like loading sample data
-    //upkeepify_install_sample_data();
-    upkeepify_maybe_insert_sample_data(); // P0fe6
+    // Optionally insert sample data
+    upkeepify_maybe_insert_sample_data();
 }
 
 /**

@@ -1,9 +1,9 @@
 <?php
 /**
  * Constants Definition File
- * 
+ *
  * This file centralizes all magic strings used throughout the Upkeepify plugin.
- * 
+ *
  * @package Upkeepify
  */
 
@@ -11,6 +11,24 @@
 if (!defined('WPINC')) {
     die;
 }
+
+/**
+ * Logical schema version for Upkeepify data stored in WordPress tables.
+ *
+ * Increment this when introducing breaking/structural changes to:
+ * - custom post types/taxonomies
+ * - option structures
+ * - meta key formats
+ *
+ * @since 1.0
+ */
+define('UPKEEPIFY_DB_VERSION', 2);
+
+// Migration/Schema Option Names
+define('UPKEEPIFY_OPTION_DB_VERSION', 'upkeepify_db_version');
+define('UPKEEPIFY_OPTION_MIGRATION_HISTORY', 'upkeepify_migration_history');
+define('UPKEEPIFY_OPTION_MIGRATION_LOG', 'upkeepify_migration_log');
+define('UPKEEPIFY_OPTION_BACKUP_HISTORY', 'upkeepify_backup_history');
 
 // Post Type Slugs
 define('UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS', 'maintenance_tasks');
@@ -35,6 +53,7 @@ define('UPKEEPIFY_META_KEY_GPS_LATITUDE', 'upkeepify_gps_latitude');
 define('UPKEEPIFY_META_KEY_GPS_LONGITUDE', 'upkeepify_gps_longitude');
 define('UPKEEPIFY_META_KEY_TASK_UPDATE_TOKEN', '_upkeepify_task_update_token');
 define('UPKEEPIFY_META_KEY_ASSIGNED_SERVICE_PROVIDER', 'assigned_service_provider');
+define('UPKEEPIFY_META_KEY_DUE_DATE', 'due_date');
 
 // Term Meta Keys
 define('UPKEEPIFY_TERM_META_PROVIDER_PHONE', 'provider_phone');
@@ -79,25 +98,28 @@ define('UPKEEPIFY_SHORTCODE_TASK_CALENDAR', 'upkeepify_task_calendar');
 define('UPKEEPIFY_NONCE_NEAREST_UNIT', 'upkeepify_nearest_unit_nonce');
 define('UPKEEPIFY_NONCE_ROUGH_ESTIMATE', 'upkeepify_rough_estimate_nonce');
 define('UPKEEPIFY_NONCE_TASK_SUBMIT', 'upkeepify_task_submit_nonce');
+define('UPKEEPIFY_NONCE_RUN_MIGRATIONS', 'upkeepify_run_migrations_nonce');
+define('UPKEEPIFY_NONCE_DB_TOOLS', 'upkeepify_db_tools_nonce');
 
 // Nonce Actions
 define('UPKEEPIFY_NONCE_ACTION_NEAREST_UNIT_SAVE', 'upkeepify_nearest_unit_save');
 define('UPKEEPIFY_NONCE_ACTION_ROUGH_ESTIMATE_SAVE', 'upkeepify_rough_estimate_save');
 define('UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT', 'upkeepify_task_submit_action');
+define('UPKEEPIFY_NONCE_ACTION_RUN_MIGRATIONS', 'upkeepify_run_migrations');
+define('UPKEEPIFY_NONCE_ACTION_DB_TOOLS', 'upkeepify_db_tools');
 
 // Post Type Labels
 define('UPKEEPIFY_LABEL_MAINTENANCE_TASKS', 'Maintenance Tasks');
 define('UPKEEPIFY_LABEL_RESPONSES', 'Responses');
 define('UPKEEPIFY_LABEL_RESPONSE', 'Response');
+define('UPKEEPIFY_LABEL_PROVIDER_RESPONSES', 'Provider Responses');
 
 // Taxonomy Labels
 define('UPKEEPIFY_LABEL_SERVICE_PROVIDERS', 'Service Providers');
 define('UPKEEPIFY_LABEL_TASK_CATEGORIES', 'Task Categories');
 define('UPKEEPIFY_LABEL_TASK_TYPES', 'Task Types');
 define('UPKEEPIFY_LABEL_TASK_STATUSES', 'Task Statuses');
-
-// Cache Groups
-define('UPKEEPIFY_CACHE_GROUP', 'upkeepify');
+define('UPKEEPIFY_LABEL_UNITS', 'Units');
 
 // Form Field Names
 define('UPKEEPIFY_FORM_FIELD_TASK_SUBMIT', 'upkeepify_task_submit');
@@ -114,10 +136,19 @@ define('UPKEEPIFY_MAX_UPLOAD_SIZE', 2 * 1024 * 1024); // 2MB
 
 // Admin Actions
 define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT', 'upkeepify_provider_response_submit');
+define('UPKEEPIFY_ADMIN_ACTION_RUN_MIGRATIONS', 'upkeepify_run_migrations');
+define('UPKEEPIFY_ADMIN_ACTION_REPAIR_SCHEMA', 'upkeepify_repair_schema');
+define('UPKEEPIFY_ADMIN_ACTION_RESET_DATABASE', 'upkeepify_reset_database');
+define('UPKEEPIFY_ADMIN_ACTION_BACKUP_DATABASE', 'upkeepify_backup_database');
+define('UPKEEPIFY_ADMIN_ACTION_EXPORT_ALL_DATA', 'upkeepify_export_all_data');
+define('UPKEEPIFY_ADMIN_ACTION_EXPORT_SETTINGS', 'upkeepify_export_settings');
+define('UPKEEPIFY_ADMIN_ACTION_IMPORT_ALL_DATA', 'upkeepify_import_all_data');
+define('UPKEEPIFY_ADMIN_ACTION_ROLLBACK_LAST_MIGRATION', 'upkeepify_rollback_last_migration');
 
-// Menu Positions
+// Menu Slugs
 define('UPKEEPIFY_MENU_SETTINGS_PAGE', 'upkeepify_settings');
 define('UPKEEPIFY_MENU_SETUP_WIZARD_PAGE', 'upkeepify_setup_wizard');
+define('UPKEEPIFY_MENU_DB_HEALTH_PAGE', 'upkeepify_db_health');
 
 // Cache Groups
 define('UPKEEPIFY_CACHE_GROUP', 'upkeepify');
