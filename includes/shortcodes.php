@@ -176,6 +176,7 @@ function upkeepify_task_form_shortcode() {
 
     echo '<form id="upkeepify-task-form" class="upkeepify-form" action="' . esc_url($_SERVER['REQUEST_URI']) . '" method="post" enctype="multipart/form-data">';
     wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT, UPKEEPIFY_NONCE_TASK_SUBMIT);
+    echo '<input type="hidden" name="upkeepify_upload" value="1">';
 
     echo '<p><label for="task_title">' . esc_html__('Task Title:', 'upkeepify') . '</label><br />';
     echo '<input type="text" id="task_title" name="task_title" required class="upkeepify-input"></p>';
@@ -235,7 +236,7 @@ function upkeepify_handle_task_form_submission() {
         return;
     }
 
-    if (!isset($_POST['upkeepify_task_submit'], $_POST['math'])) {
+    if (!isset($_POST['upkeepify_task_submit'], $_POST['math'], $_POST['upkeepify_upload'])) {
         return;
     }
 
@@ -258,6 +259,53 @@ function upkeepify_handle_task_form_submission() {
     $nearest_unit = isset($_POST['nearest_unit']) ? intval($_POST['nearest_unit']) : 1;
     $latitude = isset($_POST['gps_latitude']) ? sanitize_text_field($_POST['gps_latitude']) : '';
     $longitude = isset($_POST['gps_longitude']) ? sanitize_text_field($_POST['gps_longitude']) : '';
+
+    // Handle file upload with scoped validation
+    $photo_attachment_id = 0;
+    if (isset($_FILES['task_photo']) && !empty($_FILES['task_photo']['name'])) {
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+        // Validate upload using scoped validation
+        $validation = upkeepify_validate_upload($_FILES['task_photo']);
+        if (is_wp_error($validation)) {
+            if (WP_DEBUG) {
+                error_log('Upkeepify Upload Validation Error: ' . $validation->get_error_message());
+            }
+            return;
+        }
+
+        // Handle the upload
+        $upload_result = wp_handle_upload($_FILES['task_photo'], array('test_form' => true));
+        if (isset($upload_result['error'])) {
+            if (WP_DEBUG) {
+                error_log('Upkeepify Upload Error: ' . $upload_result['error']);
+            }
+            return;
+        }
+
+        // Prepare file data for media handling
+        $file_data = array(
+            'name'     => $_FILES['task_photo']['name'],
+            'type'     => $upload_result['type'],
+            'tmp_name' => $upload_result['file'],
+            'error'    => $_FILES['task_photo']['error'],
+            'size'     => $_FILES['task_photo']['size'],
+        );
+
+        // Sideload the file into the media library
+        $attachment_id = media_handle_sideload($file_data, 0);
+
+        if (is_wp_error($attachment_id)) {
+            if (WP_DEBUG) {
+                error_log('Upkeepify Media Sideload Error: ' . $attachment_id->get_error_message());
+            }
+            return;
+        }
+
+        $photo_attachment_id = $attachment_id;
+    }
 
     $meta = array(
         UPKEEPIFY_META_KEY_NEAREST_UNIT => $nearest_unit,
@@ -294,6 +342,11 @@ function upkeepify_handle_task_form_submission() {
             error_log('Upkeepify Task Submission Error: ' . $task_id->get_error_message());
         }
         return;
+    }
+
+    // Set the photo as the featured image if uploaded
+    if ($photo_attachment_id > 0) {
+        set_post_thumbnail($task_id, $photo_attachment_id);
     }
 
     $taxonomies = get_object_taxonomies(UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS);

@@ -17,8 +17,7 @@ if (!defined('WPINC')) {
  * Create recommended database indexes for Upkeepify.
  *
  * Creates indexes on frequently queried meta keys to improve
- * query performance. Safe to run multiple times as it uses
- * CREATE INDEX IF NOT EXISTS syntax.
+ * query performance. Uses compatible SQL syntax for older MySQL versions.
  *
  * @since 1.0
  * @return array Results of index creation operations
@@ -30,123 +29,74 @@ function upkeepify_create_database_indexes() {
     $success_count = 0;
     $error_count = 0;
 
-    try {
-        // Index for nearest unit queries
-        $result = $wpdb->query(
-            "CREATE INDEX IF NOT EXISTS idx_postmeta_nearest_unit
+    // Define indexes to create with their SQL statements
+    $index_definitions = array(
+        'idx_postmeta_nearest_unit' => array(
+            'table' => $wpdb->postmeta,
+            'sql'   => "CREATE INDEX idx_postmeta_nearest_unit
             ON {$wpdb->postmeta}(post_id, meta_key(50), meta_value(20))
-            WHERE meta_key = 'upkeepify_nearest_unit'"
-        );
-
-        if ($result !== false) {
-            $results['idx_postmeta_nearest_unit'] = 'Success';
-            $success_count++;
-        } else {
-            $results['idx_postmeta_nearest_unit'] = 'Failed: ' . $wpdb->last_error;
-            $error_count++;
-        }
-    } catch (Exception $e) {
-        $results['idx_postmeta_nearest_unit'] = 'Exception: ' . $e->getMessage();
-        $error_count++;
-    }
-
-    try {
-        // Index for rough estimate queries
-        $result = $wpdb->query(
-            "CREATE INDEX IF NOT EXISTS idx_postmeta_rough_estimate
+            WHERE meta_key = 'upkeepify_nearest_unit'",
+        ),
+        'idx_postmeta_rough_estimate' => array(
+            'table' => $wpdb->postmeta,
+            'sql'   => "CREATE INDEX idx_postmeta_rough_estimate
             ON {$wpdb->postmeta}(post_id, meta_key(50), meta_value(50))
-            WHERE meta_key = 'upkeepify_rough_estimate'"
-        );
-
-        if ($result !== false) {
-            $results['idx_postmeta_rough_estimate'] = 'Success';
-            $success_count++;
-        } else {
-            $results['idx_postmeta_rough_estimate'] = 'Failed: ' . $wpdb->last_error;
-            $error_count++;
-        }
-    } catch (Exception $e) {
-        $results['idx_postmeta_rough_estimate'] = 'Exception: ' . $e->getMessage();
-        $error_count++;
-    }
-
-    try {
-        // Index for assigned service provider queries
-        $result = $wpdb->query(
-            "CREATE INDEX IF NOT EXISTS idx_postmeta_assigned_provider
+            WHERE meta_key = 'upkeepify_rough_estimate'",
+        ),
+        'idx_postmeta_assigned_provider' => array(
+            'table' => $wpdb->postmeta,
+            'sql'   => "CREATE INDEX idx_postmeta_assigned_provider
             ON {$wpdb->postmeta}(post_id, meta_key(50), meta_value(50))
-            WHERE meta_key = 'assigned_service_provider'"
-        );
-
-        if ($result !== false) {
-            $results['idx_postmeta_assigned_provider'] = 'Success';
-            $success_count++;
-        } else {
-            $results['idx_postmeta_assigned_provider'] = 'Failed: ' . $wpdb->last_error;
-            $error_count++;
-        }
-    } catch (Exception $e) {
-        $results['idx_postmeta_assigned_provider'] = 'Exception: ' . $e->getMessage();
-        $error_count++;
-    }
-
-    try {
-        // Index for GPS latitude queries
-        $result = $wpdb->query(
-            "CREATE INDEX IF NOT EXISTS idx_postmeta_gps_latitude
+            WHERE meta_key = 'assigned_service_provider'",
+        ),
+        'idx_postmeta_gps_latitude' => array(
+            'table' => $wpdb->postmeta,
+            'sql'   => "CREATE INDEX idx_postmeta_gps_latitude
             ON {$wpdb->postmeta}(post_id, meta_key(50), meta_value(50))
-            WHERE meta_key = 'upkeepify_gps_latitude'"
-        );
-
-        if ($result !== false) {
-            $results['idx_postmeta_gps_latitude'] = 'Success';
-            $success_count++;
-        } else {
-            $results['idx_postmeta_gps_latitude'] = 'Failed: ' . $wpdb->last_error;
-            $error_count++;
-        }
-    } catch (Exception $e) {
-        $results['idx_postmeta_gps_latitude'] = 'Exception: ' . $e->getMessage();
-        $error_count++;
-    }
-
-    try {
-        // Index for GPS longitude queries
-        $result = $wpdb->query(
-            "CREATE INDEX IF NOT EXISTS idx_postmeta_gps_longitude
+            WHERE meta_key = 'upkeepify_gps_latitude'",
+        ),
+        'idx_postmeta_gps_longitude' => array(
+            'table' => $wpdb->postmeta,
+            'sql'   => "CREATE INDEX idx_postmeta_gps_longitude
             ON {$wpdb->postmeta}(post_id, meta_key(50), meta_value(50))
-            WHERE meta_key = 'upkeepify_gps_longitude'"
-        );
+            WHERE meta_key = 'upkeepify_gps_longitude'",
+        ),
+        'idx_posts_maintenance_tasks' => array(
+            'table' => $wpdb->posts,
+            'sql'   => "CREATE INDEX idx_posts_maintenance_tasks
+            ON {$wpdb->posts}(post_type(50), post_status, post_date DESC)",
+        ),
+    );
 
-        if ($result !== false) {
-            $results['idx_postmeta_gps_longitude'] = 'Success';
-            $success_count++;
-        } else {
-            $results['idx_postmeta_gps_longitude'] = 'Failed: ' . $wpdb->last_error;
+    foreach ($index_definitions as $index_name => $definition) {
+        try {
+            // Check if index already exists
+            $check_query = $wpdb->prepare(
+                "SHOW INDEX FROM {$definition['table']} WHERE Key_name = %s",
+                $index_name
+            );
+            $existing = $wpdb->get_row($check_query);
+
+            if (!empty($existing)) {
+                $results[$index_name] = 'Already exists';
+                $success_count++;
+                continue;
+            }
+
+            // Create index if it doesn't exist
+            $result = $wpdb->query($definition['sql']);
+
+            if ($result !== false) {
+                $results[$index_name] = 'Success';
+                $success_count++;
+            } else {
+                $results[$index_name] = 'Failed: ' . $wpdb->last_error;
+                $error_count++;
+            }
+        } catch (Exception $e) {
+            $results[$index_name] = 'Exception: ' . $e->getMessage();
             $error_count++;
         }
-    } catch (Exception $e) {
-        $results['idx_postmeta_gps_longitude'] = 'Exception: ' . $e->getMessage();
-        $error_count++;
-    }
-
-    try {
-        // Composite index for posts (post_type, post_status, post_date)
-        $result = $wpdb->query(
-            "CREATE INDEX IF NOT EXISTS idx_posts_maintenance_tasks
-            ON {$wpdb->posts}(post_type(50), post_status, post_date DESC)"
-        );
-
-        if ($result !== false) {
-            $results['idx_posts_maintenance_tasks'] = 'Success';
-            $success_count++;
-        } else {
-            $results['idx_posts_maintenance_tasks'] = 'Failed: ' . $wpdb->last_error;
-            $error_count++;
-        }
-    } catch (Exception $e) {
-        $results['idx_posts_maintenance_tasks'] = 'Exception: ' . $e->getMessage();
-        $error_count++;
     }
 
     // Log results
