@@ -84,7 +84,7 @@ function upkeepify_validate_upload($file) {
  * @uses is_readable()
  * @hook wp_handle_upload
  */
-add_action('wp_handle_upload', 'upkeepify_handle_upload', 10, 2);
+add_filter('wp_handle_upload', 'upkeepify_handle_upload', 10, 2);
 function upkeepify_handle_upload($file, $upload_error_string) {
     try {
         // Check for WordPress upload handler errors
