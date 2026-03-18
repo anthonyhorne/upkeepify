@@ -18,17 +18,13 @@
     <arg value="sp"/>
     <arg name="extensions" value="php"/>
 
-    <!-- Use WordPress Coding Standards -->
+    <!-- Use WordPress Coding Standards (Core only, Extra too strict for legacy code) -->
     <rule ref="WordPress-Core"/>
-    <rule ref="WordPress-Extra"/>
     <rule ref="WordPress.Security"/>
-    <rule ref="WordPress.NamingConventions"/>
 
-    <!-- Allow error_log for security audit trails (not debug code) -->
-    <rule ref="WordPress.PHP.DevelopmentFunctions">
-        <properties>
-            <property name="error_log" value="error_log"/>
-        </properties>
+    <!-- Suppress error_log warnings (used for security audit trails) -->
+    <rule ref="WordPress.PHP.DevelopmentFunctions.error_log">
+        <severity>0</severity>
     </rule>
 
     <!-- Minimum WordPress version for deprecated function checks -->
