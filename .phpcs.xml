@@ -24,6 +24,13 @@
     <rule ref="WordPress.Security"/>
     <rule ref="WordPress.NamingConventions"/>
 
+    <!-- Allow error_log for security audit trails (not debug code) -->
+    <rule ref="WordPress.PHP.DevelopmentFunctions">
+        <properties>
+            <property name="error_log" value="error_log"/>
+        </properties>
+    </rule>
+
     <!-- Minimum WordPress version for deprecated function checks -->
     <config name="minimum_supported_wp_version" value="5.0"/>
     <config name="testVersion" value="7.4-"/>

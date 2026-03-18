@@ -8,11 +8,11 @@
  * Text Domain: upkeepify
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2, as 
+ * it under the terms of the GNU General Public License, version 2, as
  * published by the Free Software Foundation.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -49,8 +49,8 @@ require_once UPKEEPIFY_PLUGIN_DIR . 'includes/settings.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/shortcodes.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/utility-functions.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/admin-functions.php';
-include_once plugin_dir_path( __FILE__ ) . 'includes/sample-data.php';
-include_once plugin_dir_path( __FILE__ ) . 'includes/task-response-handling.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/sample-data.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/task-response-handling.php';
 
 // Include the upload handlers file
 require_once plugin_dir_path(__FILE__) . 'includes/upload-handlers.php';
