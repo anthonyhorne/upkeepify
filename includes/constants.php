@@ -100,6 +100,7 @@ define('UPKEEPIFY_NONCE_ROUGH_ESTIMATE', 'upkeepify_rough_estimate_nonce');
 define('UPKEEPIFY_NONCE_TASK_SUBMIT', 'upkeepify_task_submit_nonce');
 define('UPKEEPIFY_NONCE_RUN_MIGRATIONS', 'upkeepify_run_migrations_nonce');
 define('UPKEEPIFY_NONCE_DB_TOOLS', 'upkeepify_db_tools_nonce');
+define('UPKEEPIFY_NONCE_PROVIDER_RESPONSE', 'upkeepify_provider_response_nonce');
 
 // Nonce Actions
 define('UPKEEPIFY_NONCE_ACTION_NEAREST_UNIT_SAVE', 'upkeepify_nearest_unit_save');
@@ -107,6 +108,7 @@ define('UPKEEPIFY_NONCE_ACTION_ROUGH_ESTIMATE_SAVE', 'upkeepify_rough_estimate_s
 define('UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT', 'upkeepify_task_submit_action');
 define('UPKEEPIFY_NONCE_ACTION_RUN_MIGRATIONS', 'upkeepify_run_migrations');
 define('UPKEEPIFY_NONCE_ACTION_DB_TOOLS', 'upkeepify_db_tools');
+define('UPKEEPIFY_NONCE_ACTION_PROVIDER_RESPONSE', 'upkeepify_provider_response_action');
 
 // Post Type Labels
 define('UPKEEPIFY_LABEL_MAINTENANCE_TASKS', 'Maintenance Tasks');

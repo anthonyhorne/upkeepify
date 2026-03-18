@@ -405,12 +405,13 @@ function upkeepify_provider_response_form_shortcode($atts) {
         if ($task_post) {
             echo '<h3>' . esc_html__('Task Details', 'upkeepify') . '</h3>';
             echo '<p>' . esc_html__('Title:', 'upkeepify') . ' ' . esc_html($task_post->post_title) . '</p>';
-            echo '<p>' . esc_html__('Description:', 'upkeepify') . ' ' . esc_html($task_post->post_content) . '</p>';
+            echo '<p>' . esc_html__('Description:', 'upkeepify') . ' ' . wp_kses_post($task_post->post_content) . '</p>';
         }
 
         echo '<form action="' . esc_url(admin_url('admin-post.php')) . '" method="post">';
         echo '<input type="hidden" name="action" value="' . esc_attr(UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT) . '">';
         echo '<input type="hidden" name="response_id" value="' . esc_attr($response_id) . '">';
+        wp_nonce_field(UPKEEPIFY_NONCE_ACTION_PROVIDER_RESPONSE, UPKEEPIFY_NONCE_PROVIDER_RESPONSE);
         echo '<textarea name="provider_response" placeholder="' . esc_attr__('Your response', 'upkeepify') . '" class="upkeepify-textarea"></textarea>';
         echo '<input type="submit" value="' . esc_attr__('Submit Response', 'upkeepify') . '" class="upkeepify-submit-button">';
         echo '</form>';
@@ -622,3 +623,56 @@ function upkeepify_task_calendar_shortcode() {
 
     return ob_get_clean();
 }
+
+/**
+ * Admin-post handler: submit provider response.
+ *
+ * Processes provider response form submissions with CSRF protection via nonce verification.
+ *
+ * @since 1.0
+ * @uses wp_verify_nonce()
+ * @uses get_post_meta()
+ * @uses update_post_meta()
+ * @hook admin_post_{UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT}
+ */
+function upkeepify_admin_post_provider_response_submit() {
+    // Verify nonce for CSRF protection
+    if (!isset($_POST[UPKEEPIFY_NONCE_PROVIDER_RESPONSE]) ||
+        !wp_verify_nonce($_POST[UPKEEPIFY_NONCE_PROVIDER_RESPONSE], UPKEEPIFY_NONCE_ACTION_PROVIDER_RESPONSE)) {
+        wp_die('Security check failed. Invalid nonce.');
+    }
+
+    // Verify required fields
+    if (!isset($_POST['response_id']) || !isset($_POST['provider_response'])) {
+        wp_die('Missing required fields.');
+    }
+
+    $response_id = intval($_POST['response_id']);
+    $provider_response = sanitize_textarea_field($_POST['provider_response']);
+
+    // Verify the response post exists and is a provider response
+    $response_post = get_post($response_id);
+    if (!$response_post || $response_post->post_type !== UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES) {
+        wp_die('Invalid response post.');
+    }
+
+    // Update the response content
+    $updated = wp_update_post(array(
+        'ID'           => $response_id,
+        'post_content' => $provider_response,
+        'post_status'  => 'publish',
+    ));
+
+    if (is_wp_error($updated)) {
+        wp_die('Error updating response: ' . $updated->get_error_message());
+    }
+
+    // Redirect with success message
+    $redirect = add_query_arg(array(
+        'upkeepify_response' => 'submitted',
+    ), wp_get_referer() ?: home_url());
+
+    wp_safe_redirect($redirect);
+    exit;
+}
+add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT, 'upkeepify_admin_post_provider_response_submit');

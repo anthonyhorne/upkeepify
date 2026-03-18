@@ -1403,9 +1403,21 @@ function upkeepify_admin_post_import_all_data() {
         wp_die('No file uploaded');
     }
 
+    // Validate file extension is .json
+    $file_name = sanitize_file_name($_FILES['upkeepify_import_file']['name']);
+    if (!preg_match('/\.json$/i', $file_name)) {
+        wp_die('Invalid file type. Only .json files are allowed.');
+    }
+
     $contents = file_get_contents($_FILES['upkeepify_import_file']['tmp_name']);
     if ($contents === false) {
         wp_die('Unable to read uploaded file');
+    }
+
+    // Validate JSON format before processing
+    $decoded = json_decode($contents, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        wp_die('Invalid JSON file format: ' . json_last_error_msg());
     }
 
     $result = upkeepify_import_all_data($contents);

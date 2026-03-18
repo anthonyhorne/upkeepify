@@ -49,8 +49,11 @@ function upkeepify_send_status_change_email($task_id, $new_status) {
     if (isset($settings[UPKEEPIFY_SETTING_NOTIFY_OPTION]) && $settings[UPKEEPIFY_SETTING_NOTIFY_OPTION]) {
         // Construct the email
         $to = $settings[UPKEEPIFY_SETTING_OVERRIDE_EMAIL] ?? get_option('admin_email');
-        $subject = "Task Status Updated: {$task->post_title}";
-        $message = "The status of task '{$task->post_title}' has been updated to '{$new_status}'.";
+        // Sanitize post title and status to prevent email header injection (newline attacks)
+        $safe_title = sanitize_text_field($task->post_title);
+        $safe_status = sanitize_text_field($new_status);
+        $subject = "Task Status Updated: {$safe_title}";
+        $message = "The status of task '{$safe_title}' has been updated to '{$safe_status}'.";
         // Send the email
         wp_mail($to, $subject, $message);
     }
@@ -96,5 +99,36 @@ function upkeepify_generate_task_update_token($task_id) {
  */
 function upkeepify_validate_task_update_token($task_id, $token) {
     $stored_token = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_UPDATE_TOKEN, true);
-    return $token === $stored_token;
+    // Use hash_equals() for constant-time comparison to prevent timing attacks
+    return hash_equals((string) $stored_token, (string) $token);
+}
+
+/**
+ * Log security events for audit trail and monitoring.
+ *
+ * Records security-related events such as failed nonce verification,
+ * unauthorized access attempts, and token validation failures.
+ *
+ * @since 1.0
+ * @param string $event_type Type of security event (failed_nonce, unauthorized_access, token_failure, etc.)
+ * @param string $description Detailed description of the event.
+ * @param int    $user_id     Optional. ID of the user involved in the event.
+ * @return void
+ */
+function upkeepify_log_security_event($event_type, $description, $user_id = null) {
+    $user_id = $user_id ?: get_current_user_id();
+    $user_info = $user_id ? get_user_by('id', $user_id)->user_login : 'anonymous';
+    $client_ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : 'unknown';
+
+    $log_entry = sprintf(
+        '[%s] %s | Event: %s | User: %s | IP: %s | %s',
+        current_time('mysql'),
+        get_option('siteurl'),
+        $event_type,
+        $user_info,
+        $client_ip,
+        $description
+    );
+
+    error_log($log_entry);
 }
