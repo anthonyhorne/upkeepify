@@ -1,0 +1,29 @@
+{
+    "name": "anthonyhorne/upkeepify",
+    "description": "WordPress plugin for managing maintenance tasks within residential complexes and HOA schemes",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Anthony Horne",
+            "email": "anthony@zeroadmin.co.za"
+        }
+    ],
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^9.6",
+        "squizlabs/php_codesniffer": "^3.9",
+        "wp-coding-standards/wpcs": "^3.1",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "lint": "phpcs",
+        "lint-fix": "phpcbf"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}
