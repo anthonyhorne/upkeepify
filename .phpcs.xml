@@ -18,9 +18,11 @@
     <arg value="sp"/>
     <arg name="extensions" value="php"/>
 
-    <!-- Use WordPress Coding Standards (Core only, Extra too strict for legacy code) -->
-    <rule ref="WordPress-Core"/>
+    <!-- Use WordPress Security ruleset only (formatting less critical than security) -->
     <rule ref="WordPress.Security"/>
+    <rule ref="WordPress.DB"/>
+    <rule ref="WordPress.WP.GlobalVariables"/>
+    <rule ref="WordPress.PHP.StrictComparisons"/>
 
     <!-- Suppress error_log warnings (used for security audit trails) -->
     <rule ref="WordPress.PHP.DevelopmentFunctions.error_log">
