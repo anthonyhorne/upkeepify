@@ -388,7 +388,7 @@ function upkeepify_enqueue_admin_scripts($hook_suffix) {
     // Enqueue utils.js first (required by other scripts)
     wp_enqueue_script(
         'upkeepify-utils-js',
-        $js_dir . 'utils.js',
+        $js_dir . 'utils.min.js',
         array('jquery'),
         '1.0.0',
         true
@@ -397,7 +397,7 @@ function upkeepify_enqueue_admin_scripts($hook_suffix) {
     // Enqueue notifications.js
     wp_enqueue_script(
         'upkeepify-notifications-js',
-        $js_dir . 'notifications.js',
+        $js_dir . 'notifications.min.js',
         array('jquery', 'upkeepify-utils-js'),
         '1.0.0',
         true
@@ -406,7 +406,7 @@ function upkeepify_enqueue_admin_scripts($hook_suffix) {
     // Enqueue admin-settings.js
     wp_enqueue_script(
         'upkeepify-admin-settings-js',
-        $js_dir . 'admin-settings.js',
+        $js_dir . 'admin-settings.min.js',
         array('jquery', 'upkeepify-utils-js', 'upkeepify-notifications-js'),
         '1.0.1',
         true
@@ -432,7 +432,7 @@ function upkeepify_enqueue_frontend_scripts() {
     // Enqueue utils.js
     wp_enqueue_script(
         'upkeepify-utils-js',
-        $js_dir . 'utils.js',
+        $js_dir . 'utils.min.js',
         array('jquery'),
         '1.0.0',
         true
@@ -441,7 +441,7 @@ function upkeepify_enqueue_frontend_scripts() {
     // Enqueue notifications.js
     wp_enqueue_script(
         'upkeepify-notifications-js',
-        $js_dir . 'notifications.js',
+        $js_dir . 'notifications.min.js',
         array('jquery', 'upkeepify-utils-js'),
         '1.0.0',
         true
@@ -450,7 +450,7 @@ function upkeepify_enqueue_frontend_scripts() {
     // Enqueue form-validation.js
     wp_enqueue_script(
         'upkeepify-form-validation-js',
-        $js_dir . 'form-validation.js',
+        $js_dir . 'form-validation.min.js',
         array('jquery', 'upkeepify-utils-js'),
         '1.0.0',
         true
@@ -459,7 +459,7 @@ function upkeepify_enqueue_frontend_scripts() {
     // Enqueue upload-handler.js
     wp_enqueue_script(
         'upkeepify-upload-handler-js',
-        $js_dir . 'upload-handler.js',
+        $js_dir . 'upload-handler.min.js',
         array('jquery', 'upkeepify-utils-js'),
         '1.0.0',
         true
@@ -468,7 +468,7 @@ function upkeepify_enqueue_frontend_scripts() {
     // Enqueue task-filters.js
     wp_enqueue_script(
         'upkeepify-task-filters-js',
-        $js_dir . 'task-filters.js',
+        $js_dir . 'task-filters.min.js',
         array('jquery', 'upkeepify-utils-js'),
         '1.0.0',
         true
@@ -477,7 +477,7 @@ function upkeepify_enqueue_frontend_scripts() {
     // Enqueue calendar-interactions.js
     wp_enqueue_script(
         'upkeepify-calendar-interactions-js',
-        $js_dir . 'calendar-interactions.js',
+        $js_dir . 'calendar-interactions.min.js',
         array('jquery', 'upkeepify-utils-js'),
         '1.0.0',
         true

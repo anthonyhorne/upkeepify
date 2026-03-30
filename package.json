@@ -1,0 +1,13 @@
+{
+  "name": "upkeepify",
+  "version": "1.0.0",
+  "description": "Build tooling for Upkeepify WordPress plugin",
+  "private": true,
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node build.js --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}
