@@ -7,21 +7,16 @@
          verbose="true">
     <testsuites>
         <testsuite name="Upkeepify">
-            <directory>tests/</directory>
+            <directory suffix=".php">tests/</directory>
         </testsuite>
     </testsuites>
-    <source>
-        <include>
+    <filter>
+        <whitelist processUncoveredFilesFromWhitelist="true">
             <directory>includes/</directory>
             <file>upkeepify.php</file>
-        </include>
-        <exclude>
-            <directory>tests/</directory>
-        </exclude>
-    </source>
-    <coverage processUncoveredFiles="true">
-        <include>
-            <directory>includes/</directory>
-        </include>
-    </coverage>
+            <exclude>
+                <directory>tests/</directory>
+            </exclude>
+        </whitelist>
+    </filter>
 </phpunit>
