@@ -34,37 +34,32 @@ function upkeepify_create_database_indexes() {
         'idx_postmeta_nearest_unit' => array(
             'table' => $wpdb->postmeta,
             'sql'   => "CREATE INDEX idx_postmeta_nearest_unit
-            ON {$wpdb->postmeta}(post_id, meta_key(50), meta_value(20))
-            WHERE meta_key = 'upkeepify_nearest_unit'",
+            ON {$wpdb->postmeta}(meta_key(20), post_id)",
         ),
         'idx_postmeta_rough_estimate' => array(
             'table' => $wpdb->postmeta,
             'sql'   => "CREATE INDEX idx_postmeta_rough_estimate
-            ON {$wpdb->postmeta}(post_id, meta_key(50), meta_value(50))
-            WHERE meta_key = 'upkeepify_rough_estimate'",
+            ON {$wpdb->postmeta}(meta_key(20), post_id)",
         ),
         'idx_postmeta_assigned_provider' => array(
             'table' => $wpdb->postmeta,
             'sql'   => "CREATE INDEX idx_postmeta_assigned_provider
-            ON {$wpdb->postmeta}(post_id, meta_key(50), meta_value(50))
-            WHERE meta_key = 'assigned_service_provider'",
+            ON {$wpdb->postmeta}(meta_key(20), meta_value(20))",
         ),
         'idx_postmeta_gps_latitude' => array(
             'table' => $wpdb->postmeta,
             'sql'   => "CREATE INDEX idx_postmeta_gps_latitude
-            ON {$wpdb->postmeta}(post_id, meta_key(50), meta_value(50))
-            WHERE meta_key = 'upkeepify_gps_latitude'",
+            ON {$wpdb->postmeta}(meta_key(20), post_id)",
         ),
         'idx_postmeta_gps_longitude' => array(
             'table' => $wpdb->postmeta,
             'sql'   => "CREATE INDEX idx_postmeta_gps_longitude
-            ON {$wpdb->postmeta}(post_id, meta_key(50), meta_value(50))
-            WHERE meta_key = 'upkeepify_gps_longitude'",
+            ON {$wpdb->postmeta}(meta_key(20), post_id)",
         ),
         'idx_posts_maintenance_tasks' => array(
             'table' => $wpdb->posts,
             'sql'   => "CREATE INDEX idx_posts_maintenance_tasks
-            ON {$wpdb->posts}(post_type(50), post_status, post_date DESC)",
+            ON {$wpdb->posts}(post_type(20), post_status(20), post_date)",
         ),
     );
 
