@@ -38,14 +38,14 @@
                     message: 'Task description is required (minimum 10 characters)'
                 },
                 'gps_latitude': {
-                    required: true,
+                    required: false,
                     pattern: /^-?\d{1,3}(\.\d+)?$/,
                     validator: 'coordinate',
                     type: 'lat',
                     message: 'Please enter a valid latitude (-90 to 90)'
                 },
                 'gps_longitude': {
-                    required: true,
+                    required: false,
                     pattern: /^-?\d{1,3}(\.\d+)?$/,
                     validator: 'coordinate',
                     type: 'lng',

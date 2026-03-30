@@ -1,0 +1,304 @@
+# Copyright (C) 2026 Anthony Horne
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Upkeepify 1.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/upkeepify\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-03-30T21:46:32+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: upkeepify\n"
+
+#. Plugin Name of the plugin
+#: upkeepify.php
+msgid "Upkeepify"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: upkeepify.php
+msgid "https://github.com/anthonyhorne/upkeepify"
+msgstr ""
+
+#. Description of the plugin
+#: upkeepify.php
+msgid "A comprehensive plugin to manage maintenance tasks within a complex. It supports task submissions with categorization, service provider management, and customizable settings."
+msgstr ""
+
+#. Author of the plugin
+#: upkeepify.php
+msgid "Anthony Horne"
+msgstr ""
+
+#: includes/custom-post-types.php:57
+msgid "Nearest Unit"
+msgstr ""
+
+#: includes/custom-post-types.php:163
+#: includes/custom-post-types.php:191
+#: includes/shortcodes.php:116
+msgid "Rough Estimate"
+msgstr ""
+
+#: includes/custom-post-types.php:193
+msgid "Provide a rough estimate for the task."
+msgstr ""
+
+#: includes/settings.php:78
+msgid "General Settings"
+msgstr ""
+
+#: includes/settings.php:86
+msgid "Use Built-in SMTP Provider"
+msgstr ""
+
+#: includes/settings.php:99
+msgid "SMTP Host"
+msgstr ""
+
+#: includes/settings.php:116
+msgid "Notify on Status Change"
+msgstr ""
+
+#: includes/settings.php:129
+msgid "Allow Service Provider to Delete Task"
+msgstr ""
+
+#: includes/settings.php:142
+msgid "Allow Public Task Logging"
+msgstr ""
+
+#: includes/settings.php:155
+msgid "Override Email Address for Notifications"
+msgstr ""
+
+#: includes/settings.php:167
+msgid "Enable Token-based Status Update for Providers"
+msgstr ""
+
+#: includes/settings.php:180
+msgid "Number of Units"
+msgstr ""
+
+#: includes/settings.php:197
+msgid "Currency"
+msgstr ""
+
+#: includes/settings.php:203
+msgid "Specify the currency symbol (e.g., $, €, £)."
+msgstr ""
+
+#: includes/settings.php:210
+msgid "Provider Thank You Page Settings"
+msgstr ""
+
+#: includes/settings.php:218
+msgid "Enable Custom Thank You Page"
+msgstr ""
+
+#: includes/settings.php:232
+msgid "Thank You Page URL"
+msgstr ""
+
+#: includes/settings.php:254
+msgid "Configure the custom thank you page for service providers."
+msgstr ""
+
+#: includes/settings.php:276
+#: includes/settings.php:611
+msgid "Save Settings"
+msgstr ""
+
+#: includes/settings.php:605
+msgid "Upkeepify Setup Wizard"
+msgstr ""
+
+#: includes/settings.php:606
+msgid "Welcome to the Upkeepify Setup Wizard. Follow the steps below to configure the plugin."
+msgstr ""
+
+#: includes/shortcodes.php:72
+#: includes/shortcodes.php:145
+msgid "No maintenance tasks found."
+msgstr ""
+
+#: includes/shortcodes.php:115
+msgid "Task Title"
+msgstr ""
+
+#: includes/shortcodes.php:117
+msgid "Category"
+msgstr ""
+
+#: includes/shortcodes.php:118
+msgid "Type"
+msgstr ""
+
+#: includes/shortcodes.php:119
+msgid "Status"
+msgstr ""
+
+#: includes/shortcodes.php:181
+msgid "Task Title:"
+msgstr ""
+
+#: includes/shortcodes.php:184
+msgid "Task Description:"
+msgstr ""
+
+#: includes/shortcodes.php:187
+msgid "Nearest Unit:"
+msgstr ""
+
+#: includes/shortcodes.php:209
+msgid "Upload Photo:"
+msgstr ""
+
+#: includes/shortcodes.php:212
+msgid "Latitude:"
+msgstr ""
+
+#: includes/shortcodes.php:215
+msgid "Longitude:"
+msgstr ""
+
+#: includes/shortcodes.php:221
+msgid "Submit Task"
+msgstr ""
+
+#: includes/shortcodes.php:375
+msgid "Missing response token."
+msgstr ""
+
+#: includes/shortcodes.php:381
+msgid "Invalid token."
+msgstr ""
+
+#: includes/shortcodes.php:406
+msgid "Task Details"
+msgstr ""
+
+#: includes/shortcodes.php:407
+msgid "Title:"
+msgstr ""
+
+#: includes/shortcodes.php:408
+msgid "Description:"
+msgstr ""
+
+#: includes/shortcodes.php:415
+msgid "Your response"
+msgstr ""
+
+#: includes/shortcodes.php:416
+msgid "Submit Response"
+msgstr ""
+
+#: includes/shortcodes.php:421
+msgid "Invalid token or response not found."
+msgstr ""
+
+#: includes/shortcodes.php:460
+msgid "No tasks found in this category."
+msgstr ""
+
+#: includes/shortcodes.php:501
+msgid "No tasks found for this service provider."
+msgstr ""
+
+#: includes/shortcodes.php:542
+msgid "No tasks found with this status."
+msgstr ""
+
+#: includes/shortcodes.php:583
+msgid "No task statuses found."
+msgstr ""
+
+#: includes/shortcodes.php:614
+msgid "Due Date:"
+msgstr ""
+
+#: includes/shortcodes.php:619
+msgid "No tasks found."
+msgstr ""
+
+#: includes/taxonomies.php:88
+#: includes/taxonomies.php:152
+msgid "Phone Number"
+msgstr ""
+
+#: includes/taxonomies.php:90
+#: includes/taxonomies.php:155
+msgid "The phone number of the service provider."
+msgstr ""
+
+#: includes/taxonomies.php:94
+#: includes/taxonomies.php:159
+msgid "Email Address"
+msgstr ""
+
+#: includes/taxonomies.php:96
+#: includes/taxonomies.php:162
+msgid "The email address of the service provider."
+msgstr ""
+
+#: includes/taxonomies.php:116
+#: includes/taxonomies.php:166
+msgid "Associated Task Categories"
+msgstr ""
+
+#: includes/taxonomies.php:177
+msgid "Select task categories associated with this service provider."
+msgstr ""
+
+#: includes/upload-handlers.php:27
+msgid "The uploaded file exceeds the upload_max_filesize directive in php.ini."
+msgstr ""
+
+#: includes/upload-handlers.php:28
+msgid "The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form."
+msgstr ""
+
+#: includes/upload-handlers.php:29
+msgid "The uploaded file was only partially uploaded."
+msgstr ""
+
+#: includes/upload-handlers.php:30
+msgid "No file was uploaded."
+msgstr ""
+
+#: includes/upload-handlers.php:31
+msgid "Missing a temporary folder."
+msgstr ""
+
+#: includes/upload-handlers.php:32
+msgid "Failed to write file to disk."
+msgstr ""
+
+#: includes/upload-handlers.php:33
+msgid "A PHP extension stopped the file upload."
+msgstr ""
+
+#: includes/upload-handlers.php:35
+msgid "An unknown upload error occurred."
+msgstr ""
+
+#: includes/upload-handlers.php:41
+msgid "File size exceeds the 2MB limit."
+msgstr ""
+
+#: includes/upload-handlers.php:46
+msgid "The uploaded file is empty."
+msgstr ""
+
+#: includes/upload-handlers.php:53
+msgid "Invalid file type. Only JPG, PNG, and GIF files are allowed."
+msgstr ""
+
+#: includes/upload-handlers.php:63
+msgid "Invalid file type detected. Only JPG, PNG, and GIF files are allowed."
+msgstr ""

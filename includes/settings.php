@@ -426,8 +426,38 @@ add_action('admin_enqueue_scripts', 'upkeepify_enqueue_admin_scripts');
  * @hook wp_enqueue_scripts
  */
 function upkeepify_enqueue_frontend_scripts() {
-    $js_dir = plugin_dir_url(dirname(__FILE__)) . 'js/';
-    $css_dir = plugin_dir_url(dirname(__FILE__)) . '';
+    global $post;
+
+    if ( ! $post instanceof WP_Post ) {
+        return;
+    }
+
+    $shortcodes = array(
+        UPKEEPIFY_SHORTCODE_MAINTENANCE_TASKS,
+        UPKEEPIFY_SHORTCODE_LIST_TASKS,
+        UPKEEPIFY_SHORTCODE_TASK_FORM,
+        UPKEEPIFY_SHORTCODE_PROVIDER_RESPONSE_FORM,
+        UPKEEPIFY_SHORTCODE_TASKS_BY_CATEGORY,
+        UPKEEPIFY_SHORTCODE_TASKS_BY_PROVIDER,
+        UPKEEPIFY_SHORTCODE_TASKS_BY_STATUS,
+        UPKEEPIFY_SHORTCODE_TASK_SUMMARY,
+        UPKEEPIFY_SHORTCODE_TASK_CALENDAR,
+    );
+
+    $has_shortcode = false;
+    foreach ( $shortcodes as $shortcode ) {
+        if ( has_shortcode( $post->post_content, $shortcode ) ) {
+            $has_shortcode = true;
+            break;
+        }
+    }
+
+    if ( ! $has_shortcode ) {
+        return;
+    }
+
+    $js_dir  = plugin_dir_url( dirname( __FILE__ ) ) . 'js/';
+    $css_dir = plugin_dir_url( dirname( __FILE__ ) ) . '';
 
     // Enqueue utils.js
     wp_enqueue_script(
