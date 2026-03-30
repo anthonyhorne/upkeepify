@@ -9,8 +9,7 @@
     var UpkeepifyValidation = {
         
         validationRules: {},
-        validators: {},
-        
+
         /**
          * Initialize form validation
          */
