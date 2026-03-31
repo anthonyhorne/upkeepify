@@ -39,6 +39,11 @@ foreach ( $post_types as $post_type ) {
 		'fields'         => 'ids',
 	) );
 	foreach ( $posts as $post_id ) {
+		// Delete the featured image attachment (task photo) before removing the post.
+		$thumbnail_id = get_post_thumbnail_id( $post_id );
+		if ( $thumbnail_id ) {
+			wp_delete_attachment( $thumbnail_id, true );
+		}
 		wp_delete_post( $post_id, true );
 	}
 }

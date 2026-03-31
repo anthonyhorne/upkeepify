@@ -209,11 +209,11 @@ function upkeepify_task_form_shortcode() {
     echo '<p><label for="task_photo">' . esc_html__('Upload Photo:', 'upkeepify') . '</label><br />';
     echo '<input type="file" id="task_photo" name="task_photo" accept="image/*" capture="environment" class="upkeepify-file-input"></p>';
 
-    echo '<p><label for="gps_latitude">' . esc_html__('Latitude:', 'upkeepify') . '</label><br />';
-    echo '<input type="text" id="gps_latitude" name="gps_latitude" required class="upkeepify-input"></p>';
+    echo '<p><label for="gps_latitude">' . esc_html__('Latitude (optional):', 'upkeepify') . '</label><br />';
+    echo '<input type="text" id="gps_latitude" name="gps_latitude" class="upkeepify-input"></p>';
 
-    echo '<p><label for="gps_longitude">' . esc_html__('Longitude:', 'upkeepify') . '</label><br />';
-    echo '<input type="text" id="gps_longitude" name="gps_longitude" required class="upkeepify-input"></p>';
+    echo '<p><label for="gps_longitude">' . esc_html__('Longitude (optional):', 'upkeepify') . '</label><br />';
+    echo '<input type="text" id="gps_longitude" name="gps_longitude" class="upkeepify-input"></p>';
 
     echo '<p><label for="math">' . esc_html(sprintf('What is %d + %d? (For spam prevention)', $num1, $num2)) . '</label><br />';
     echo '<input type="text" id="math" name="math" required class="upkeepify-input"></p>';
