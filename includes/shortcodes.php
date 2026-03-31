@@ -404,167 +404,222 @@ function upkeepify_provider_response_form_shortcode($atts) {
         $query->the_post();
         $response_id = get_the_ID();
 
-        // Reject expired tokens.
-        $expires = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN_EXPIRES, true);
-        if ($expires && time() > intval($expires)) {
-            wp_reset_postdata();
-            echo '<p>' . esc_html__('This invitation link has expired. Please contact the property manager to request a new one.', 'upkeepify') . '</p>';
-            return ob_get_clean();
-        }
+        $task_id  = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true ) );
+        $task_post = $task_id ? get_post( $task_id ) : null;
 
-        $task_id = intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true));
-        $task_post = $task_id ? get_post($task_id) : null;
+        // Determine lifecycle state.
+        $decision     = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_DECISION,      true );
+        $formal_quote = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE,  true );
+        $completed_at = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT,  true );
 
-        // Show a confirmation if already responded.
-        $existing_decision = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_DECISION, true);
-        if (!empty($existing_decision)) {
-            if ($existing_decision === 'decline') {
-                echo '<p>' . esc_html__('You have already declined this job. Contact the property manager if you have changed your mind.', 'upkeepify') . '</p>';
-            } else {
-                echo '<p>' . esc_html__('Your estimate has already been submitted. The property manager will be in touch.', 'upkeepify') . '</p>';
-            }
-            wp_reset_postdata();
-            return ob_get_clean();
-        }
+        // Currency symbol.
+        $settings = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+        $currency = ! empty( $settings[ UPKEEPIFY_SETTING_CURRENCY ] ) ? $settings[ UPKEEPIFY_SETTING_CURRENCY ] : '$';
 
-        // Show inline success/declined notice after redirect.
-        if (isset($_GET['upkeepify_response'])) {
-            $resp_status = sanitize_key($_GET['upkeepify_response']);
-            if ($resp_status === 'submitted') {
-                echo '<p class="upkeepify-notice upkeepify-notice--success">' . esc_html__('Thank you — your estimate has been submitted.', 'upkeepify') . '</p>';
-            } elseif ($resp_status === 'declined') {
-                echo '<p class="upkeepify-notice upkeepify-notice--info">' . esc_html__('You have declined this job. No further action is needed.', 'upkeepify') . '</p>';
+        // Redirect-back notice (shown after a successful form submission).
+        if ( isset( $_GET['upkeepify_response'] ) ) {
+            $resp_status = sanitize_key( $_GET['upkeepify_response'] );
+            $notices = array(
+                'submitted' => __( 'Your estimate has been submitted.', 'upkeepify' ),
+                'quoted'    => __( 'Your formal quote has been submitted.', 'upkeepify' ),
+                'completed' => __( 'Job marked as complete. The property manager will notify the resident.', 'upkeepify' ),
+                'declined'  => __( 'You have declined this job. No further action needed.', 'upkeepify' ),
+            );
+            if ( isset( $notices[ $resp_status ] ) ) {
+                $cls = ( $resp_status === 'declined' ) ? 'upkeepify-notice--info' : 'upkeepify-notice--success';
+                echo '<p class="upkeepify-notice ' . esc_attr( $cls ) . '">' . esc_html( $notices[ $resp_status ] ) . '</p>';
             }
         }
 
-        // Task details.
-        if ($task_post) {
+        // ── Task detail card (shown on all active steps) ──────────────────────
+        if ( $task_post && $decision !== 'decline' ) {
             echo '<div class="upkeepify-task-details">';
-            echo '<h3>' . esc_html__('Job Details', 'upkeepify') . '</h3>';
-            echo '<p><strong>' . esc_html($task_post->post_title) . '</strong></p>';
-            echo '<p>' . nl2br(esc_html(wp_strip_all_tags($task_post->post_content))) . '</p>';
-
-            // Show task photo if present.
-            $thumb_id = get_post_thumbnail_id($task_post->ID);
-            if ($thumb_id) {
-                echo '<p>' . wp_get_attachment_image($thumb_id, 'medium') . '</p>';
+            echo '<h3>' . esc_html__( 'Job Details', 'upkeepify' ) . '</h3>';
+            echo '<p><strong>' . esc_html( $task_post->post_title ) . '</strong></p>';
+            echo '<p>' . nl2br( esc_html( wp_strip_all_tags( $task_post->post_content ) ) ) . '</p>';
+            $thumb_id = get_post_thumbnail_id( $task_post->ID );
+            if ( $thumb_id ) {
+                echo '<p>' . wp_get_attachment_image( $thumb_id, 'medium' ) . '</p>';
             }
-
-            // Show GPS if captured.
-            $lat = get_post_meta($task_post->ID, UPKEEPIFY_META_KEY_GPS_LATITUDE, true);
-            $lng = get_post_meta($task_post->ID, UPKEEPIFY_META_KEY_GPS_LONGITUDE, true);
-            if ($lat && $lng) {
-                echo '<p><small>' . esc_html__('Location:', 'upkeepify') . ' ' . esc_html($lat) . ', ' . esc_html($lng) . '</small></p>';
+            $lat = get_post_meta( $task_post->ID, UPKEEPIFY_META_KEY_GPS_LATITUDE,  true );
+            $lng = get_post_meta( $task_post->ID, UPKEEPIFY_META_KEY_GPS_LONGITUDE, true );
+            if ( $lat && $lng ) {
+                echo '<p><small>' . esc_html__( 'Location:', 'upkeepify' ) . ' ' . esc_html( $lat ) . ', ' . esc_html( $lng ) . '</small></p>';
             }
             echo '</div>';
         }
 
-        // Currency symbol for estimate fields.
-        $settings = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
-        $currency = !empty($settings[UPKEEPIFY_SETTING_CURRENCY]) ? $settings[UPKEEPIFY_SETTING_CURRENCY] : '$';
+        // ── STATE MACHINE ─────────────────────────────────────────────────────
 
-        // Structured estimate form.
-        echo '<form action="' . esc_url(admin_url('admin-post.php')) . '" method="post" class="upkeepify-estimate-form" id="upkeepify-estimate-form">';
-        echo '<input type="hidden" name="action" value="' . esc_attr(UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT) . '">';
-        echo '<input type="hidden" name="response_id" value="' . esc_attr($response_id) . '">';
-        echo '<input type="hidden" name="' . esc_attr(UPKEEPIFY_QUERY_VAR_TOKEN) . '" value="' . esc_attr($token) . '">';
-        wp_nonce_field(UPKEEPIFY_NONCE_ACTION_PROVIDER_RESPONSE, UPKEEPIFY_NONCE_PROVIDER_RESPONSE);
+        if ( empty( $decision ) ) {
 
-        // ── Decision ─────────────────────────────────────────────────────────
-        echo '<fieldset class="upkeepify-fieldset">';
-        echo '<legend>' . esc_html__('Can you take this job?', 'upkeepify') . '</legend>';
-        echo '<label class="upkeepify-radio-label"><input type="radio" name="decision" value="accept" required id="upkeepify-decision-accept"> ' . esc_html__('Yes, I can take this job', 'upkeepify') . '</label>';
-        echo '<label class="upkeepify-radio-label"><input type="radio" name="decision" value="decline" required id="upkeepify-decision-decline"> ' . esc_html__('No, pass on this one', 'upkeepify') . '</label>';
-        echo '</fieldset>';
+            // ── Step 2: initial estimate form ─────────────────────────────────
+            // Expiry only checked on first visit (token not yet consumed).
+            $expires = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN_EXPIRES, true );
+            if ( $expires && time() > intval( $expires ) ) {
+                wp_reset_postdata();
+                echo '<p>' . esc_html__( 'This invitation link has expired. Please contact the property manager to request a new one.', 'upkeepify' ) . '</p>';
+                return ob_get_clean();
+            }
 
-        // ── Estimate fields (hidden until accept is chosen) ───────────────────
-        echo '<div class="upkeepify-estimate-fields" id="upkeepify-estimate-fields">';
+            echo '<form action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" method="post" class="upkeepify-estimate-form" id="upkeepify-estimate-form">';
+            echo '<input type="hidden" name="action" value="' . esc_attr( UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT ) . '">';
+            echo '<input type="hidden" name="response_id" value="' . esc_attr( $response_id ) . '">';
+            echo '<input type="hidden" name="' . esc_attr( UPKEEPIFY_QUERY_VAR_TOKEN ) . '" value="' . esc_attr( $token ) . '">';
+            wp_nonce_field( UPKEEPIFY_NONCE_ACTION_PROVIDER_RESPONSE, UPKEEPIFY_NONCE_PROVIDER_RESPONSE );
 
-        echo '<p class="upkeepify-field">';
-        echo '<label for="upkeepify-estimate"><strong>' . esc_html__('Ballpark estimate', 'upkeepify') . '</strong> <span class="upkeepify-required">*</span></label><br>';
-        echo '<span class="upkeepify-currency-wrap">';
-        echo '<span class="upkeepify-currency-symbol">' . esc_html($currency) . '</span>';
-        echo '<input type="number" id="upkeepify-estimate" name="estimate" min="0" step="0.01" class="upkeepify-input upkeepify-input--currency" placeholder="0.00">';
-        echo '</span>';
-        echo '<br><small>' . esc_html__('Rough figure — not a formal quote. Your formal quote comes later.', 'upkeepify') . '</small>';
-        echo '</p>';
+            echo '<fieldset class="upkeepify-fieldset">';
+            echo '<legend>' . esc_html__( 'Can you take this job?', 'upkeepify' ) . '</legend>';
+            echo '<label class="upkeepify-radio-label"><input type="radio" name="decision" value="accept" required id="upkeepify-decision-accept"> ' . esc_html__( 'Yes, I can take this job', 'upkeepify' ) . '</label>';
+            echo '<label class="upkeepify-radio-label"><input type="radio" name="decision" value="decline" required id="upkeepify-decision-decline"> ' . esc_html__( 'No, pass on this one', 'upkeepify' ) . '</label>';
+            echo '</fieldset>';
 
-        echo '<p class="upkeepify-field">';
-        echo '<label>' . esc_html__('Estimate range (optional)', 'upkeepify') . '</label><br>';
-        echo '<span class="upkeepify-range-wrap">';
-        echo '<span class="upkeepify-currency-symbol">' . esc_html($currency) . '</span>';
-        echo '<input type="number" name="estimate_low" min="0" step="0.01" class="upkeepify-input upkeepify-input--range" placeholder="' . esc_attr__('Low', 'upkeepify') . '">';
-        echo '</span>';
-        echo ' &ndash; ';
-        echo '<span class="upkeepify-range-wrap">';
-        echo '<span class="upkeepify-currency-symbol">' . esc_html($currency) . '</span>';
-        echo '<input type="number" name="estimate_high" min="0" step="0.01" class="upkeepify-input upkeepify-input--range" placeholder="' . esc_attr__('High', 'upkeepify') . '">';
-        echo '</span>';
-        echo '</p>';
+            echo '<div class="upkeepify-estimate-fields" id="upkeepify-estimate-fields">';
 
-        echo '<p class="upkeepify-field">';
-        echo '<label for="upkeepify-confidence">' . esc_html__('Confidence in estimate (optional)', 'upkeepify') . '</label><br>';
-        echo '<select name="estimate_confidence" id="upkeepify-confidence" class="upkeepify-select">';
-        echo '<option value="">' . esc_html__('— select —', 'upkeepify') . '</option>';
-        echo '<option value="low">' . esc_html__('Low — need to see it first', 'upkeepify') . '</option>';
-        echo '<option value="medium">' . esc_html__('Medium — fairly confident', 'upkeepify') . '</option>';
-        echo '<option value="high">' . esc_html__('High — this is my standard rate', 'upkeepify') . '</option>';
-        echo '</select>';
-        echo '</p>';
+            echo '<p class="upkeepify-field">';
+            echo '<label for="upkeepify-estimate"><strong>' . esc_html__( 'Ballpark estimate', 'upkeepify' ) . '</strong> <span class="upkeepify-required">*</span></label><br>';
+            echo '<span class="upkeepify-currency-wrap"><span class="upkeepify-currency-symbol">' . esc_html( $currency ) . '</span>';
+            echo '<input type="number" id="upkeepify-estimate" name="estimate" min="0" step="0.01" class="upkeepify-input upkeepify-input--currency" placeholder="0.00"></span>';
+            echo '<br><small>' . esc_html__( 'Rough figure — not a formal quote. Your formal quote comes later.', 'upkeepify' ) . '</small>';
+            echo '</p>';
 
-        echo '<p class="upkeepify-field">';
-        echo '<label for="upkeepify-availability">' . esc_html__('Earliest availability (optional)', 'upkeepify') . '</label><br>';
-        echo '<input type="date" name="availability" id="upkeepify-availability" class="upkeepify-input" min="' . esc_attr(gmdate('Y-m-d')) . '">';
-        echo '</p>';
+            echo '<p class="upkeepify-field"><label>' . esc_html__( 'Estimate range (optional)', 'upkeepify' ) . '</label><br>';
+            echo '<span class="upkeepify-range-wrap"><span class="upkeepify-currency-symbol">' . esc_html( $currency ) . '</span><input type="number" name="estimate_low" min="0" step="0.01" class="upkeepify-input upkeepify-input--range" placeholder="' . esc_attr__( 'Low', 'upkeepify' ) . '"></span>';
+            echo ' &ndash; ';
+            echo '<span class="upkeepify-range-wrap"><span class="upkeepify-currency-symbol">' . esc_html( $currency ) . '</span><input type="number" name="estimate_high" min="0" step="0.01" class="upkeepify-input upkeepify-input--range" placeholder="' . esc_attr__( 'High', 'upkeepify' ) . '"></span>';
+            echo '</p>';
 
-        echo '<p class="upkeepify-field">';
-        echo '<label for="upkeepify-note">' . esc_html__('Short note (optional)', 'upkeepify') . '</label><br>';
-        echo '<textarea name="note" id="upkeepify-note" maxlength="500" rows="3" class="upkeepify-textarea" placeholder="' . esc_attr__('Any questions, conditions, or context for the property manager.', 'upkeepify') . '"></textarea>';
-        echo '<br><small class="upkeepify-charcount" data-target="upkeepify-note" data-max="500">500 ' . esc_html__('characters remaining', 'upkeepify') . '</small>';
-        echo '</p>';
+            echo '<p class="upkeepify-field"><label for="upkeepify-confidence">' . esc_html__( 'Confidence in estimate (optional)', 'upkeepify' ) . '</label><br>';
+            echo '<select name="estimate_confidence" id="upkeepify-confidence" class="upkeepify-select">';
+            echo '<option value="">' . esc_html__( '— select —', 'upkeepify' ) . '</option>';
+            echo '<option value="low">'    . esc_html__( 'Low — need to see it first',       'upkeepify' ) . '</option>';
+            echo '<option value="medium">' . esc_html__( 'Medium — fairly confident',         'upkeepify' ) . '</option>';
+            echo '<option value="high">'   . esc_html__( 'High — this is my standard rate',   'upkeepify' ) . '</option>';
+            echo '</select></p>';
 
-        echo '</div>'; // .upkeepify-estimate-fields
+            echo '<p class="upkeepify-field"><label for="upkeepify-availability">' . esc_html__( 'Earliest availability (optional)', 'upkeepify' ) . '</label><br>';
+            echo '<input type="date" name="availability" id="upkeepify-availability" class="upkeepify-input" min="' . esc_attr( gmdate( 'Y-m-d' ) ) . '"></p>';
 
-        echo '<p class="upkeepify-field">';
-        echo '<input type="submit" value="' . esc_attr__('Submit response', 'upkeepify') . '" class="upkeepify-submit-button">';
-        echo '</p>';
+            echo '<p class="upkeepify-field"><label for="upkeepify-note">' . esc_html__( 'Short note (optional)', 'upkeepify' ) . '</label><br>';
+            echo '<textarea name="note" id="upkeepify-note" maxlength="500" rows="3" class="upkeepify-textarea" placeholder="' . esc_attr__( 'Any questions, conditions, or context for the property manager.', 'upkeepify' ) . '"></textarea>';
+            echo '<br><small class="upkeepify-charcount" data-target="upkeepify-note" data-max="500">500 ' . esc_html__( 'characters remaining', 'upkeepify' ) . '</small></p>';
 
-        echo '</form>';
+            echo '</div>'; // .upkeepify-estimate-fields
 
-        // Inline JS: show/hide estimate fields and live char count.
-        ?>
+            echo '<p class="upkeepify-field"><input type="submit" value="' . esc_attr__( 'Submit response', 'upkeepify' ) . '" class="upkeepify-submit-button"></p>';
+            echo '</form>';
+
+            ?>
 <script>
 (function () {
     var form     = document.getElementById('upkeepify-estimate-form');
     var fields   = document.getElementById('upkeepify-estimate-fields');
     var estimate = document.getElementById('upkeepify-estimate');
     if (!form || !fields) return;
-
     function updateVisibility() {
         var accept = form.querySelector('input[name="decision"][value="accept"]');
         var show   = accept && accept.checked;
         fields.style.display = show ? '' : 'none';
         if (estimate) estimate.required = show;
     }
+    form.querySelectorAll('input[name="decision"]').forEach(function (r) { r.addEventListener('change', updateVisibility); });
+    upkeepifyCharCounters();
+    updateVisibility();
+}());
+</script>
+            <?php
 
-    form.querySelectorAll('input[name="decision"]').forEach(function (radio) {
-        radio.addEventListener('change', updateVisibility);
-    });
+        } elseif ( $decision === 'decline' ) {
 
-    // Char counters
+            // ── Declined ──────────────────────────────────────────────────────
+            echo '<p>' . esc_html__( 'You declined this job. Contact the property manager if you have changed your mind.', 'upkeepify' ) . '</p>';
+
+        } elseif ( $formal_quote === '' ) {
+
+            // ── Step 3a: formal quote ─────────────────────────────────────────
+            $ballpark = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true );
+            echo '<p class="upkeepify-step-label">' . esc_html__( 'Step 2 of 3 — Formal Quote', 'upkeepify' ) . '</p>';
+            if ( $ballpark !== '' ) {
+                echo '<p><small>' . sprintf(
+                    /* translators: 1: currency, 2: ballpark amount */
+                    esc_html__( 'Your ballpark estimate was %1$s%2$s. Your formal quote should be a firm figure you are prepared to stand behind.', 'upkeepify' ),
+                    esc_html( $currency ),
+                    esc_html( number_format( (float) $ballpark, 2 ) )
+                ) . '</small></p>';
+            }
+
+            echo '<form action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" method="post" class="upkeepify-estimate-form">';
+            echo '<input type="hidden" name="action" value="' . esc_attr( UPKEEPIFY_ADMIN_ACTION_PROVIDER_QUOTE_SUBMIT ) . '">';
+            echo '<input type="hidden" name="response_id" value="' . esc_attr( $response_id ) . '">';
+            echo '<input type="hidden" name="' . esc_attr( UPKEEPIFY_QUERY_VAR_TOKEN ) . '" value="' . esc_attr( $token ) . '">';
+            wp_nonce_field( UPKEEPIFY_NONCE_ACTION_PROVIDER_QUOTE, UPKEEPIFY_NONCE_PROVIDER_QUOTE );
+
+            echo '<p class="upkeepify-field"><label for="upkeepify-quote"><strong>' . esc_html__( 'Formal quote', 'upkeepify' ) . '</strong> <span class="upkeepify-required">*</span></label><br>';
+            echo '<span class="upkeepify-currency-wrap"><span class="upkeepify-currency-symbol">' . esc_html( $currency ) . '</span>';
+            echo '<input type="number" id="upkeepify-quote" name="formal_quote" min="0" step="0.01" required class="upkeepify-input upkeepify-input--currency" placeholder="0.00"></span></p>';
+
+            echo '<p class="upkeepify-field"><label for="upkeepify-quote-note">' . esc_html__( 'Conditions or scope notes (optional)', 'upkeepify' ) . '</label><br>';
+            echo '<textarea name="quote_note" id="upkeepify-quote-note" maxlength="500" rows="3" class="upkeepify-textarea" placeholder="' . esc_attr__( 'Any conditions, exclusions, or scope clarifications.', 'upkeepify' ) . '"></textarea>';
+            echo '<br><small class="upkeepify-charcount" data-target="upkeepify-quote-note" data-max="500">500 ' . esc_html__( 'characters remaining', 'upkeepify' ) . '</small></p>';
+
+            echo '<p class="upkeepify-field"><input type="submit" value="' . esc_attr__( 'Submit formal quote', 'upkeepify' ) . '" class="upkeepify-submit-button"></p>';
+            echo '</form>';
+            ?><script>upkeepifyCharCounters();</script><?php
+
+        } elseif ( $completed_at === '' ) {
+
+            // ── Step 3b: completion proof ─────────────────────────────────────
+            $quote_val = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true );
+            echo '<p class="upkeepify-step-label">' . esc_html__( 'Step 3 of 3 — Mark Job Complete', 'upkeepify' ) . '</p>';
+            if ( $quote_val !== '' ) {
+                echo '<p><small>' . sprintf(
+                    /* translators: 1: currency, 2: quote amount */
+                    esc_html__( 'Your formal quote was %1$s%2$s.', 'upkeepify' ),
+                    esc_html( $currency ),
+                    esc_html( number_format( (float) $quote_val, 2 ) )
+                ) . '</small></p>';
+            }
+
+            echo '<form action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" method="post" enctype="multipart/form-data" class="upkeepify-estimate-form">';
+            echo '<input type="hidden" name="action" value="' . esc_attr( UPKEEPIFY_ADMIN_ACTION_PROVIDER_COMPLETION_SUBMIT ) . '">';
+            echo '<input type="hidden" name="response_id" value="' . esc_attr( $response_id ) . '">';
+            echo '<input type="hidden" name="' . esc_attr( UPKEEPIFY_QUERY_VAR_TOKEN ) . '" value="' . esc_attr( $token ) . '">';
+            wp_nonce_field( UPKEEPIFY_NONCE_ACTION_PROVIDER_COMPLETION, UPKEEPIFY_NONCE_PROVIDER_COMPLETION );
+
+            echo '<p class="upkeepify-field"><label for="upkeepify-completion-photos">' . esc_html__( 'Completion photos (optional, up to 3)', 'upkeepify' ) . '</label><br>';
+            echo '<input type="file" id="upkeepify-completion-photos" name="completion_photos[]" accept="image/*" capture="environment" multiple class="upkeepify-file-input">';
+            echo '<br><small>' . esc_html__( 'JPG, PNG or GIF, max 2 MB each.', 'upkeepify' ) . '</small></p>';
+
+            echo '<p class="upkeepify-field"><label for="upkeepify-completion-note">' . esc_html__( 'Completion note (optional)', 'upkeepify' ) . '</label><br>';
+            echo '<textarea name="completion_note" id="upkeepify-completion-note" maxlength="500" rows="3" class="upkeepify-textarea" placeholder="' . esc_attr__( 'Brief description of work completed, any follow-up needed, etc.', 'upkeepify' ) . '"></textarea>';
+            echo '<br><small class="upkeepify-charcount" data-target="upkeepify-completion-note" data-max="500">500 ' . esc_html__( 'characters remaining', 'upkeepify' ) . '</small></p>';
+
+            echo '<p class="upkeepify-field"><input type="submit" value="' . esc_attr__( 'Mark job as complete', 'upkeepify' ) . '" class="upkeepify-submit-button"></p>';
+            echo '</form>';
+            ?><script>upkeepifyCharCounters();</script><?php
+
+        } else {
+
+            // ── All done — awaiting resident confirmation ──────────────────────
+            echo '<p class="upkeepify-notice upkeepify-notice--success">' . esc_html__( 'Job marked as complete. The resident will be asked to confirm and the property manager has been notified. Thank you.', 'upkeepify' ) . '</p>';
+
+        }
+
+        // Shared char-counter utility (called per-form above).
+        ?>
+<script>
+function upkeepifyCharCounters() {
     document.querySelectorAll('.upkeepify-charcount[data-target]').forEach(function (el) {
         var target = document.getElementById(el.getAttribute('data-target'));
         var max    = parseInt(el.getAttribute('data-max'), 10);
         if (!target || isNaN(max)) return;
         target.addEventListener('input', function () {
             var remaining = max - target.value.length;
-            el.textContent = remaining + ' <?php echo esc_js(__('characters remaining', 'upkeepify')); ?>';
+            el.textContent = remaining + ' <?php echo esc_js( __( 'characters remaining', 'upkeepify' ) ); ?>';
             el.style.color = remaining < 50 ? '#c00' : '';
         });
     });
-
-    updateVisibility();
-}());
+}
 </script>
         <?php
 
@@ -900,5 +955,242 @@ function upkeepify_admin_post_provider_response_submit() {
     wp_safe_redirect( $redirect );
     exit;
 }
-add_action( 'admin_post_'       . UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT, 'upkeepify_admin_post_provider_response_submit' );
+add_action( 'admin_post_'        . UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT, 'upkeepify_admin_post_provider_response_submit' );
 add_action( 'admin_post_nopriv_' . UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT, 'upkeepify_admin_post_provider_response_submit' );
+
+// ─── Step 3a: Formal quote submission ────────────────────────────────────────
+
+/**
+ * Handle contractor formal quote form submission.
+ *
+ * @since 1.1
+ * @hook admin_post_{UPKEEPIFY_ADMIN_ACTION_PROVIDER_QUOTE_SUBMIT}
+ * @hook admin_post_nopriv_{UPKEEPIFY_ADMIN_ACTION_PROVIDER_QUOTE_SUBMIT}
+ */
+function upkeepify_admin_post_provider_quote_submit() {
+    if ( ! isset( $_POST[ UPKEEPIFY_NONCE_PROVIDER_QUOTE ] ) ||
+        ! wp_verify_nonce( $_POST[ UPKEEPIFY_NONCE_PROVIDER_QUOTE ], UPKEEPIFY_NONCE_ACTION_PROVIDER_QUOTE ) ) {
+        wp_die( esc_html__( 'Security check failed.', 'upkeepify' ) );
+    }
+
+    if ( ! isset( $_POST['response_id'], $_POST['formal_quote'] ) ) {
+        wp_die( esc_html__( 'Missing required fields.', 'upkeepify' ) );
+    }
+
+    $response_id  = intval( $_POST['response_id'] );
+    $response_post = get_post( $response_id );
+
+    if ( ! $response_post || $response_post->post_type !== UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES ) {
+        wp_die( esc_html__( 'Invalid response post.', 'upkeepify' ) );
+    }
+
+    // Token verification.
+    $stored_token = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN, true );
+    $posted_token = isset( $_POST[ UPKEEPIFY_QUERY_VAR_TOKEN ] ) ? sanitize_text_field( wp_unslash( $_POST[ UPKEEPIFY_QUERY_VAR_TOKEN ] ) ) : '';
+    if ( empty( $stored_token ) || ! hash_equals( $stored_token, $posted_token ) ) {
+        wp_die( esc_html__( 'Token mismatch.', 'upkeepify' ) );
+    }
+
+    // Must have accepted in Step 2 and not yet submitted a quote.
+    $decision     = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_DECISION,     true );
+    $formal_quote = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true );
+    if ( $decision !== 'accept' ) {
+        wp_die( esc_html__( 'This job was not accepted.', 'upkeepify' ) );
+    }
+    if ( $formal_quote !== '' ) {
+        wp_die( esc_html__( 'A formal quote has already been submitted.', 'upkeepify' ) );
+    }
+
+    $quote = filter_input( INPUT_POST, 'formal_quote', FILTER_VALIDATE_FLOAT );
+    if ( $quote === false || $quote < 0 ) {
+        wp_die( esc_html__( 'Please enter a valid quote amount.', 'upkeepify' ) );
+    }
+
+    update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, $quote );
+
+    $quote_note = sanitize_textarea_field( $_POST['quote_note'] ?? '' );
+    if ( $quote_note !== '' ) {
+        update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_QUOTE_NOTE, substr( $quote_note, 0, 500 ) );
+    }
+
+    // Notify trustee of the formal quote.
+    $task_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true ) );
+    $task_post = $task_id ? get_post( $task_id ) : null;
+    if ( $task_post ) {
+        $settings  = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+        $currency  = ! empty( $settings[ UPKEEPIFY_SETTING_CURRENCY ] ) ? $settings[ UPKEEPIFY_SETTING_CURRENCY ] : '$';
+        $recipient = ! empty( $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] ) ? $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] : get_option( 'admin_email' );
+        $provider_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true ) );
+        $provider_term = $provider_id ? get_term( $provider_id, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ) : null;
+        $provider_name = ( $provider_term && ! is_wp_error( $provider_term ) ) ? $provider_term->name : __( 'A contractor', 'upkeepify' );
+
+        $ballpark = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true );
+
+        $subject = sprintf( __( '[%s] Formal quote received — %s', 'upkeepify' ), get_bloginfo( 'name' ), $task_post->post_title );
+        $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
+        $body   .= '<h2>' . esc_html__( 'Formal Quote Received', 'upkeepify' ) . '</h2>';
+        $body   .= '<p>' . sprintf( esc_html__( '%s has submitted a formal quote for "%s".', 'upkeepify' ), esc_html( $provider_name ), esc_html( $task_post->post_title ) ) . '</p>';
+        if ( $ballpark !== '' ) {
+            $body .= '<p>' . sprintf( esc_html__( 'Ballpark estimate: %1$s%2$s', 'upkeepify' ), esc_html( $currency ), esc_html( number_format( (float) $ballpark, 2 ) ) ) . '</p>';
+        }
+        $body .= '<p><strong>' . sprintf( esc_html__( 'Formal quote: %1$s%2$s', 'upkeepify' ), esc_html( $currency ), esc_html( number_format( $quote, 2 ) ) ) . '</strong></p>';
+        if ( $quote_note ) {
+            $body .= '<p>' . esc_html__( 'Notes:', 'upkeepify' ) . ' ' . nl2br( esc_html( $quote_note ) ) . '</p>';
+        }
+        $body .= '<p>' . esc_html__( 'Review this quote in the WordPress admin.', 'upkeepify' ) . '</p>';
+        $body .= '</div>';
+
+        wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+    }
+
+    wp_safe_redirect( add_query_arg( 'upkeepify_response', 'quoted', wp_get_referer() ?: home_url() ) );
+    exit;
+}
+add_action( 'admin_post_'        . UPKEEPIFY_ADMIN_ACTION_PROVIDER_QUOTE_SUBMIT, 'upkeepify_admin_post_provider_quote_submit' );
+add_action( 'admin_post_nopriv_' . UPKEEPIFY_ADMIN_ACTION_PROVIDER_QUOTE_SUBMIT, 'upkeepify_admin_post_provider_quote_submit' );
+
+// ─── Step 3b: Completion proof submission ─────────────────────────────────────
+
+/**
+ * Handle contractor completion proof form submission.
+ *
+ * Saves optional completion photos and note, timestamps the completion,
+ * and notifies the trustee so they can trigger resident confirmation (Step 4).
+ *
+ * @since 1.1
+ * @hook admin_post_{UPKEEPIFY_ADMIN_ACTION_PROVIDER_COMPLETION_SUBMIT}
+ * @hook admin_post_nopriv_{UPKEEPIFY_ADMIN_ACTION_PROVIDER_COMPLETION_SUBMIT}
+ */
+function upkeepify_admin_post_provider_completion_submit() {
+    if ( ! isset( $_POST[ UPKEEPIFY_NONCE_PROVIDER_COMPLETION ] ) ||
+        ! wp_verify_nonce( $_POST[ UPKEEPIFY_NONCE_PROVIDER_COMPLETION ], UPKEEPIFY_NONCE_ACTION_PROVIDER_COMPLETION ) ) {
+        wp_die( esc_html__( 'Security check failed.', 'upkeepify' ) );
+    }
+
+    if ( ! isset( $_POST['response_id'] ) ) {
+        wp_die( esc_html__( 'Missing required fields.', 'upkeepify' ) );
+    }
+
+    $response_id   = intval( $_POST['response_id'] );
+    $response_post = get_post( $response_id );
+
+    if ( ! $response_post || $response_post->post_type !== UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES ) {
+        wp_die( esc_html__( 'Invalid response post.', 'upkeepify' ) );
+    }
+
+    // Token verification.
+    $stored_token = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN, true );
+    $posted_token = isset( $_POST[ UPKEEPIFY_QUERY_VAR_TOKEN ] ) ? sanitize_text_field( wp_unslash( $_POST[ UPKEEPIFY_QUERY_VAR_TOKEN ] ) ) : '';
+    if ( empty( $stored_token ) || ! hash_equals( $stored_token, $posted_token ) ) {
+        wp_die( esc_html__( 'Token mismatch.', 'upkeepify' ) );
+    }
+
+    // Must be in quoted state.
+    $decision     = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_DECISION,     true );
+    $formal_quote = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true );
+    $completed_at = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT, true );
+
+    if ( $decision !== 'accept' || $formal_quote === '' ) {
+        wp_die( esc_html__( 'Please submit your formal quote before marking the job complete.', 'upkeepify' ) );
+    }
+    if ( $completed_at !== '' ) {
+        wp_die( esc_html__( 'This job has already been marked as complete.', 'upkeepify' ) );
+    }
+
+    // Process completion photos (up to 3).
+    $attachment_ids = array();
+    if ( ! empty( $_FILES['completion_photos']['name'][0] ) ) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+
+        $files = $_FILES['completion_photos'];
+        $count = min( count( $files['name'] ), 3 ); // cap at 3
+
+        for ( $i = 0; $i < $count; $i++ ) {
+            if ( empty( $files['name'][ $i ] ) || $files['error'][ $i ] !== UPLOAD_ERR_OK ) {
+                continue;
+            }
+
+            $single_file = array(
+                'name'     => $files['name'][ $i ],
+                'type'     => $files['type'][ $i ],
+                'tmp_name' => $files['tmp_name'][ $i ],
+                'error'    => $files['error'][ $i ],
+                'size'     => $files['size'][ $i ],
+            );
+
+            $validation = upkeepify_validate_upload( $single_file );
+            if ( is_wp_error( $validation ) ) {
+                if ( WP_DEBUG ) {
+                    error_log( 'Upkeepify Completion Upload: ' . $validation->get_error_message() );
+                }
+                continue;
+            }
+
+            $upload = wp_handle_upload( $single_file, array( 'test_form' => false ) );
+            if ( isset( $upload['error'] ) ) {
+                if ( WP_DEBUG ) {
+                    error_log( 'Upkeepify Completion Upload Error: ' . $upload['error'] );
+                }
+                continue;
+            }
+
+            $sideload_data = array(
+                'name'     => $single_file['name'],
+                'type'     => $upload['type'],
+                'tmp_name' => $upload['file'],
+                'error'    => UPLOAD_ERR_OK,
+                'size'     => $single_file['size'],
+            );
+
+            $attachment_id = media_handle_sideload( $sideload_data, $response_id );
+            if ( ! is_wp_error( $attachment_id ) ) {
+                $attachment_ids[] = $attachment_id;
+            }
+        }
+    }
+
+    if ( ! empty( $attachment_ids ) ) {
+        update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_PHOTOS, $attachment_ids );
+    }
+
+    $completion_note = sanitize_textarea_field( $_POST['completion_note'] ?? '' );
+    if ( $completion_note !== '' ) {
+        update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_NOTE, substr( $completion_note, 0, 500 ) );
+    }
+
+    update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT, time() );
+
+    // Notify trustee — resident confirmation (Step 4) will be triggered from admin.
+    $task_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true ) );
+    $task_post = $task_id ? get_post( $task_id ) : null;
+    if ( $task_post ) {
+        $settings      = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+        $recipient     = ! empty( $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] ) ? $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] : get_option( 'admin_email' );
+        $provider_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true ) );
+        $provider_term = $provider_id ? get_term( $provider_id, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ) : null;
+        $provider_name = ( $provider_term && ! is_wp_error( $provider_term ) ) ? $provider_term->name : __( 'A contractor', 'upkeepify' );
+
+        $subject = sprintf( __( '[%s] Job complete — resident confirmation needed: %s', 'upkeepify' ), get_bloginfo( 'name' ), $task_post->post_title );
+        $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
+        $body   .= '<h2>' . esc_html__( 'Job Marked Complete', 'upkeepify' ) . '</h2>';
+        $body   .= '<p>' . sprintf( esc_html__( '%s has marked "%s" as complete.', 'upkeepify' ), esc_html( $provider_name ), esc_html( $task_post->post_title ) ) . '</p>';
+        if ( $completion_note ) {
+            $body .= '<p>' . esc_html__( 'Completion note:', 'upkeepify' ) . ' ' . nl2br( esc_html( $completion_note ) ) . '</p>';
+        }
+        if ( ! empty( $attachment_ids ) ) {
+            $body .= '<p>' . sprintf( esc_html__( '%d completion photo(s) uploaded.', 'upkeepify' ), count( $attachment_ids ) ) . '</p>';
+        }
+        $body .= '<p><strong>' . esc_html__( 'Next step:', 'upkeepify' ) . '</strong> ' . esc_html__( 'Send the resident their confirmation link (Step 4).', 'upkeepify' ) . '</p>';
+        $body .= '<p>' . esc_html__( 'Review the completed job in WordPress admin.', 'upkeepify' ) . '</p>';
+        $body .= '</div>';
+
+        wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+    }
+
+    wp_safe_redirect( add_query_arg( 'upkeepify_response', 'completed', wp_get_referer() ?: home_url() ) );
+    exit;
+}
+add_action( 'admin_post_'        . UPKEEPIFY_ADMIN_ACTION_PROVIDER_COMPLETION_SUBMIT, 'upkeepify_admin_post_provider_completion_submit' );
+add_action( 'admin_post_nopriv_' . UPKEEPIFY_ADMIN_ACTION_PROVIDER_COMPLETION_SUBMIT, 'upkeepify_admin_post_provider_completion_submit' );

@@ -75,6 +75,23 @@ define('UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_CONFIDENCE', 'response_estimate_con
 define('UPKEEPIFY_META_KEY_RESPONSE_AVAILABILITY',        'response_availability');        // Y-m-d earliest date
 define('UPKEEPIFY_META_KEY_RESPONSE_NOTE',                'response_note');                // short note ≤500 chars
 
+// Formal quote + completion meta keys (set in Step 3 form)
+define('UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE',        'response_formal_quote');        // numeric formal quote
+define('UPKEEPIFY_META_KEY_RESPONSE_QUOTE_NOTE',          'response_quote_note');          // quote conditions ≤500 chars
+define('UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT',        'response_completed_at');        // Unix timestamp of completion
+define('UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_PHOTOS',   'response_completion_photos');   // serialized attachment ID array
+define('UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_NOTE',     'response_completion_note');     // completion note ≤500 chars
+
+// Admin actions — Step 3
+define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_QUOTE_SUBMIT',      'upkeepify_provider_quote_submit');
+define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_COMPLETION_SUBMIT', 'upkeepify_provider_completion_submit');
+
+// Nonce names — Step 3
+define('UPKEEPIFY_NONCE_PROVIDER_QUOTE',             'upkeepify_provider_quote_nonce');
+define('UPKEEPIFY_NONCE_PROVIDER_COMPLETION',        'upkeepify_provider_completion_nonce');
+define('UPKEEPIFY_NONCE_ACTION_PROVIDER_QUOTE',      'upkeepify_provider_quote_action');
+define('UPKEEPIFY_NONCE_ACTION_PROVIDER_COMPLETION', 'upkeepify_provider_completion_action');
+
 // Contractor invite
 define('UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE', 'upkeepify_provider_response_page');
 define('UPKEEPIFY_TOKEN_EXPIRY_DAYS', 14);
