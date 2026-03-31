@@ -78,6 +78,12 @@ function upkeepify_generate_provider_tokens($post_id, $post, $update) {
             return;
         }
 
+        // Get the task's categories so we can filter providers by relevance.
+        $task_category_ids = wp_get_object_terms($post_id, UPKEEPIFY_TAXONOMY_TASK_CATEGORY, array('fields' => 'ids'));
+        if (is_wp_error($task_category_ids)) {
+            $task_category_ids = array();
+        }
+
         $created_count = 0;
         $error_count = 0;
 
@@ -87,6 +93,20 @@ function upkeepify_generate_provider_tokens($post_id, $post, $update) {
                 error_log('Upkeepify Task Response Error: Invalid provider object encountered');
                 $error_count++;
                 continue;
+            }
+
+            // Filter by category: if a provider has associated categories configured, only
+            // invite them when the task overlaps. Providers with no categories set receive
+            // all tasks (backwards-compatible default).
+            $provider_categories = get_term_meta($provider->term_id, UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES, true);
+            if (!empty($provider_categories) && is_array($provider_categories) && !empty($task_category_ids)) {
+                $overlap = array_intersect(array_map('intval', $provider_categories), $task_category_ids);
+                if (empty($overlap)) {
+                    if (WP_DEBUG) {
+                        error_log('Upkeepify Task Response: Skipping provider "' . $provider->name . '" — no category match for task ID ' . $post_id);
+                    }
+                    continue;
+                }
             }
 
             // Generate a unique token for each provider
@@ -118,6 +138,9 @@ function upkeepify_generate_provider_tokens($post_id, $post, $update) {
                 continue;
             }
 
+            // Token expires UPKEEPIFY_TOKEN_EXPIRY_DAYS days from now.
+            $token_expires = time() + (UPKEEPIFY_TOKEN_EXPIRY_DAYS * DAY_IN_SECONDS);
+
             // Prepare post data for the provider's response post
             $provider_response_data = [
                 'post_title'   => 'Response for Task #' . $task_id . ' - Provider: ' . $provider->name,
@@ -125,9 +148,10 @@ function upkeepify_generate_provider_tokens($post_id, $post, $update) {
                 'post_type'    => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES,
                 'post_author'  => get_current_user_id(),
                 'meta_input'   => [
-                    UPKEEPIFY_META_KEY_RESPONSE_TASK_ID => $task_id, // ID of the maintenance task
-                    UPKEEPIFY_META_KEY_PROVIDER_ID => $provider_id, // ID of the service provider
-                    UPKEEPIFY_META_KEY_RESPONSE_TOKEN => $token, // Unique token for the provider to edit this response
+                    UPKEEPIFY_META_KEY_RESPONSE_TASK_ID      => $task_id,
+                    UPKEEPIFY_META_KEY_PROVIDER_ID           => $provider_id,
+                    UPKEEPIFY_META_KEY_RESPONSE_TOKEN        => $token,
+                    UPKEEPIFY_META_KEY_RESPONSE_TOKEN_EXPIRES => $token_expires,
                 ],
             ];
 
@@ -146,6 +170,20 @@ function upkeepify_generate_provider_tokens($post_id, $post, $update) {
                 $created_count++;
                 if (WP_DEBUG) {
                     error_log('Upkeepify Task Response: Successfully created response post ID ' . $response_post_id . ' for provider "' . $provider->name . '"');
+                }
+
+                // Send the tokenized invite email to the provider.
+                $provider_email = get_term_meta($provider->term_id, UPKEEPIFY_TERM_META_PROVIDER_EMAIL, true);
+                if (!empty($provider_email)) {
+                    upkeepify_send_contractor_invite(
+                        $provider_email,
+                        $provider->name,
+                        $post,
+                        $token,
+                        $response_post_id
+                    );
+                } elseif (WP_DEBUG) {
+                    error_log('Upkeepify Task Response: No email address for provider "' . $provider->name . '" — invite not sent');
                 }
             }
         }

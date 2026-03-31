@@ -30,6 +30,7 @@ if (!defined('WPINC')) {
 }
 
 define('UPKEEPIFY_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('UPKEEPIFY_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 // Include constants first
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/constants.php';
@@ -58,6 +59,9 @@ require_once plugin_dir_path(__FILE__) . 'includes/notification-system.php';
 
 // Include database optimization helpers
 require_once plugin_dir_path(__FILE__) . 'includes/database-optimization.php';
+
+// Progressive Web App support
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/pwa.php';
 
 // Activation and deactivation hooks
 register_activation_hook(__FILE__, 'upkeepify_activate');
@@ -97,6 +101,10 @@ function upkeepify_activate() {
 
     // Optionally insert sample data
     upkeepify_maybe_insert_sample_data();
+
+    // Register PWA rewrite rules then flush so they take effect immediately.
+    upkeepify_pwa_add_rewrite_rules();
+    flush_rewrite_rules();
 }
 
 /**
@@ -108,7 +116,7 @@ function upkeepify_activate() {
  * @hook register_deactivation_hook
  */
 function upkeepify_deactivate() {
-    // Deactivation code here
+    flush_rewrite_rules();
 }
 
 /**

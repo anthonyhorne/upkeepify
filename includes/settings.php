@@ -204,6 +204,26 @@ add_settings_field(
     ]
 );
 
+    // ── Contractor Invite Settings ────────────────────────────────────────────
+    add_settings_section(
+        'upkeepify_contractor_invite_settings',
+        __('Contractor Invite Settings', 'upkeepify'),
+        'upkeepify_contractor_invite_settings_section_callback',
+        UPKEEPIFY_OPTION_SETTINGS
+    );
+
+    add_settings_field(
+        UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE,
+        __('Contractor Response Page URL', 'upkeepify'),
+        'upkeepify_text_field_callback',
+        UPKEEPIFY_OPTION_SETTINGS,
+        'upkeepify_contractor_invite_settings',
+        array(
+            'label_for'   => UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE,
+            'description' => __('Full URL of the page containing the [upkeepify_provider_response_form] shortcode. Invite links sent to contractors will point here with a token appended.', 'upkeepify'),
+        )
+    );
+
     // Thank You Page Setting
     add_settings_section(
         'upkeepify_provider_thank_you_settings',
@@ -250,6 +270,10 @@ add_action('admin_init', 'upkeepify_init_plugin_settings');
  *
  * @since 1.0
  */
+function upkeepify_contractor_invite_settings_section_callback() {
+    echo '<p>' . esc_html__('Configure how contractors receive job invitation emails when a matching task is published.', 'upkeepify') . '</p>';
+}
+
 function upkeepify_provider_thank_you_settings_section_callback() {
     echo '<p>' . __('Configure the custom thank you page for service providers.', 'upkeepify') . '</p>';
 }

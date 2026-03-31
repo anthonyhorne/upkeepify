@@ -371,6 +371,11 @@ function upkeepify_provider_response_form_shortcode($atts) {
     $attributes = shortcode_atts(array('token' => ''), $atts, UPKEEPIFY_SHORTCODE_PROVIDER_RESPONSE_FORM);
     $token = sanitize_text_field($attributes['token']);
 
+    // Emailed invite links pass the token as a query parameter rather than a shortcode attribute.
+    if ($token === '' && isset($_GET[UPKEEPIFY_QUERY_VAR_TOKEN])) {
+        $token = sanitize_text_field(wp_unslash($_GET[UPKEEPIFY_QUERY_VAR_TOKEN]));
+    }
+
     if ($token === '') {
         echo '<p>' . esc_html__('Missing response token.', 'upkeepify') . '</p>';
         return ob_get_clean();
@@ -398,6 +403,14 @@ function upkeepify_provider_response_form_shortcode($atts) {
     if ($query->have_posts()) {
         $query->the_post();
         $response_id = get_the_ID();
+
+        // Reject expired tokens.
+        $expires = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN_EXPIRES, true);
+        if ($expires && time() > intval($expires)) {
+            wp_reset_postdata();
+            echo '<p>' . esc_html__('This invitation link has expired. Please contact the property manager to request a new one.', 'upkeepify') . '</p>';
+            return ob_get_clean();
+        }
 
         $task_id = intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true));
         $task_post = $task_id ? get_post($task_id) : null;

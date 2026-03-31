@@ -64,6 +64,12 @@ define('UPKEEPIFY_TERM_META_ASSOCIATED_CATEGORIES', 'associated_task_categories'
 define('UPKEEPIFY_META_KEY_RESPONSE_TASK_ID', 'response_task_id');
 define('UPKEEPIFY_META_KEY_PROVIDER_ID', 'provider_id');
 define('UPKEEPIFY_META_KEY_RESPONSE_TOKEN', 'response_token');
+define('UPKEEPIFY_META_KEY_RESPONSE_TOKEN_EXPIRES', 'response_token_expires');
+
+// Contractor invite
+define('UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE', 'upkeepify_provider_response_page');
+define('UPKEEPIFY_TOKEN_EXPIRY_DAYS', 14);
+define('UPKEEPIFY_QUERY_VAR_TOKEN', 'upkeepify_token');
 
 // Option Names
 define('UPKEEPIFY_OPTION_SETTINGS', 'upkeepify_settings');

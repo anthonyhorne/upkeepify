@@ -236,3 +236,76 @@ function upkeepify_send_email_notification($message, $type, $data = array()) {
         return false;
     }
 }
+
+/**
+ * Send a tokenized job invitation email to a contractor.
+ *
+ * Called when a maintenance task is published and a matching provider response
+ * post has been created. The email contains a unique link that gives the
+ * contractor access to the response form without requiring a login.
+ *
+ * @since 1.1
+ * @param string  $provider_email Provider email address.
+ * @param string  $provider_name  Provider display name.
+ * @param WP_Post $task           The published maintenance task post.
+ * @param string  $token          The unique response token.
+ * @param int     $response_id    The provider response post ID.
+ * @return bool True if the email was sent successfully, false otherwise.
+ */
+function upkeepify_send_contractor_invite( $provider_email, $provider_name, $task, $token, $response_id ) {
+    if ( ! is_email( $provider_email ) ) {
+        error_log( 'Upkeepify Invite: Invalid provider email for response ID ' . $response_id );
+        return false;
+    }
+
+    $settings      = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+    $response_page = isset( $settings[ UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE ] )
+        ? trailingslashit( $settings[ UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE ] )
+        : '';
+
+    if ( empty( $response_page ) ) {
+        error_log( 'Upkeepify Invite: Contractor response page URL not configured. Set it in Upkeepify Settings → Contractor Invite Settings.' );
+        return false;
+    }
+
+    $invite_url = add_query_arg( UPKEEPIFY_QUERY_VAR_TOKEN, rawurlencode( $token ), untrailingslashit( $response_page ) );
+    $site_name  = get_bloginfo( 'name' );
+
+    $subject = sprintf(
+        /* translators: %s: site name */
+        __( '[%s] New maintenance job request', 'upkeepify' ),
+        $site_name
+    );
+
+    $excerpt = wp_trim_words( wp_strip_all_tags( $task->post_content ), 40, '…' );
+
+    $body  = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">';
+    $body .= '<h2 style="color:#333;">' . esc_html__( 'New Job Request', 'upkeepify' ) . '</h2>';
+    $body .= '<p>' . sprintf( esc_html__( 'Hi %s,', 'upkeepify' ), esc_html( $provider_name ) ) . '</p>';
+    $body .= '<p>' . esc_html__( 'A new maintenance task has been submitted that matches your service categories.', 'upkeepify' ) . '</p>';
+    $body .= '<h3 style="color:#555;">' . esc_html( $task->post_title ) . '</h3>';
+    $body .= '<p style="color:#444;">' . esc_html( $excerpt ) . '</p>';
+    $body .= '<p style="margin:24px 0;">';
+    $body .= '<a href="' . esc_url( $invite_url ) . '" style="background:#0073aa;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;display:inline-block;">';
+    $body .= esc_html__( 'View job and respond', 'upkeepify' );
+    $body .= '</a></p>';
+    $body .= '<p style="color:#999;font-size:12px;">' . sprintf(
+        /* translators: %d: number of days */
+        esc_html__( 'This link is unique to you and expires in %d days. Do not forward it.', 'upkeepify' ),
+        UPKEEPIFY_TOKEN_EXPIRY_DAYS
+    ) . '</p>';
+    $body .= '<p style="color:#999;font-size:12px;">' . esc_html__( 'Or copy this link:', 'upkeepify' ) . '<br>';
+    $body .= '<code style="word-break:break-all;">' . esc_url( $invite_url ) . '</code></p>';
+    $body .= '</div>';
+
+    $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+    $sent    = wp_mail( $provider_email, $subject, $body, $headers );
+
+    if ( ! $sent ) {
+        error_log( 'Upkeepify Invite: wp_mail() failed for provider "' . $provider_name . '" (response ID ' . $response_id . ')' );
+    } elseif ( WP_DEBUG ) {
+        error_log( 'Upkeepify Invite: Sent to ' . $provider_email . ' for task "' . $task->post_title . '"' );
+    }
+
+    return $sent;
+}
