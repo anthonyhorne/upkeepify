@@ -70,6 +70,12 @@ class WP_Error {
 $GLOBALS['_upkeepify_test_options']    = [];
 $GLOBALS['_upkeepify_test_cache']      = [];
 $GLOBALS['_upkeepify_test_transients'] = [];
+$GLOBALS['_upkeepify_test_posts']      = [];
+$GLOBALS['_upkeepify_test_post_thumbnails'] = [];
+$GLOBALS['_upkeepify_test_taxonomy_terms']  = [];
+$GLOBALS['_upkeepify_test_deleted_attachments'] = [];
+$GLOBALS['_upkeepify_test_deleted_posts']   = [];
+$GLOBALS['_upkeepify_test_deleted_terms']   = [];
 
 // ─── Load plugin constants ────────────────────────────────────────────────────
 
@@ -205,6 +211,10 @@ function esc_attr( $text ) {
 	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
 }
 
+function esc_url( $url ) {
+	return htmlspecialchars( (string) $url, ENT_QUOTES, 'UTF-8' );
+}
+
 function absint( $maybeint ) {
 	return abs( intval( $maybeint ) );
 }
@@ -241,6 +251,14 @@ function __( $text, $domain = 'default' ) {
 	return $text;
 }
 
+function esc_html__( $text, $domain = 'default' ) {
+	return esc_html( __( $text, $domain ) );
+}
+
+function esc_attr__( $text, $domain = 'default' ) {
+	return esc_attr( __( $text, $domain ) );
+}
+
 function _e( $text, $domain = 'default' ) {
 	echo $text;
 }
@@ -251,6 +269,63 @@ function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 
 function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 	// no-op in tests
+}
+
+function add_shortcode( $tag, $callback ) {
+	// no-op in tests
+}
+
+function shortcode_atts( $pairs, $atts, $shortcode = '' ) {
+	return array_merge( $pairs, is_array( $atts ) ? $atts : [] );
+}
+
+function wp_nonce_field( $action = -1, $name = '_wpnonce', $referer = true, $display = true ) {
+	$field = '<input type="hidden" id="' . esc_attr( $name ) . '" name="' . esc_attr( $name ) . '" value="test-nonce" />';
+	if ( $display ) {
+		echo $field;
+	}
+	return $field;
+}
+
+function get_object_taxonomies( $object_type, $output = 'names' ) {
+	return [];
+}
+
+function get_posts( $args = [] ) {
+	$post_type = isset( $args['post_type'] ) ? $args['post_type'] : '';
+	return isset( $GLOBALS['_upkeepify_test_posts'][ $post_type ] )
+		? $GLOBALS['_upkeepify_test_posts'][ $post_type ]
+		: [];
+}
+
+function get_post_thumbnail_id( $post_id ) {
+	return isset( $GLOBALS['_upkeepify_test_post_thumbnails'][ $post_id ] )
+		? $GLOBALS['_upkeepify_test_post_thumbnails'][ $post_id ]
+		: 0;
+}
+
+function wp_delete_attachment( $attachment_id, $force_delete = false ) {
+	$GLOBALS['_upkeepify_test_deleted_attachments'][] = [
+		'attachment_id' => $attachment_id,
+		'force_delete'  => (bool) $force_delete,
+	];
+	return true;
+}
+
+function wp_delete_post( $post_id, $force_delete = false ) {
+	$GLOBALS['_upkeepify_test_deleted_posts'][] = [
+		'post_id'      => $post_id,
+		'force_delete' => (bool) $force_delete,
+	];
+	return true;
+}
+
+function wp_delete_term( $term_id, $taxonomy ) {
+	$GLOBALS['_upkeepify_test_deleted_terms'][] = [
+		'term_id'  => $term_id,
+		'taxonomy' => $taxonomy,
+	];
+	return true;
 }
 
 function wp_check_filetype( $filename, $mimes = null ) {
@@ -270,6 +345,15 @@ function wp_check_filetype( $filename, $mimes = null ) {
 }
 
 function get_terms( $taxonomy, $args = [] ) {
+	if ( is_array( $taxonomy ) ) {
+		$args     = $taxonomy;
+		$taxonomy = isset( $args['taxonomy'] ) ? $args['taxonomy'] : '';
+	}
+
+	if ( isset( $GLOBALS['_upkeepify_test_taxonomy_terms'][ $taxonomy ] ) ) {
+		return $GLOBALS['_upkeepify_test_taxonomy_terms'][ $taxonomy ];
+	}
+
 	return [];
 }
 
