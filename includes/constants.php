@@ -66,6 +66,15 @@ define('UPKEEPIFY_META_KEY_PROVIDER_ID', 'provider_id');
 define('UPKEEPIFY_META_KEY_RESPONSE_TOKEN', 'response_token');
 define('UPKEEPIFY_META_KEY_RESPONSE_TOKEN_EXPIRES', 'response_token_expires');
 
+// Structured estimate meta keys (set when contractor submits Step 2 form)
+define('UPKEEPIFY_META_KEY_RESPONSE_DECISION',            'response_decision');            // 'accept' | 'decline'
+define('UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE',            'response_estimate');            // numeric ballpark
+define('UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_LOW',        'response_estimate_low');        // optional range low
+define('UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_HIGH',       'response_estimate_high');       // optional range high
+define('UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_CONFIDENCE', 'response_estimate_confidence'); // 'low'|'medium'|'high'
+define('UPKEEPIFY_META_KEY_RESPONSE_AVAILABILITY',        'response_availability');        // Y-m-d earliest date
+define('UPKEEPIFY_META_KEY_RESPONSE_NOTE',                'response_note');                // short note ≤500 chars
+
 // Contractor invite
 define('UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE', 'upkeepify_provider_response_page');
 define('UPKEEPIFY_TOKEN_EXPIRY_DAYS', 14);
