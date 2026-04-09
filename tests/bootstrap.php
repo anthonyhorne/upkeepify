@@ -71,6 +71,7 @@ $GLOBALS['_upkeepify_test_options']    = [];
 $GLOBALS['_upkeepify_test_cache']      = [];
 $GLOBALS['_upkeepify_test_transients'] = [];
 $GLOBALS['_upkeepify_test_posts']      = [];
+$GLOBALS['_upkeepify_test_post_meta']  = [];
 $GLOBALS['_upkeepify_test_post_thumbnails'] = [];
 $GLOBALS['_upkeepify_test_taxonomy_terms']  = [];
 $GLOBALS['_upkeepify_test_deleted_attachments'] = [];
@@ -88,10 +89,20 @@ function is_wp_error( $thing ) {
 }
 
 function get_post_meta( $post_id, $key, $single = false ) {
-	return $single ? '' : [];
+	$meta = isset( $GLOBALS['_upkeepify_test_post_meta'][ $post_id ][ $key ] )
+		? $GLOBALS['_upkeepify_test_post_meta'][ $post_id ][ $key ]
+		: ( $single ? '' : [] );
+	return $meta;
 }
 
 function update_post_meta( $post_id, $key, $value ) {
+	if ( ! isset( $GLOBALS['_upkeepify_test_post_meta'] ) ) {
+		$GLOBALS['_upkeepify_test_post_meta'] = [];
+	}
+	if ( ! isset( $GLOBALS['_upkeepify_test_post_meta'][ $post_id ] ) ) {
+		$GLOBALS['_upkeepify_test_post_meta'][ $post_id ] = [];
+	}
+	$GLOBALS['_upkeepify_test_post_meta'][ $post_id ][ $key ] = $value;
 	return true;
 }
 
@@ -177,6 +188,12 @@ function wp_mail( $to, $subject, $message, $headers = '', $attachments = [] ) {
 
 function wp_generate_password( $length = 12, $special_chars = true ) {
 	return str_repeat( 'a', $length );
+}
+
+function wp_unslash( $value ) {
+	return is_array( $value )
+		? array_map( 'wp_unslash', $value )
+		: stripslashes( (string) $value );
 }
 
 function sanitize_text_field( $str ) {
@@ -355,6 +372,79 @@ function get_terms( $taxonomy, $args = [] ) {
 	}
 
 	return [];
+}
+
+function add_query_arg( ...$args ) {
+    // Supports both: add_query_arg( $key, $value, $url ) and add_query_arg( array $pairs, $url )
+    if ( is_array( $args[0] ) ) {
+        $pairs = $args[0];
+        $url   = isset( $args[1] ) ? (string) $args[1] : '';
+        foreach ( $pairs as $k => $v ) {
+            $url = add_query_arg( $k, $v, $url );
+        }
+        return $url;
+    }
+    $key   = $args[0];
+    $value = isset( $args[1] ) ? $args[1] : '';
+    $url   = isset( $args[2] ) ? (string) $args[2] : '';
+    $query = rawurlencode( $key ) . '=' . rawurlencode( (string) $value );
+    if ( strpos( $url, '?' ) !== false ) {
+        return $url . '&' . $query;
+    }
+    return $url . '?' . $query;
+}
+
+function trailingslashit( $string ) {
+    return rtrim( (string) $string, '/\\' ) . '/';
+}
+
+function untrailingslashit( $string ) {
+    return rtrim( (string) $string, '/\\' );
+}
+
+function admin_url( $path = '' ) {
+    return 'http://localhost/wp-admin/' . ltrim( (string) $path, '/' );
+}
+
+function home_url( $path = '' ) {
+    return 'http://localhost' . ( $path ? '/' . ltrim( (string) $path, '/' ) : '' );
+}
+
+function wp_get_referer() {
+    return false;
+}
+
+function wp_safe_redirect( $location, $status = 302, $x_redirect_by = 'WordPress' ) {
+    // no-op in tests
+}
+
+function wp_verify_nonce( $nonce, $action = -1 ) {
+    return 1;
+}
+
+function wp_die( $message = '', $title = '', $args = [] ) {
+    throw new \RuntimeException( is_string( $message ) ? $message : 'wp_die called' );
+}
+
+function get_term( $term, $taxonomy = '', $output = OBJECT, $filter = 'raw' ) {
+    return null;
+}
+
+function wp_get_attachment_image( $attachment_id, $size = 'thumbnail', $icon = false, $attr = '' ) {
+    return '<img src="test-image-' . intval( $attachment_id ) . '.jpg" />';
+}
+
+function wp_trim_words( $text, $num_words = 55, $more = null ) {
+    $words = explode( ' ', strip_tags( $text ) );
+    return implode( ' ', array_slice( $words, 0, $num_words ) );
+}
+
+function wp_strip_all_tags( $string, $remove_breaks = false ) {
+    return strip_tags( (string) $string );
+}
+
+if ( ! defined( 'OBJECT' ) ) {
+    define( 'OBJECT', 'OBJECT' );
 }
 
 // ─── Load plugin files ────────────────────────────────────────────────────────
