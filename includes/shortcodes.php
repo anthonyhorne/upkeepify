@@ -15,6 +15,7 @@ function upkeepify_register_shortcodes() {
     add_shortcode(UPKEEPIFY_SHORTCODE_LIST_TASKS, 'upkeepify_list_tasks_shortcode');
     add_shortcode(UPKEEPIFY_SHORTCODE_TASK_FORM, 'upkeepify_task_form_shortcode');
     add_shortcode(UPKEEPIFY_SHORTCODE_PROVIDER_RESPONSE_FORM, 'upkeepify_provider_response_form_shortcode');
+    add_shortcode(UPKEEPIFY_SHORTCODE_RESIDENT_CONFIRMATION_FORM, 'upkeepify_resident_confirmation_form_shortcode');
     add_shortcode(UPKEEPIFY_SHORTCODE_TASKS_BY_CATEGORY, 'upkeepify_tasks_by_category_shortcode');
     add_shortcode(UPKEEPIFY_SHORTCODE_TASKS_BY_PROVIDER, 'upkeepify_tasks_by_provider_shortcode');
     add_shortcode(UPKEEPIFY_SHORTCODE_TASKS_BY_STATUS, 'upkeepify_tasks_by_status_shortcode');
@@ -215,6 +216,10 @@ function upkeepify_task_form_shortcode() {
     echo '<p><label for="gps_longitude">' . esc_html__('Longitude (optional):', 'upkeepify') . '</label><br />';
     echo '<input type="text" id="gps_longitude" name="gps_longitude" class="upkeepify-input"></p>';
 
+    echo '<p><label for="submitter_email">' . esc_html__('Your email (optional):', 'upkeepify') . '</label><br />';
+    echo '<input type="email" id="submitter_email" name="submitter_email" class="upkeepify-input">';
+    echo '<span class="upkeepify-field-hint">' . esc_html__('We\'ll send you a link to confirm the job is done.', 'upkeepify') . '</span></p>';
+
     echo '<p><label for="math">' . esc_html(sprintf('What is %d + %d? (For spam prevention)', $num1, $num2)) . '</label><br />';
     echo '<input type="text" id="math" name="math" required class="upkeepify-input"></p>';
 
@@ -354,6 +359,14 @@ function upkeepify_handle_task_form_submission() {
         if (isset($_POST[$taxonomy]) && is_numeric($_POST[$taxonomy])) {
             wp_set_object_terms($task_id, array(intval($_POST[$taxonomy])), $taxonomy);
         }
+    }
+
+    // Save submitter email and generate resident confirmation token.
+    $submitter_email = isset($_POST['submitter_email']) ? sanitize_email($_POST['submitter_email']) : '';
+    if ( is_email( $submitter_email ) ) {
+        update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_SUBMITTER_EMAIL, $submitter_email );
+        $resident_token = wp_generate_password( 20, false );
+        update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_TOKEN, $resident_token );
     }
 }
 add_action('init', 'upkeepify_handle_task_form_submission');
@@ -1182,11 +1195,23 @@ function upkeepify_admin_post_provider_completion_submit() {
         if ( ! empty( $attachment_ids ) ) {
             $body .= '<p>' . sprintf( esc_html__( '%d completion photo(s) uploaded.', 'upkeepify' ), count( $attachment_ids ) ) . '</p>';
         }
-        $body .= '<p><strong>' . esc_html__( 'Next step:', 'upkeepify' ) . '</strong> ' . esc_html__( 'Send the resident their confirmation link (Step 4).', 'upkeepify' ) . '</p>';
+        // Include the resident confirmation link in the trustee email if available.
+        $confirmation_url = upkeepify_get_resident_confirmation_url( $task_id );
+        if ( $confirmation_url ) {
+            $body .= '<p><strong>' . esc_html__( 'Next step:', 'upkeepify' ) . '</strong> ';
+            $body .= esc_html__( 'The resident confirmation email has been sent automatically.', 'upkeepify' ) . '</p>';
+            $body .= '<p>' . esc_html__( 'Resident confirmation link (for reference):', 'upkeepify' ) . '<br>';
+            $body .= '<a href="' . esc_url( $confirmation_url ) . '">' . esc_url( $confirmation_url ) . '</a></p>';
+        } else {
+            $body .= '<p><strong>' . esc_html__( 'Next step:', 'upkeepify' ) . '</strong> ' . esc_html__( 'No resident email on file — confirmation link could not be sent automatically.', 'upkeepify' ) . '</p>';
+        }
         $body .= '<p>' . esc_html__( 'Review the completed job in WordPress admin.', 'upkeepify' ) . '</p>';
         $body .= '</div>';
 
         wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+
+        // Auto-send resident confirmation email if we have their address and token.
+        upkeepify_send_resident_confirmation_email( $task_id, $task_post );
     }
 
     wp_safe_redirect( add_query_arg( 'upkeepify_response', 'completed', wp_get_referer() ?: home_url() ) );
@@ -1194,3 +1219,352 @@ function upkeepify_admin_post_provider_completion_submit() {
 }
 add_action( 'admin_post_'        . UPKEEPIFY_ADMIN_ACTION_PROVIDER_COMPLETION_SUBMIT, 'upkeepify_admin_post_provider_completion_submit' );
 add_action( 'admin_post_nopriv_' . UPKEEPIFY_ADMIN_ACTION_PROVIDER_COMPLETION_SUBMIT, 'upkeepify_admin_post_provider_completion_submit' );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 4 — Resident confirmation helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Build the tokenized resident confirmation URL for a task.
+ *
+ * Returns null if the task has no resident token (email not supplied at
+ * submission time) or if the confirmation page URL is not configured.
+ *
+ * @param int $task_id Maintenance task post ID.
+ * @return string|null Full URL or null.
+ */
+function upkeepify_get_resident_confirmation_url( $task_id ) {
+    $token = get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_TOKEN, true );
+    if ( empty( $token ) ) {
+        return null;
+    }
+
+    $settings          = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+    $confirmation_page = isset( $settings[ UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE ] )
+        ? trailingslashit( $settings[ UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE ] )
+        : '';
+
+    if ( empty( $confirmation_page ) ) {
+        return null;
+    }
+
+    return add_query_arg( UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN, rawurlencode( $token ), untrailingslashit( $confirmation_page ) );
+}
+
+/**
+ * Send the resident their job-completion confirmation email.
+ *
+ * Called automatically when a contractor marks a job complete. Does nothing
+ * if the task has no submitter email on file or if already confirmed.
+ *
+ * @param int     $task_id   Maintenance task post ID.
+ * @param WP_Post $task_post The task post object.
+ */
+function upkeepify_send_resident_confirmation_email( $task_id, $task_post ) {
+    $resident_email = get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_SUBMITTER_EMAIL, true );
+    if ( ! is_email( $resident_email ) ) {
+        return;
+    }
+
+    // Don't resend if already confirmed.
+    $confirmed_at = get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT, true );
+    if ( $confirmed_at ) {
+        return;
+    }
+
+    $confirmation_url = upkeepify_get_resident_confirmation_url( $task_id );
+    if ( ! $confirmation_url ) {
+        if ( WP_DEBUG ) {
+            error_log( 'Upkeepify Step 4: Resident confirmation page not configured — email not sent for task ID ' . $task_id );
+        }
+        return;
+    }
+
+    $site_name = get_bloginfo( 'name' );
+    $subject   = sprintf(
+        /* translators: %s: site name */
+        __( '[%s] Your maintenance job has been completed', 'upkeepify' ),
+        $site_name
+    );
+
+    $body  = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">';
+    $body .= '<h2 style="color:#333;">' . esc_html__( 'Your Job Is Complete', 'upkeepify' ) . '</h2>';
+    $body .= '<p>' . sprintf( esc_html__( 'The maintenance job you reported — "%s" — has been marked as complete by the contractor.', 'upkeepify' ), esc_html( $task_post->post_title ) ) . '</p>';
+    $body .= '<p>' . esc_html__( 'Please let us know whether you are satisfied with the work by clicking the button below.', 'upkeepify' ) . '</p>';
+    $body .= '<p style="margin:24px 0;">';
+    $body .= '<a href="' . esc_url( $confirmation_url ) . '" style="background:#0073aa;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;display:inline-block;">';
+    $body .= esc_html__( 'Confirm or report an issue', 'upkeepify' );
+    $body .= '</a></p>';
+    $body .= '<p style="color:#999;font-size:12px;">' . esc_html__( 'This link is unique to you. If you have any questions, contact your property manager directly.', 'upkeepify' ) . '</p>';
+    $body .= '<p style="color:#999;font-size:12px;">' . esc_html__( 'Or copy this link:', 'upkeepify' ) . '<br>';
+    $body .= '<code style="word-break:break-all;">' . esc_url( $confirmation_url ) . '</code></p>';
+    $body .= '</div>';
+
+    $sent = wp_mail( $resident_email, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+
+    if ( WP_DEBUG ) {
+        error_log( 'Upkeepify Step 4: Resident confirmation email ' . ( $sent ? 'sent' : 'FAILED' ) . ' to ' . $resident_email . ' for task ID ' . $task_id );
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 4 — [upkeepify_resident_confirmation_form] shortcode
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Resident confirmation form shortcode.
+ *
+ * Token-gated via `upkeepify_resident_token` query var. Shows the task
+ * title and any completion photos from the most-recently-completed response,
+ * then presents a satisfied / not satisfied choice with an optional note.
+ *
+ * Usage: [upkeepify_resident_confirmation_form]
+ *
+ * @since 1.4
+ * @return string HTML output.
+ */
+function upkeepify_resident_confirmation_form_shortcode() {
+    $token = isset( $_GET[ UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN ] )
+        ? sanitize_text_field( wp_unslash( $_GET[ UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN ] ) )
+        : '';
+
+    ob_start();
+
+    if ( empty( $token ) ) {
+        echo '<div class="upkeepify-notice upkeepify-notice-error">';
+        echo '<p>' . esc_html__( 'No confirmation token provided. Please use the link from your email.', 'upkeepify' ) . '</p>';
+        echo '</div>';
+        return ob_get_clean();
+    }
+
+    // Look up the task by resident token.
+    $tasks = get_posts( array(
+        'post_type'      => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
+        'post_status'    => 'publish',
+        'posts_per_page' => 1,
+        'no_found_rows'  => true,
+        'meta_query'     => array(
+            array(
+                'key'   => UPKEEPIFY_META_KEY_TASK_RESIDENT_TOKEN,
+                'value' => $token,
+            ),
+        ),
+    ) );
+
+    if ( empty( $tasks ) ) {
+        echo '<div class="upkeepify-notice upkeepify-notice-error">';
+        echo '<p>' . esc_html__( 'Invalid or expired confirmation link.', 'upkeepify' ) . '</p>';
+        echo '</div>';
+        return ob_get_clean();
+    }
+
+    $task      = $tasks[0];
+    $task_id   = $task->ID;
+
+    // Already confirmed?
+    $confirmed_at = get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT, true );
+    if ( $confirmed_at ) {
+        $was_satisfied = get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED, true );
+        echo '<div class="upkeepify-notice upkeepify-notice-success">';
+        echo '<p>' . sprintf(
+            esc_html__( 'You already submitted your feedback for "%s". Thank you.', 'upkeepify' ),
+            esc_html( $task->post_title )
+        ) . '</p>';
+        echo '<p>' . ( $was_satisfied === '1'
+            ? esc_html__( 'You marked this job as: Satisfied.', 'upkeepify' )
+            : esc_html__( 'You marked this job as: Not satisfied.', 'upkeepify' ) ) . '</p>';
+        echo '</div>';
+        return ob_get_clean();
+    }
+
+    // Find the most recently completed response for this task.
+    $responses = get_posts( array(
+        'post_type'      => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES,
+        'post_status'    => 'any',
+        'posts_per_page' => 1,
+        'no_found_rows'  => true,
+        'orderby'        => 'meta_value_num',
+        'order'          => 'DESC',
+        'meta_key'       => UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT,
+        'meta_query'     => array(
+            array(
+                'key'     => UPKEEPIFY_META_KEY_RESPONSE_TASK_ID,
+                'value'   => $task_id,
+                'type'    => 'NUMERIC',
+            ),
+            array(
+                'key'     => UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT,
+                'compare' => 'EXISTS',
+            ),
+        ),
+    ) );
+
+    $completion_photos = array();
+    $provider_name     = '';
+    if ( ! empty( $responses ) ) {
+        $resp_id           = $responses[0]->ID;
+        $completion_photos = get_post_meta( $resp_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_PHOTOS, true );
+        $completion_photos = is_array( $completion_photos ) ? $completion_photos : array();
+        $provider_id       = intval( get_post_meta( $resp_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true ) );
+        if ( $provider_id ) {
+            $provider_term = get_term( $provider_id, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER );
+            if ( $provider_term && ! is_wp_error( $provider_term ) ) {
+                $provider_name = $provider_term->name;
+            }
+        }
+    }
+
+    // Show a notice if redirected back after submission attempt (shouldn't normally happen,
+    // but handles double-back-button edge cases).
+    if ( isset( $_GET['upkeepify_resident_response'] ) ) {
+        $status = sanitize_key( $_GET['upkeepify_resident_response'] );
+        if ( $status === 'confirmed' ) {
+            echo '<div class="upkeepify-notice upkeepify-notice-success">';
+            echo '<p>' . esc_html__( 'Thank you — your feedback has been recorded.', 'upkeepify' ) . '</p>';
+            echo '</div>';
+            return ob_get_clean();
+        }
+    }
+
+    // Render the form.
+    echo '<div class="upkeepify-resident-confirmation">';
+    echo '<div class="upkeepify-task-card">';
+    echo '<h2 class="upkeepify-task-title">' . esc_html( $task->post_title ) . '</h2>';
+    if ( $provider_name ) {
+        echo '<p class="upkeepify-task-meta">' . sprintf( esc_html__( 'Completed by: %s', 'upkeepify' ), '<strong>' . esc_html( $provider_name ) . '</strong>' ) . '</p>';
+    }
+    echo '</div>';
+
+    if ( ! empty( $completion_photos ) ) {
+        echo '<div class="upkeepify-completion-photos">';
+        echo '<h3>' . esc_html__( 'Completion photos', 'upkeepify' ) . '</h3>';
+        echo '<div class="upkeepify-photo-grid">';
+        foreach ( $completion_photos as $att_id ) {
+            $img = wp_get_attachment_image( intval( $att_id ), 'medium', false, array( 'class' => 'upkeepify-completion-photo' ) );
+            if ( $img ) {
+                echo '<div class="upkeepify-photo-item">' . $img . '</div>';
+            }
+        }
+        echo '</div>';
+        echo '</div>';
+    }
+
+    echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="upkeepify-confirmation-form">';
+    wp_nonce_field( UPKEEPIFY_NONCE_ACTION_RESIDENT_CONFIRM, UPKEEPIFY_NONCE_RESIDENT_CONFIRM );
+    echo '<input type="hidden" name="action" value="' . esc_attr( UPKEEPIFY_ADMIN_ACTION_RESIDENT_CONFIRM_SUBMIT ) . '">';
+    echo '<input type="hidden" name="' . esc_attr( UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN ) . '" value="' . esc_attr( $token ) . '">';
+    echo '<input type="hidden" name="task_id" value="' . esc_attr( $task_id ) . '">';
+
+    echo '<fieldset class="upkeepify-confirmation-choice">';
+    echo '<legend>' . esc_html__( 'Are you satisfied with the completed work?', 'upkeepify' ) . '</legend>';
+
+    echo '<label class="upkeepify-choice-label upkeepify-choice-yes">';
+    echo '<input type="radio" name="resident_satisfied" value="1" required>';
+    echo '<span class="upkeepify-choice-icon">&#10003;</span> ' . esc_html__( 'Yes, satisfied', 'upkeepify' );
+    echo '</label>';
+
+    echo '<label class="upkeepify-choice-label upkeepify-choice-no">';
+    echo '<input type="radio" name="resident_satisfied" value="0">';
+    echo '<span class="upkeepify-choice-icon">&#10007;</span> ' . esc_html__( 'No, there is an issue', 'upkeepify' );
+    echo '</label>';
+    echo '</fieldset>';
+
+    echo '<p><label for="resident_confirm_note">' . esc_html__( 'Additional comments (optional):', 'upkeepify' ) . '</label><br>';
+    echo '<textarea id="resident_confirm_note" name="resident_confirm_note" maxlength="500" rows="4" class="upkeepify-textarea"></textarea>';
+    echo '<span class="upkeepify-char-counter"><span id="upkeepify-resident-note-count">0</span>/500</span></p>';
+
+    echo '<p><button type="submit" class="upkeepify-submit-button">' . esc_html__( 'Submit feedback', 'upkeepify' ) . '</button></p>';
+    echo '</form>';
+
+    echo '</div>';// .upkeepify-resident-confirmation
+
+    // Inline JS: character counter.
+    echo '<script>';
+    echo '(function(){';
+    echo 'var ta=document.getElementById("resident_confirm_note");';
+    echo 'var ct=document.getElementById("upkeepify-resident-note-count");';
+    echo 'if(ta&&ct){ta.addEventListener("input",function(){ct.textContent=ta.value.length;});}';
+    echo '})();';
+    echo '</script>';
+
+    return ob_get_clean();
+}
+
+/**
+ * Handle resident confirmation form submission.
+ *
+ * Saves the resident's vote to the task post meta and notifies the trustee
+ * that the lifecycle is closed.
+ *
+ * @hook admin_post_{UPKEEPIFY_ADMIN_ACTION_RESIDENT_CONFIRM_SUBMIT}
+ * @hook admin_post_nopriv_{UPKEEPIFY_ADMIN_ACTION_RESIDENT_CONFIRM_SUBMIT}
+ */
+function upkeepify_admin_post_resident_confirm_submit() {
+    if ( ! isset( $_POST[ UPKEEPIFY_NONCE_RESIDENT_CONFIRM ] ) ||
+        ! wp_verify_nonce( $_POST[ UPKEEPIFY_NONCE_RESIDENT_CONFIRM ], UPKEEPIFY_NONCE_ACTION_RESIDENT_CONFIRM ) ) {
+        wp_die( esc_html__( 'Security check failed.', 'upkeepify' ) );
+    }
+
+    $task_id = intval( $_POST['task_id'] ?? 0 );
+    $task    = $task_id ? get_post( $task_id ) : null;
+    if ( ! $task || $task->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS ) {
+        wp_die( esc_html__( 'Invalid task.', 'upkeepify' ) );
+    }
+
+    // Token verification.
+    $stored_token = get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_TOKEN, true );
+    $posted_token = sanitize_text_field( wp_unslash( $_POST[ UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN ] ?? '' ) );
+    if ( empty( $stored_token ) || ! hash_equals( $stored_token, $posted_token ) ) {
+        wp_die( esc_html__( 'Token mismatch.', 'upkeepify' ) );
+    }
+
+    // Guard against double-submission.
+    if ( get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT, true ) ) {
+        wp_die( esc_html__( 'You have already submitted your feedback for this job.', 'upkeepify' ) );
+    }
+
+    $satisfied = isset( $_POST['resident_satisfied'] ) && $_POST['resident_satisfied'] === '1' ? '1' : '0';
+    $note      = sanitize_textarea_field( $_POST['resident_confirm_note'] ?? '' );
+
+    update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED,    $satisfied );
+    update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT, time() );
+    if ( $note !== '' ) {
+        update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRM_NOTE, substr( $note, 0, 500 ) );
+    }
+
+    // Notify trustee — lifecycle is now closed.
+    $settings  = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+    $recipient = ! empty( $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] ) ? $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] : get_option( 'admin_email' );
+
+    $satisfaction_label = $satisfied === '1'
+        ? __( 'Satisfied ✓', 'upkeepify' )
+        : __( 'Not satisfied ✗', 'upkeepify' );
+
+    $subject = sprintf( __( '[%s] Lifecycle closed — resident confirmed: %s', 'upkeepify' ), get_bloginfo( 'name' ), $task->post_title );
+    $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
+    $body   .= '<h2>' . esc_html__( 'Resident Confirmation Received', 'upkeepify' ) . '</h2>';
+    $body   .= '<p>' . sprintf( esc_html__( 'The resident has confirmed the completion of "%s".', 'upkeepify' ), esc_html( $task->post_title ) ) . '</p>';
+    $body   .= '<p><strong>' . esc_html__( 'Satisfaction:', 'upkeepify' ) . '</strong> ' . esc_html( $satisfaction_label ) . '</p>';
+    if ( $note ) {
+        $body .= '<p><strong>' . esc_html__( 'Resident comment:', 'upkeepify' ) . '</strong><br>' . nl2br( esc_html( $note ) ) . '</p>';
+    }
+    $body .= '<p style="color:#666;font-size:12px;">' . esc_html__( 'The full job lifecycle is now closed.', 'upkeepify' ) . '</p>';
+    $body .= '</div>';
+
+    wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+
+    // Redirect back to the confirmation page with a success flag.
+    $confirmation_page = isset( $settings[ UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE ] )
+        ? trailingslashit( $settings[ UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE ] )
+        : home_url( '/' );
+
+    $redirect = add_query_arg( array(
+        UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN => rawurlencode( $stored_token ),
+        'upkeepify_resident_response'      => 'confirmed',
+    ), untrailingslashit( $confirmation_page ) );
+
+    wp_safe_redirect( $redirect );
+    exit;
+}
+add_action( 'admin_post_'        . UPKEEPIFY_ADMIN_ACTION_RESIDENT_CONFIRM_SUBMIT, 'upkeepify_admin_post_resident_confirm_submit' );
+add_action( 'admin_post_nopriv_' . UPKEEPIFY_ADMIN_ACTION_RESIDENT_CONFIRM_SUBMIT, 'upkeepify_admin_post_resident_confirm_submit' );

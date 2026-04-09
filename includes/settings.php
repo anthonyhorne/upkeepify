@@ -224,6 +224,18 @@ add_settings_field(
         )
     );
 
+    add_settings_field(
+        UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE,
+        __('Resident Confirmation Page URL', 'upkeepify'),
+        'upkeepify_text_field_callback',
+        UPKEEPIFY_OPTION_SETTINGS,
+        'upkeepify_contractor_invite_settings',
+        array(
+            'label_for'   => UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE,
+            'description' => __('Full URL of the page containing the [upkeepify_resident_confirmation_form] shortcode. Confirmation links sent to residents will point here with a token appended.', 'upkeepify'),
+        )
+    );
+
     // Thank You Page Setting
     add_settings_section(
         'upkeepify_provider_thank_you_settings',

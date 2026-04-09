@@ -97,6 +97,19 @@ define('UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE', 'upkeepify_provider_response_
 define('UPKEEPIFY_TOKEN_EXPIRY_DAYS', 14);
 define('UPKEEPIFY_QUERY_VAR_TOKEN', 'upkeepify_token');
 
+// Resident confirmation (Step 4)
+define('UPKEEPIFY_META_KEY_TASK_SUBMITTER_EMAIL',       '_upkeepify_submitter_email');        // resident email captured at task submission
+define('UPKEEPIFY_META_KEY_TASK_RESIDENT_TOKEN',        '_upkeepify_resident_token');         // token for resident confirmation link
+define('UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED',    '_upkeepify_resident_confirmed');     // '1' = satisfied, '0' = not satisfied
+define('UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT', '_upkeepify_resident_confirmed_at'); // Unix timestamp of confirmation
+define('UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRM_NOTE', '_upkeepify_resident_confirm_note'); // optional resident note (≤500 chars)
+define('UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE',  'upkeepify_resident_confirmation_page');
+define('UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN',            'upkeepify_resident_token');
+define('UPKEEPIFY_SHORTCODE_RESIDENT_CONFIRMATION_FORM', 'upkeepify_resident_confirmation_form');
+define('UPKEEPIFY_ADMIN_ACTION_RESIDENT_CONFIRM_SUBMIT', 'upkeepify_resident_confirm_submit');
+define('UPKEEPIFY_NONCE_RESIDENT_CONFIRM',               'upkeepify_resident_confirm_nonce');
+define('UPKEEPIFY_NONCE_ACTION_RESIDENT_CONFIRM',        'upkeepify_resident_confirm_action');
+
 // Option Names
 define('UPKEEPIFY_OPTION_SETTINGS', 'upkeepify_settings');
 define('UPKEEPIFY_OPTION_SAMPLE_DATA_INSERTED', 'upkeepify_sample_data_inserted');

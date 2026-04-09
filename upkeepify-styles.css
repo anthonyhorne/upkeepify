@@ -1396,3 +1396,95 @@
     color: #0073aa;
     margin-bottom: 8px;
 }
+
+/* ── Resident confirmation form (Step 4) ──────────────────────────────────── */
+
+.upkeepify-resident-confirmation {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+.upkeepify-completion-photos {
+    margin: 24px 0;
+}
+
+.upkeepify-completion-photos h3 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+}
+
+.upkeepify-photo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.upkeepify-photo-item {
+    flex: 0 0 auto;
+    max-width: 200px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #ddd;
+}
+
+.upkeepify-completion-photo {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.upkeepify-confirmation-form {
+    margin-top: 24px;
+}
+
+.upkeepify-confirmation-choice {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 16px 0 24px;
+}
+
+.upkeepify-confirmation-choice legend {
+    font-weight: 600;
+    padding: 0 8px;
+}
+
+.upkeepify-choice-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.15s;
+    font-size: 1rem;
+}
+
+.upkeepify-choice-label:hover {
+    background: #f0f0f0;
+}
+
+.upkeepify-choice-label input[type="radio"] {
+    margin: 0;
+}
+
+.upkeepify-choice-icon {
+    font-size: 1.1rem;
+}
+
+.upkeepify-choice-yes .upkeepify-choice-icon {
+    color: #2e7d32;
+}
+
+.upkeepify-choice-no .upkeepify-choice-icon {
+    color: #c62828;
+}
+
+.upkeepify-field-hint {
+    display: block;
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 4px;
+}
