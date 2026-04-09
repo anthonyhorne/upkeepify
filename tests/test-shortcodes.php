@@ -20,9 +20,6 @@ class ShortcodesTest extends TestCase {
 		$_SERVER['REQUEST_URI']                = '/report-an-issue';
 		$_GET                                  = [];
 		$_POST                                 = [];
-		if ( session_status() === PHP_SESSION_NONE ) {
-			session_save_path( sys_get_temp_dir() );
-		}
 	}
 
 	// ─── Task form ───────────────────────────────────────────────────────────────

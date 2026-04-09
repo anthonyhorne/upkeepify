@@ -447,6 +447,15 @@ if ( ! defined( 'OBJECT' ) ) {
     define( 'OBJECT', 'OBJECT' );
 }
 
+// ─── Session bootstrap ───────────────────────────────────────────────────────
+// Start the session here, before PHPUnit prints any output, so that the
+// session_start() call inside upkeepify_task_form_shortcode() finds the
+// session already active and skips it (avoiding "headers already sent" warnings).
+if ( session_status() === PHP_SESSION_NONE ) {
+    ini_set( 'session.save_path', sys_get_temp_dir() );
+    session_start();
+}
+
 // ─── Load plugin files ────────────────────────────────────────────────────────
 
 $plugin_dir = dirname( __DIR__ ) . '/includes/';
