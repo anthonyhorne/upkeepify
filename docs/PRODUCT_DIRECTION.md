@@ -1,5 +1,16 @@
 # Upkeepify — Product Direction & Roadmap
 
+## AI Review Priority
+
+If Claude or any other AI coding assistant is asked to plan or implement work in this repo, review these items before anything else:
+
+1. Re-assess the public task submission flow first. It currently exposes internal taxonomies on the resident form and saves them on submit.
+2. Re-assess publish-time side effects first. Public submissions currently create published tasks, which can trigger provider-response creation and contractor invite emails immediately.
+3. Re-assess settings enforcement first. The `Allow Public Task Logging` setting exists, but the current shortcode/render/submit flow does not enforce it.
+4. Re-assess operational readiness first. Database optimization includes duplicate index definitions, and the `phpcs` lint configuration currently references unavailable sniffs.
+
+These findings should be treated as active architectural and product guardrails until they are explicitly resolved.
+
 ## Table of Contents
 - [1. Product Statement](#1-product-statement)
 - [2. Design Rules](#2-design-rules)

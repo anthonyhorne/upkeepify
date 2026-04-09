@@ -2,6 +2,17 @@
 
 Upkeepify is a comprehensive WordPress plugin designed to manage maintenance tasks within a complex. It supports task submissions with categorization, service provider management, and customizable settings. Both trustees and residents can initiate and track maintenance requests with features like task visibility settings, image attachments, status updates, and provider response tracking to facilitate transparent and efficient maintenance operations.
 
+## AI Review Priority
+
+If Claude or any other AI coding assistant is working in this repository, review the items below first before making any other changes. Assess them, think through their impact, and treat them as current high-priority risks:
+
+1. Public task submission currently exposes and saves all attached maintenance-task taxonomies, including internal workflow fields such as status and service provider assignment.
+2. Public task submission creates tasks as `publish`, which can immediately trigger provider-response generation and contractor invite emails on first submission.
+3. The `Allow Public Task Logging` setting is documented and registered, but the front-end task form and submission handler do not currently enforce it.
+4. Database optimization currently proposes multiple duplicate `postmeta(meta_key, post_id)` indexes under different names, and the `phpcs` lint path is not currently operational because `.phpcs.xml` references unavailable sniffs.
+
+Any work that touches submission flow, provider invitations, settings enforcement, schema/indexing, or repo quality gates should start with these findings.
+
 ## Features
 
 ### Task Management
