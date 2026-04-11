@@ -19,13 +19,17 @@ class ShortcodesTest extends TestCase {
 				UPKEEPIFY_SETTING_NUMBER_OF_UNITS     => 10,
 			],
 		];
-		$GLOBALS['_upkeepify_test_cache']      = [];
-		$GLOBALS['_upkeepify_test_transients'] = [];
-		$GLOBALS['_upkeepify_test_posts']      = [];
-		$GLOBALS['_upkeepify_test_post_meta']  = [];
-		$_SERVER['REQUEST_URI']                = '/report-an-issue';
-		$_GET                                  = [];
-		$_POST                                 = [];
+		$GLOBALS['_upkeepify_test_cache']          = [];
+		$GLOBALS['_upkeepify_test_transients']     = [];
+		$GLOBALS['_upkeepify_test_posts']          = [];
+		$GLOBALS['_upkeepify_test_post_meta']      = [];
+		$GLOBALS['_upkeepify_test_taxonomy_terms'] = [];
+		$GLOBALS['_upkeepify_test_object_terms']   = [];
+		$GLOBALS['_upkeepify_test_inserted_posts'] = [];
+		$_SERVER['REQUEST_URI']                    = '/report-an-issue';
+		$_SERVER['REQUEST_METHOD']                 = 'GET';
+		$_GET                                      = [];
+		$_POST                                     = [];
 	}
 
 	// ─── Task form ───────────────────────────────────────────────────────────────
@@ -68,6 +72,39 @@ class ShortcodesTest extends TestCase {
 
 		$this->assertStringContainsString( 'not available', $output );
 		$this->assertStringNotContainsString( '<form', $output );
+	}
+
+	public function test_task_form_submission_creates_pending_task() {
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_SESSION[ UPKEEPIFY_SESSION_MATH_RESULT ] = 4;
+
+		$_POST = [
+			'upkeepify_task_submit'          => '1',
+			'upkeepify_upload'               => '1',
+			UPKEEPIFY_NONCE_TASK_SUBMIT      => 'test-nonce',
+			'math'                           => '4',
+			'task_title'                     => 'Broken gate',
+			'task_description'               => 'The pedestrian gate does not close properly.',
+			'nearest_unit'                   => '3',
+			UPKEEPIFY_TAXONOMY_TASK_CATEGORY => '12',
+			UPKEEPIFY_TAXONOMY_TASK_TYPE     => '22',
+		];
+
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] = [
+			new WP_Term(
+				[
+					'term_id' => 31,
+					'name'    => 'Open',
+				]
+			),
+		];
+
+		upkeepify_handle_task_form_submission();
+
+		$this->assertSame( 'pending', $GLOBALS['_upkeepify_test_inserted_posts'][1000]['post_status'] );
+		$this->assertSame( [ 12 ], $GLOBALS['_upkeepify_test_object_terms'][1000][ UPKEEPIFY_TAXONOMY_TASK_CATEGORY ] );
+		$this->assertSame( [ 22 ], $GLOBALS['_upkeepify_test_object_terms'][1000][ UPKEEPIFY_TAXONOMY_TASK_TYPE ] );
+		$this->assertSame( [ 31 ], $GLOBALS['_upkeepify_test_object_terms'][1000][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] );
 	}
 
 	// ─── Resident confirmation form ──────────────────────────────────────────────

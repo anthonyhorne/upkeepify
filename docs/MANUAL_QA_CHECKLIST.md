@@ -1,0 +1,19 @@
+# Manual QA Checklist
+
+## Resident Submission To Contractor Invite
+
+Use this checklist before tagging or deploying changes that touch public task submission, trustee approval, provider invitations, or resident confirmation.
+
+- Enable **Allow Public Task Logging** in Upkeepify settings.
+- Visit a page containing `[upkeepify_task_form]` as a logged-out visitor.
+- Submit a task with title, description, nearest unit, category, type, math captcha, optional GPS fields, optional photo, and optional resident email.
+- Confirm the new maintenance task is created as `pending`, not `publish`.
+- Confirm the task has only resident-facing taxonomy values from the form: `task_category` and `task_type`.
+- Confirm the task status is automatically set to `Open`.
+- Confirm no provider response posts or contractor emails are created while the task is still `pending`.
+- Publish the task from the WordPress admin.
+- Confirm one provider response post is created per matching service provider.
+- Confirm contractor invite emails are sent when matching providers have valid email addresses and the provider response page setting is configured.
+- Edit and update the already-published task.
+- Confirm provider response posts are not duplicated on later updates.
+- If resident email was supplied, complete the contractor flow through completion proof and confirm the resident confirmation email is sent.

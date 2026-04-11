@@ -4,14 +4,14 @@ Upkeepify is a comprehensive WordPress plugin designed to manage maintenance tas
 
 ## AI Review Priority
 
-If Claude or any other AI coding assistant is working in this repository, review the items below first before making any other changes. Assess them, think through their impact, and treat them as current high-priority risks:
+If Claude or any other AI coding assistant is working in this repository, review the items below before making related changes. These were formerly high-priority risks and now act as regression guardrails:
 
-1. Public task submission currently exposes and saves all attached maintenance-task taxonomies, including internal workflow fields such as status and service provider assignment.
-2. Public task submission creates tasks as `publish`, which can immediately trigger provider-response generation and contractor invite emails on first submission.
-3. The `Allow Public Task Logging` setting is documented and registered, but the front-end task form and submission handler do not currently enforce it.
-4. Database optimization currently proposes multiple duplicate `postmeta(meta_key, post_id)` indexes under different names, and the `phpcs` lint path is not currently operational because `.phpcs.xml` references unavailable sniffs.
+1. Public task submission now whitelists only resident-facing task taxonomies (`task_category` and `task_type`); internal workflow fields such as status, service provider, and unit must stay private to admin flows.
+2. Public task submission now creates `pending` tasks; provider-response generation runs after trustee approval/publish and guards against duplicate response posts.
+3. The `Allow Public Task Logging` setting is enforced by both the front-end task form and the submission handler.
+4. Database optimization now uses a single shared `postmeta(meta_key, post_id)` index definition, and `.phpcs.xml` references available sniffs. PHPCS runs, but the broader codebase still has existing lint findings to work through.
 
-Any work that touches submission flow, provider invitations, settings enforcement, schema/indexing, or repo quality gates should start with these findings.
+Any work that touches submission flow, provider invitations, settings enforcement, schema/indexing, or repo quality gates should preserve these guarantees.
 
 ## Features
 

@@ -473,6 +473,37 @@ function get_term_meta( $term_id, $key, $single = false ) {
 	return $single ? '' : [];
 }
 
+function get_term_by( $field, $value, $taxonomy = '', $output = OBJECT, $filter = 'raw' ) {
+	$terms = isset( $GLOBALS['_upkeepify_test_taxonomy_terms'][ $taxonomy ] )
+		? $GLOBALS['_upkeepify_test_taxonomy_terms'][ $taxonomy ]
+		: [];
+
+	foreach ( $terms as $term ) {
+		if ( isset( $term->$field ) && (string) $term->$field === (string) $value ) {
+			return $term;
+		}
+	}
+
+	return false;
+}
+
+function wp_set_object_terms( $object_id, $terms, $taxonomy, $append = false ) {
+	$terms = is_array( $terms ) ? $terms : [ $terms ];
+	if ( ! isset( $GLOBALS['_upkeepify_test_object_terms'][ $object_id ] ) ) {
+		$GLOBALS['_upkeepify_test_object_terms'][ $object_id ] = [];
+	}
+	if ( ! isset( $GLOBALS['_upkeepify_test_object_terms'][ $object_id ][ $taxonomy ] ) || ! $append ) {
+		$GLOBALS['_upkeepify_test_object_terms'][ $object_id ][ $taxonomy ] = [];
+	}
+
+	$GLOBALS['_upkeepify_test_object_terms'][ $object_id ][ $taxonomy ] = array_merge(
+		$GLOBALS['_upkeepify_test_object_terms'][ $object_id ][ $taxonomy ],
+		$terms
+	);
+
+	return $terms;
+}
+
 function wp_get_object_terms( $object_id, $taxonomies, $args = [] ) {
 	$taxonomy = is_array( $taxonomies ) ? reset( $taxonomies ) : $taxonomies;
 	$terms    = isset( $GLOBALS['_upkeepify_test_object_terms'][ $object_id ][ $taxonomy ] )

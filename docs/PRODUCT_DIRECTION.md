@@ -2,14 +2,14 @@
 
 ## AI Review Priority
 
-If Claude or any other AI coding assistant is asked to plan or implement work in this repo, review these items before anything else:
+If Claude or any other AI coding assistant is asked to plan or implement work in this repo, review these resolved guardrails before changing related flows:
 
-1. Re-assess the public task submission flow first. It currently exposes internal taxonomies on the resident form and saves them on submit.
-2. Re-assess publish-time side effects first. Public submissions currently create published tasks, which can trigger provider-response creation and contractor invite emails immediately.
-3. Re-assess settings enforcement first. The `Allow Public Task Logging` setting exists, but the current shortcode/render/submit flow does not enforce it.
-4. Re-assess operational readiness first. Database optimization includes duplicate index definitions, and the `phpcs` lint configuration currently references unavailable sniffs.
+1. Public task submission exposes and saves only resident-facing taxonomies (`task_category` and `task_type`).
+2. Public submissions start as `pending`; contractor response generation happens only after trustee approval/publish and must not duplicate existing provider responses.
+3. `Allow Public Task Logging` is enforced in both the shortcode render path and submission handler.
+4. Database optimization avoids duplicate `postmeta(meta_key, post_id)` index definitions, and PHPCS uses available sniff references. The lint command is operational, though broader findings remain.
 
-These findings should be treated as active architectural and product guardrails until they are explicitly resolved.
+Treat these as architectural and product guardrails for future work.
 
 ## Table of Contents
 - [1. Product Statement](#1-product-statement)

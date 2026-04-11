@@ -51,7 +51,7 @@ function upkeepify_render_settings_field($args) {
     // Append additional attributes if any
     if (isset($args['attributes']) && is_array($args['attributes'])) {
         foreach ($args['attributes'] as $attr => $value) {
-            echo ' ' . $attr . '="' . esc_attr($value) . '"';
+            echo ' ' . esc_attr( $attr ) . '="' . esc_attr($value) . '"';
         }
     }
 
@@ -287,7 +287,7 @@ function upkeepify_contractor_invite_settings_section_callback() {
 }
 
 function upkeepify_provider_thank_you_settings_section_callback() {
-    echo '<p>' . __('Configure the custom thank you page for service providers.', 'upkeepify') . '</p>';
+    echo '<p>' . esc_html__('Configure the custom thank you page for service providers.', 'upkeepify') . '</p>';
 }
 
 /**

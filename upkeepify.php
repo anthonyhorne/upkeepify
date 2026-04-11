@@ -131,7 +131,7 @@ function upkeepify_deactivate() {
  * @hook admin_head
  */
 function upkeepify_add_favicon() {
-    echo '<link rel="icon" type="image/png" href="' . plugins_url('favicon.png', __FILE__) . '" />';
+    echo '<link rel="icon" type="image/png" href="' . esc_url( plugins_url( 'favicon.png', __FILE__ ) ) . '" />';
 }
 add_action('wp_head', 'upkeepify_add_favicon');
 add_action('admin_head', 'upkeepify_add_favicon'); // Also for admin area

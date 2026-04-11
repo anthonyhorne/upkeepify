@@ -181,7 +181,8 @@ function upkeepify_task_form_shortcode() {
 
     ob_start();
 
-    echo '<form id="upkeepify-task-form" class="upkeepify-form" action="' . esc_url($_SERVER['REQUEST_URI']) . '" method="post" enctype="multipart/form-data">';
+    $form_action = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+    echo '<form id="upkeepify-task-form" class="upkeepify-form" action="' . esc_url($form_action) . '" method="post" enctype="multipart/form-data">';
     wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT, UPKEEPIFY_NONCE_TASK_SUBMIT);
     echo '<input type="hidden" name="upkeepify_upload" value="1">';
 
@@ -248,7 +249,8 @@ function upkeepify_task_form_shortcode() {
  * @hook init
  */
 function upkeepify_handle_task_form_submission() {
-    if ('POST' !== $_SERVER['REQUEST_METHOD']) {
+    $request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+    if ('POST' !== $request_method) {
         return;
     }
 
@@ -262,7 +264,8 @@ function upkeepify_handle_task_form_submission() {
         return;
     }
 
-    if (!isset($_POST[UPKEEPIFY_NONCE_TASK_SUBMIT]) || !wp_verify_nonce($_POST[UPKEEPIFY_NONCE_TASK_SUBMIT], UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT)) {
+    $task_submit_nonce = isset($_POST[UPKEEPIFY_NONCE_TASK_SUBMIT]) ? sanitize_text_field( wp_unslash( $_POST[UPKEEPIFY_NONCE_TASK_SUBMIT] ) ) : '';
+    if ( ! $task_submit_nonce || ! wp_verify_nonce($task_submit_nonce, UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT)) {
         return;
     }
 
@@ -270,17 +273,17 @@ function upkeepify_handle_task_form_submission() {
         session_start();
     }
 
-    $user_answer = filter_input(INPUT_POST, 'math', FILTER_SANITIZE_NUMBER_INT);
+    $user_answer = isset($_POST['math']) ? sanitize_text_field( wp_unslash( $_POST['math'] ) ) : '';
     if (!isset($_SESSION[UPKEEPIFY_SESSION_MATH_RESULT]) || intval($user_answer) !== intval($_SESSION[UPKEEPIFY_SESSION_MATH_RESULT])) {
         return;
     }
 
-    $task_title = sanitize_text_field($_POST['task_title']);
-    $task_description = sanitize_textarea_field($_POST['task_description']);
+    $task_title = isset($_POST['task_title']) ? sanitize_text_field( wp_unslash( $_POST['task_title'] ) ) : '';
+    $task_description = isset($_POST['task_description']) ? sanitize_textarea_field( wp_unslash( $_POST['task_description'] ) ) : '';
 
-    $nearest_unit = isset($_POST['nearest_unit']) ? intval($_POST['nearest_unit']) : 1;
-    $latitude = isset($_POST['gps_latitude']) ? sanitize_text_field($_POST['gps_latitude']) : '';
-    $longitude = isset($_POST['gps_longitude']) ? sanitize_text_field($_POST['gps_longitude']) : '';
+    $nearest_unit = isset($_POST['nearest_unit']) ? intval( wp_unslash( $_POST['nearest_unit'] ) ) : 1;
+    $latitude = isset($_POST['gps_latitude']) ? sanitize_text_field( wp_unslash( $_POST['gps_latitude'] ) ) : '';
+    $longitude = isset($_POST['gps_longitude']) ? sanitize_text_field( wp_unslash( $_POST['gps_longitude'] ) ) : '';
 
     // Handle file upload with scoped validation
     $photo_attachment_id = 0;
@@ -375,8 +378,9 @@ function upkeepify_handle_task_form_submission() {
     // Only accept resident-facing taxonomies; never allow status or provider from public input.
     $public_taxonomies = array( UPKEEPIFY_TAXONOMY_TASK_CATEGORY, UPKEEPIFY_TAXONOMY_TASK_TYPE );
     foreach ($public_taxonomies as $taxonomy) {
-        if (isset($_POST[$taxonomy]) && is_numeric($_POST[$taxonomy])) {
-            wp_set_object_terms($task_id, array(intval($_POST[$taxonomy])), $taxonomy);
+        $taxonomy_term = isset($_POST[$taxonomy]) ? sanitize_text_field( wp_unslash( $_POST[$taxonomy] ) ) : '';
+        if (is_numeric($taxonomy_term)) {
+            wp_set_object_terms($task_id, array(intval( $taxonomy_term )), $taxonomy);
         }
     }
 
@@ -387,7 +391,7 @@ function upkeepify_handle_task_form_submission() {
     }
 
     // Save submitter email and generate resident confirmation token.
-    $submitter_email = isset($_POST['submitter_email']) ? sanitize_email($_POST['submitter_email']) : '';
+    $submitter_email = isset($_POST['submitter_email']) ? sanitize_email( wp_unslash( $_POST['submitter_email'] ) ) : '';
     if ( is_email( $submitter_email ) ) {
         update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_SUBMITTER_EMAIL, $submitter_email );
         $resident_token = wp_generate_password( 20, false );
