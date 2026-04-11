@@ -74,35 +74,33 @@ add_action( 'template_redirect', 'upkeepify_pwa_template_redirect' );
  * Output the web app manifest as JSON.
  */
 function upkeepify_pwa_serve_manifest() {
-    $icon_url = UPKEEPIFY_PLUGIN_URL . 'favicon.png';
+    $icon_192_url = UPKEEPIFY_PLUGIN_URL . 'icon-192x192.png';
+    $icon_512_url = UPKEEPIFY_PLUGIN_URL . 'icon-512x512.png';
 
     $manifest = array(
         'name'             => get_bloginfo( 'name' ) . ' — Upkeepify',
         'short_name'       => 'Upkeepify',
         'description'      => __( 'Report and track maintenance issues.', 'upkeepify' ),
+        'id'               => home_url( '/?upkeepify_pwa=app' ),
         'start_url'        => home_url( '/' ),
         'display'          => 'standalone',
         'background_color' => '#ffffff',
         'theme_color'      => '#0073aa',
         'icons'            => array(
             array(
-                'src'     => $icon_url,
+                'src'     => $icon_192_url,
                 'sizes'   => '192x192',
                 'type'    => 'image/png',
                 'purpose' => 'any maskable',
             ),
             array(
-                'src'     => $icon_url,
+                'src'     => $icon_512_url,
                 'sizes'   => '512x512',
                 'type'    => 'image/png',
                 'purpose' => 'any maskable',
             ),
         ),
     );
-
-    // NOTE: Add 192×192 and 512×512 PNG icons to the plugin root for full PWA
-    // compliance. The manifest currently references favicon.png at both sizes
-    // as a placeholder.
 
     header( 'Content-Type: application/manifest+json; charset=utf-8' );
     header( 'Cache-Control: public, max-age=3600' );
@@ -126,6 +124,7 @@ function upkeepify_pwa_serve_service_worker() {
     // Inject the plugin URL so the SW can cache assets without hardcoded paths.
     $content = file_get_contents( $sw_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
     $content = str_replace( '__UPKEEPIFY_PLUGIN_URL__', esc_url_raw( UPKEEPIFY_PLUGIN_URL ), $content );
+    $content = str_replace( '__UPKEEPIFY_VERSION__', preg_replace( '/[^A-Za-z0-9_.-]/', '', UPKEEPIFY_VERSION ), $content );
 
     header( 'Content-Type: application/javascript; charset=utf-8' );
     header( 'Service-Worker-Allowed: /' );
@@ -167,6 +166,7 @@ function upkeepify_pwa_register_service_worker() {
             UPKEEPIFY_SHORTCODE_LIST_TASKS,
             UPKEEPIFY_SHORTCODE_MAINTENANCE_TASKS,
             UPKEEPIFY_SHORTCODE_TASK_CALENDAR,
+            UPKEEPIFY_SHORTCODE_RESIDENT_CONFIRMATION_FORM,
         );
         foreach ( $shortcodes as $shortcode ) {
             if ( has_shortcode( $post->post_content, $shortcode ) ) {
@@ -177,6 +177,7 @@ function upkeepify_pwa_register_service_worker() {
     }
 
     // Also register on contractor invite pages (token in query string).
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page detection for service worker registration.
     $has_token = isset( $_GET[ UPKEEPIFY_QUERY_VAR_TOKEN ] );
 
     if ( ! $has_shortcode && ! $has_token ) {

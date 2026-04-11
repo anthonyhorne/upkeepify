@@ -14,8 +14,9 @@
 
 /* global self, caches, fetch */
 
-var CACHE_NAME   = 'upkeepify-v1';
-var PLUGIN_URL   = '__UPKEEPIFY_PLUGIN_URL__'; // injected by PHP at serve time
+var CACHE_VERSION = '__UPKEEPIFY_VERSION__'; // injected by PHP at serve time
+var CACHE_NAME    = 'upkeepify-' + CACHE_VERSION;
+var PLUGIN_URL    = '__UPKEEPIFY_PLUGIN_URL__'; // injected by PHP at serve time
 
 var STATIC_ASSETS = [
     PLUGIN_URL + 'upkeepify-styles.css',
