@@ -99,6 +99,7 @@ class ShortcodesTest extends TestCase {
 		$task->post_title = 'Leaking tap';
 		$task->post_type  = UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS;
 		$GLOBALS['_upkeepify_test_posts'][ UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS ] = [ $task ];
+		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_TOKEN ] = $token;
 
 		// get_post_meta returns '' (falsy) for confirmed_at — task not yet confirmed.
 		$output = upkeepify_resident_confirmation_form_shortcode();
@@ -122,6 +123,7 @@ class ShortcodesTest extends TestCase {
 
 		// Simulate already-confirmed: store a timestamp in the meta stub.
 		// We override get_post_meta for this test using a simple in-memory store.
+		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_TOKEN ] = $token;
 		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT ] = time();
 		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED ]    = '1';
 

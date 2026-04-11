@@ -21,6 +21,7 @@ if ( ! defined( 'UPLOAD_ERR_NO_TMP_DIR' ) ) define( 'UPLOAD_ERR_NO_TMP_DIR', 6 )
 if ( ! defined( 'UPLOAD_ERR_CANT_WRITE' ) ) define( 'UPLOAD_ERR_CANT_WRITE', 7 );
 if ( ! defined( 'UPLOAD_ERR_EXTENSION' ) ) define( 'UPLOAD_ERR_EXTENSION', 8 );
 if ( ! defined( 'FILEINFO_MIME_TYPE' ) )   define( 'FILEINFO_MIME_TYPE', 16 );
+if ( ! defined( 'DAY_IN_SECONDS' ) )       define( 'DAY_IN_SECONDS', 86400 );
 
 // ─── WordPress core class stubs ───────────────────────────────────────────────
 
@@ -65,6 +66,26 @@ class WP_Error {
 	}
 }
 
+if ( ! class_exists( 'WP_Post' ) ) {
+	class WP_Post {
+		public function __construct( $data = [] ) {
+			foreach ( $data as $key => $value ) {
+				$this->$key = $value;
+			}
+		}
+	}
+}
+
+if ( ! class_exists( 'WP_Term' ) ) {
+	class WP_Term {
+		public function __construct( $data = [] ) {
+			foreach ( $data as $key => $value ) {
+				$this->$key = $value;
+			}
+		}
+	}
+}
+
 // ─── In-memory stores (reset in test setUp) ───────────────────────────────────
 
 $GLOBALS['_upkeepify_test_options']    = [];
@@ -74,6 +95,9 @@ $GLOBALS['_upkeepify_test_posts']      = [];
 $GLOBALS['_upkeepify_test_post_meta']  = [];
 $GLOBALS['_upkeepify_test_post_thumbnails'] = [];
 $GLOBALS['_upkeepify_test_taxonomy_terms']  = [];
+$GLOBALS['_upkeepify_test_term_meta']       = [];
+$GLOBALS['_upkeepify_test_object_terms']    = [];
+$GLOBALS['_upkeepify_test_inserted_posts']  = [];
 $GLOBALS['_upkeepify_test_deleted_attachments'] = [];
 $GLOBALS['_upkeepify_test_deleted_posts']   = [];
 $GLOBALS['_upkeepify_test_deleted_terms']   = [];
@@ -327,9 +351,59 @@ function get_taxonomy( $taxonomy ) {
 
 function get_posts( $args = [] ) {
 	$post_type = isset( $args['post_type'] ) ? $args['post_type'] : '';
-	return isset( $GLOBALS['_upkeepify_test_posts'][ $post_type ] )
+	$posts = isset( $GLOBALS['_upkeepify_test_posts'][ $post_type ] )
 		? $GLOBALS['_upkeepify_test_posts'][ $post_type ]
 		: [];
+
+	if ( ! empty( $args['meta_query'] ) && is_array( $args['meta_query'] ) ) {
+		foreach ( $args['meta_query'] as $meta_clause ) {
+			if ( empty( $meta_clause['key'] ) ) {
+				continue;
+			}
+
+			$expected_value = isset( $meta_clause['value'] ) ? $meta_clause['value'] : null;
+			$posts = array_values( array_filter( $posts, function( $post ) use ( $meta_clause, $expected_value ) {
+				$post_id = is_object( $post ) && isset( $post->ID ) ? $post->ID : intval( $post );
+				$actual  = get_post_meta( $post_id, $meta_clause['key'], true );
+
+				return $expected_value === null || (string) $actual === (string) $expected_value;
+			} ) );
+		}
+	}
+
+	if ( isset( $args['posts_per_page'] ) && intval( $args['posts_per_page'] ) > 0 ) {
+		$posts = array_slice( $posts, 0, intval( $args['posts_per_page'] ) );
+	}
+
+	if ( isset( $args['fields'] ) && 'ids' === $args['fields'] ) {
+		return array_map( function( $post ) {
+			return is_object( $post ) && isset( $post->ID ) ? $post->ID : intval( $post );
+		}, $posts );
+	}
+
+	return $posts;
+}
+
+function wp_insert_post( $postarr, $wp_error = false ) {
+	$post_id = isset( $postarr['ID'] ) ? intval( $postarr['ID'] ) : count( $GLOBALS['_upkeepify_test_inserted_posts'] ) + 1000;
+	$post    = new WP_Post( array_merge( $postarr, [ 'ID' => $post_id ] ) );
+
+	$GLOBALS['_upkeepify_test_inserted_posts'][ $post_id ] = $postarr;
+
+	if ( ! empty( $postarr['post_type'] ) ) {
+		if ( ! isset( $GLOBALS['_upkeepify_test_posts'][ $postarr['post_type'] ] ) ) {
+			$GLOBALS['_upkeepify_test_posts'][ $postarr['post_type'] ] = [];
+		}
+		$GLOBALS['_upkeepify_test_posts'][ $postarr['post_type'] ][] = $post;
+	}
+
+	if ( ! empty( $postarr['meta_input'] ) && is_array( $postarr['meta_input'] ) ) {
+		foreach ( $postarr['meta_input'] as $key => $value ) {
+			update_post_meta( $post_id, $key, $value );
+		}
+	}
+
+	return $post_id;
 }
 
 function get_post_thumbnail_id( $post_id ) {
@@ -389,6 +463,29 @@ function get_terms( $taxonomy, $args = [] ) {
 	}
 
 	return [];
+}
+
+function get_term_meta( $term_id, $key, $single = false ) {
+	if ( isset( $GLOBALS['_upkeepify_test_term_meta'][ $term_id ][ $key ] ) ) {
+		return $GLOBALS['_upkeepify_test_term_meta'][ $term_id ][ $key ];
+	}
+
+	return $single ? '' : [];
+}
+
+function wp_get_object_terms( $object_id, $taxonomies, $args = [] ) {
+	$taxonomy = is_array( $taxonomies ) ? reset( $taxonomies ) : $taxonomies;
+	$terms    = isset( $GLOBALS['_upkeepify_test_object_terms'][ $object_id ][ $taxonomy ] )
+		? $GLOBALS['_upkeepify_test_object_terms'][ $object_id ][ $taxonomy ]
+		: [];
+
+	if ( isset( $args['fields'] ) && 'ids' === $args['fields'] ) {
+		return array_map( function( $term ) {
+			return is_object( $term ) && isset( $term->term_id ) ? $term->term_id : intval( $term );
+		}, $terms );
+	}
+
+	return $terms;
 }
 
 function add_query_arg( ...$args ) {

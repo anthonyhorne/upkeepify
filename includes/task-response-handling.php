@@ -41,15 +41,20 @@ function upkeepify_generate_provider_tokens($post_id, $post, $update) {
             return;
         }
 
-        // Skip if post is being updated (we only want to create on first publish)
-        if ($update) {
-            return;
-        }
-
         // Verify post is being published (not just saved as draft)
         if ($post->post_status !== 'publish') {
             if (WP_DEBUG) {
                 error_log('Upkeepify Task Response: Post ID ' . $post_id . ' is not published (status: ' . $post->post_status . '), skipping token generation');
+            }
+            return;
+        }
+
+        // Public submissions start as pending. When an admin later publishes the
+        // task, save_post runs with $update=true, so guard by existing responses
+        // instead of skipping all updates.
+        if ( upkeepify_provider_responses_exist( $post_id ) ) {
+            if (WP_DEBUG) {
+                error_log('Upkeepify Task Response: Provider responses already exist for task ID ' . $post_id . ', skipping token generation');
             }
             return;
         }
@@ -196,6 +201,33 @@ function upkeepify_generate_provider_tokens($post_id, $post, $update) {
     } catch (Exception $e) {
         error_log('Upkeepify Task Response Exception: ' . $e->getMessage());
     }
+}
+
+/**
+ * Check whether provider response posts already exist for a task.
+ *
+ * @since 1.0
+ * @param int $task_id The maintenance task post ID.
+ * @return bool True when at least one provider response already exists.
+ */
+function upkeepify_provider_responses_exist( $task_id ) {
+    $existing_responses = get_posts(
+        array(
+            'post_type'      => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES,
+            'post_status'    => 'any',
+            'posts_per_page' => 1,
+            'fields'         => 'ids',
+            'meta_query'     => array(
+                array(
+                    'key'     => UPKEEPIFY_META_KEY_RESPONSE_TASK_ID,
+                    'value'   => intval( $task_id ),
+                    'compare' => '=',
+                ),
+            ),
+        )
+    );
+
+    return ! empty( $existing_responses );
 }
 
 add_action('save_post', 'upkeepify_generate_provider_tokens', 10, 3);
