@@ -29,32 +29,19 @@ function upkeepify_create_database_indexes() {
     $success_count = 0;
     $error_count = 0;
 
-    // Define indexes to create with their SQL statements
+    // Define indexes to create with their SQL statements.
+    // idx_postmeta_meta_key_post_id covers all meta_key+post_id lookups (nearest_unit,
+    // rough_estimate, GPS coords, etc.) — one index instead of four identical definitions.
     $index_definitions = array(
-        'idx_postmeta_nearest_unit' => array(
+        'idx_postmeta_meta_key_post_id' => array(
             'table' => $wpdb->postmeta,
-            'sql'   => "CREATE INDEX idx_postmeta_nearest_unit
-            ON {$wpdb->postmeta}(meta_key(20), post_id)",
-        ),
-        'idx_postmeta_rough_estimate' => array(
-            'table' => $wpdb->postmeta,
-            'sql'   => "CREATE INDEX idx_postmeta_rough_estimate
+            'sql'   => "CREATE INDEX idx_postmeta_meta_key_post_id
             ON {$wpdb->postmeta}(meta_key(20), post_id)",
         ),
         'idx_postmeta_assigned_provider' => array(
             'table' => $wpdb->postmeta,
             'sql'   => "CREATE INDEX idx_postmeta_assigned_provider
             ON {$wpdb->postmeta}(meta_key(20), meta_value(20))",
-        ),
-        'idx_postmeta_gps_latitude' => array(
-            'table' => $wpdb->postmeta,
-            'sql'   => "CREATE INDEX idx_postmeta_gps_latitude
-            ON {$wpdb->postmeta}(meta_key(20), post_id)",
-        ),
-        'idx_postmeta_gps_longitude' => array(
-            'table' => $wpdb->postmeta,
-            'sql'   => "CREATE INDEX idx_postmeta_gps_longitude
-            ON {$wpdb->postmeta}(meta_key(20), post_id)",
         ),
         'idx_posts_maintenance_tasks' => array(
             'table' => $wpdb->posts,
@@ -135,12 +122,9 @@ function upkeepify_check_database_indexes() {
     global $wpdb;
 
     $recommended_indexes = array(
-        'idx_postmeta_nearest_unit' => 'postmeta',
-        'idx_postmeta_rough_estimate' => 'postmeta',
+        'idx_postmeta_meta_key_post_id'  => 'postmeta',
         'idx_postmeta_assigned_provider' => 'postmeta',
-        'idx_postmeta_gps_latitude' => 'postmeta',
-        'idx_postmeta_gps_longitude' => 'postmeta',
-        'idx_posts_maintenance_tasks' => 'posts',
+        'idx_posts_maintenance_tasks'    => 'posts',
     );
 
     $status = array();

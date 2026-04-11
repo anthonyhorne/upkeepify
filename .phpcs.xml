@@ -21,8 +21,8 @@
     <!-- Use WordPress Security ruleset only (formatting less critical than security) -->
     <rule ref="WordPress.Security"/>
     <rule ref="WordPress.DB"/>
-    <rule ref="WordPress.WP.GlobalVariables"/>
-    <rule ref="WordPress.PHP.StrictComparisons"/>
+    <rule ref="WordPress.WP.GlobalVariablesOverride"/>
+    <rule ref="Universal.Operators.StrictComparisons"/>
 
     <!-- Suppress error_log warnings (used for security audit trails) -->
     <rule ref="WordPress.PHP.DevelopmentFunctions.error_log">

@@ -161,6 +161,13 @@ function upkeepify_list_tasks_shortcode() {
  * @return string
  */
 function upkeepify_task_form_shortcode() {
+    $settings = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
+
+    // Enforce the Allow Public Task Logging setting.
+    if ( empty( $settings[ UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING ] ) ) {
+        return '<p>' . esc_html__( 'Public task submission is not available at this time.', 'upkeepify' ) . '</p>';
+    }
+
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
@@ -169,7 +176,6 @@ function upkeepify_task_form_shortcode() {
     $num2 = rand(1, 10);
     $_SESSION[UPKEEPIFY_SESSION_MATH_RESULT] = $num1 + $num2;
 
-    $settings = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
     $number_of_units = isset($settings[UPKEEPIFY_SETTING_NUMBER_OF_UNITS]) ? intval($settings[UPKEEPIFY_SETTING_NUMBER_OF_UNITS]) : 10;
     $number_of_units = max(1, $number_of_units);
 
@@ -192,15 +198,20 @@ function upkeepify_task_form_shortcode() {
     }
     echo '</select></p>';
 
-    $taxonomies = get_object_taxonomies(UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS, 'objects');
-    foreach ($taxonomies as $taxonomy) {
-        $terms = get_terms(array('taxonomy' => $taxonomy->name, 'hide_empty' => false));
+    // Only expose resident-facing taxonomies; status and provider are internal workflow fields.
+    $public_taxonomies = array( UPKEEPIFY_TAXONOMY_TASK_CATEGORY, UPKEEPIFY_TAXONOMY_TASK_TYPE );
+    foreach ($public_taxonomies as $taxonomy_slug) {
+        $taxonomy_obj = get_taxonomy( $taxonomy_slug );
+        if ( ! $taxonomy_obj ) {
+            continue;
+        }
+        $terms = get_terms(array('taxonomy' => $taxonomy_slug, 'hide_empty' => false));
         if (is_wp_error($terms) || empty($terms)) {
             continue;
         }
 
-        echo '<p><label for="' . esc_attr($taxonomy->name) . '">' . esc_html($taxonomy->label) . ':</label><br />';
-        echo '<select id="' . esc_attr($taxonomy->name) . '" name="' . esc_attr($taxonomy->name) . '" class="upkeepify-select">';
+        echo '<p><label for="' . esc_attr($taxonomy_slug) . '">' . esc_html($taxonomy_obj->label) . ':</label><br />';
+        echo '<select id="' . esc_attr($taxonomy_slug) . '" name="' . esc_attr($taxonomy_slug) . '" class="upkeepify-select">';
         foreach ($terms as $term) {
             echo '<option value="' . esc_attr($term->term_id) . '">' . esc_html($term->name) . '</option>';
         }
@@ -242,6 +253,12 @@ function upkeepify_handle_task_form_submission() {
     }
 
     if (!isset($_POST['upkeepify_task_submit'], $_POST['math'], $_POST['upkeepify_upload'])) {
+        return;
+    }
+
+    // Enforce the Allow Public Task Logging setting.
+    $settings = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
+    if ( empty( $settings[ UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING ] ) ) {
         return;
     }
 
@@ -331,11 +348,12 @@ function upkeepify_handle_task_form_submission() {
         return;
     }
 
+    // Create as pending so an admin must review before provider invites fire.
     $task_id = wp_insert_post(
         array(
             'post_title' => $task_title,
             'post_content' => $task_description,
-            'post_status' => 'publish',
+            'post_status' => 'pending',
             'post_type' => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
             'meta_input' => $meta,
         ),
@@ -354,11 +372,18 @@ function upkeepify_handle_task_form_submission() {
         set_post_thumbnail($task_id, $photo_attachment_id);
     }
 
-    $taxonomies = get_object_taxonomies(UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS);
-    foreach ($taxonomies as $taxonomy) {
+    // Only accept resident-facing taxonomies; never allow status or provider from public input.
+    $public_taxonomies = array( UPKEEPIFY_TAXONOMY_TASK_CATEGORY, UPKEEPIFY_TAXONOMY_TASK_TYPE );
+    foreach ($public_taxonomies as $taxonomy) {
         if (isset($_POST[$taxonomy]) && is_numeric($_POST[$taxonomy])) {
             wp_set_object_terms($task_id, array(intval($_POST[$taxonomy])), $taxonomy);
         }
+    }
+
+    // Automatically assign the "Open" task status for all public submissions.
+    $open_term = get_term_by( 'name', 'Open', UPKEEPIFY_TAXONOMY_TASK_STATUS );
+    if ( $open_term && ! is_wp_error( $open_term ) ) {
+        wp_set_object_terms( $task_id, array( $open_term->term_id ), UPKEEPIFY_TAXONOMY_TASK_STATUS );
     }
 
     // Save submitter email and generate resident confirmation token.

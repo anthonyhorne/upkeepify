@@ -12,7 +12,13 @@ require_once dirname( __DIR__ ) . '/includes/shortcodes.php';
 class ShortcodesTest extends TestCase {
 
 	protected function setUp(): void {
-		$GLOBALS['_upkeepify_test_options']    = [];
+		$GLOBALS['_upkeepify_test_options']    = [
+			// Enable public task submission so task-form tests can render the form.
+			UPKEEPIFY_OPTION_SETTINGS => [
+				UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING => '1',
+				UPKEEPIFY_SETTING_NUMBER_OF_UNITS     => 10,
+			],
+		];
 		$GLOBALS['_upkeepify_test_cache']      = [];
 		$GLOBALS['_upkeepify_test_transients'] = [];
 		$GLOBALS['_upkeepify_test_posts']      = [];
@@ -49,6 +55,19 @@ class ShortcodesTest extends TestCase {
 		// The email field must not carry a required attribute.
 		$this->assertStringNotContainsString( 'name="submitter_email" required', $output );
 		$this->assertStringNotContainsString( 'id="submitter_email" required', $output );
+	}
+
+	public function test_task_form_returns_disabled_message_when_public_logging_off() {
+		// Override the setting: public task logging disabled.
+		$GLOBALS['_upkeepify_test_options'][ UPKEEPIFY_OPTION_SETTINGS ] = [
+			UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING => '',
+		];
+		$GLOBALS['_upkeepify_test_cache'] = []; // flush cached setting.
+
+		$output = upkeepify_task_form_shortcode();
+
+		$this->assertStringContainsString( 'not available', $output );
+		$this->assertStringNotContainsString( '<form', $output );
 	}
 
 	// ─── Resident confirmation form ──────────────────────────────────────────────

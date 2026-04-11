@@ -308,6 +308,23 @@ function get_object_taxonomies( $object_type, $output = 'names' ) {
 	return [];
 }
 
+function get_taxonomy( $taxonomy ) {
+	$labels = [
+		UPKEEPIFY_TAXONOMY_TASK_CATEGORY    => 'Task Category',
+		UPKEEPIFY_TAXONOMY_TASK_TYPE        => 'Task Type',
+		UPKEEPIFY_TAXONOMY_TASK_STATUS      => 'Task Status',
+		UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER => 'Service Provider',
+		UPKEEPIFY_TAXONOMY_UNIT             => 'Unit',
+	];
+	if ( ! isset( $labels[ $taxonomy ] ) ) {
+		return false;
+	}
+	$obj        = new stdClass();
+	$obj->name  = $taxonomy;
+	$obj->label = $labels[ $taxonomy ];
+	return $obj;
+}
+
 function get_posts( $args = [] ) {
 	$post_type = isset( $args['post_type'] ) ? $args['post_type'] : '';
 	return isset( $GLOBALS['_upkeepify_test_posts'][ $post_type ] )
