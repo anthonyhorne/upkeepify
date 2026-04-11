@@ -292,8 +292,17 @@ function upkeepify_handle_task_form_submission() {
         require_once(ABSPATH . 'wp-admin/includes/media.php');
         require_once(ABSPATH . 'wp-admin/includes/image.php');
 
+        $task_photo_raw = wp_unslash( $_FILES['task_photo'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File upload data is sanitized below and validated before use.
+        $task_photo     = array(
+            'name'     => isset( $task_photo_raw['name'] ) ? sanitize_file_name( $task_photo_raw['name'] ) : '',
+            'type'     => isset( $task_photo_raw['type'] ) ? sanitize_mime_type( $task_photo_raw['type'] ) : '',
+            'tmp_name' => isset( $task_photo_raw['tmp_name'] ) ? sanitize_text_field( $task_photo_raw['tmp_name'] ) : '',
+            'error'    => isset( $task_photo_raw['error'] ) ? intval( $task_photo_raw['error'] ) : UPLOAD_ERR_NO_FILE,
+            'size'     => isset( $task_photo_raw['size'] ) ? absint( $task_photo_raw['size'] ) : 0,
+        );
+
         // Validate upload using scoped validation
-        $validation = upkeepify_validate_upload($_FILES['task_photo']);
+        $validation = upkeepify_validate_upload($task_photo);
         if (is_wp_error($validation)) {
             if (WP_DEBUG) {
                 error_log('Upkeepify Upload Validation Error: ' . $validation->get_error_message());
@@ -302,7 +311,7 @@ function upkeepify_handle_task_form_submission() {
         }
 
         // Handle the upload
-        $upload_result = wp_handle_upload($_FILES['task_photo'], array('test_form' => true));
+        $upload_result = wp_handle_upload($task_photo, array('test_form' => true));
         if (isset($upload_result['error'])) {
             if (WP_DEBUG) {
                 error_log('Upkeepify Upload Error: ' . $upload_result['error']);
@@ -312,11 +321,11 @@ function upkeepify_handle_task_form_submission() {
 
         // Prepare file data for media handling
         $file_data = array(
-            'name'     => $_FILES['task_photo']['name'],
+            'name'     => $task_photo['name'],
             'type'     => $upload_result['type'],
             'tmp_name' => $upload_result['file'],
-            'error'    => $_FILES['task_photo']['error'],
-            'size'     => $_FILES['task_photo']['size'],
+            'error'    => $task_photo['error'],
+            'size'     => $task_photo['size'],
         );
 
         // Sideload the file into the media library
@@ -886,8 +895,9 @@ function upkeepify_task_calendar_shortcode() {
  */
 function upkeepify_admin_post_provider_response_submit() {
     // CSRF check.
-    if ( ! isset( $_POST[ UPKEEPIFY_NONCE_PROVIDER_RESPONSE ] ) ||
-        ! wp_verify_nonce( $_POST[ UPKEEPIFY_NONCE_PROVIDER_RESPONSE ], UPKEEPIFY_NONCE_ACTION_PROVIDER_RESPONSE ) ) {
+    $provider_response_nonce = isset( $_POST[ UPKEEPIFY_NONCE_PROVIDER_RESPONSE ] ) ? sanitize_text_field( wp_unslash( $_POST[ UPKEEPIFY_NONCE_PROVIDER_RESPONSE ] ) ) : '';
+    if ( ! $provider_response_nonce ||
+        ! wp_verify_nonce( $provider_response_nonce, UPKEEPIFY_NONCE_ACTION_PROVIDER_RESPONSE ) ) {
         wp_die( esc_html__( 'Security check failed.', 'upkeepify' ) );
     }
 
@@ -895,8 +905,8 @@ function upkeepify_admin_post_provider_response_submit() {
         wp_die( esc_html__( 'Missing required fields.', 'upkeepify' ) );
     }
 
-    $response_id = intval( $_POST['response_id'] );
-    $decision    = sanitize_key( $_POST['decision'] );
+    $response_id = isset( $_POST['response_id'] ) ? absint( wp_unslash( $_POST['response_id'] ) ) : 0;
+    $decision    = isset( $_POST['decision'] ) ? sanitize_key( wp_unslash( $_POST['decision'] ) ) : '';
 
     if ( ! in_array( $decision, array( 'accept', 'decline' ), true ) ) {
         wp_die( esc_html__( 'Invalid decision value.', 'upkeepify' ) );
@@ -968,19 +978,19 @@ function upkeepify_admin_post_provider_response_submit() {
     }
 
     // Optional confidence.
-    $confidence = sanitize_key( $_POST['estimate_confidence'] ?? '' );
+    $confidence = isset( $_POST['estimate_confidence'] ) ? sanitize_key( wp_unslash( $_POST['estimate_confidence'] ) ) : '';
     if ( in_array( $confidence, array( 'low', 'medium', 'high' ), true ) ) {
         update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_CONFIDENCE, $confidence );
     }
 
     // Optional availability date (Y-m-d).
-    $availability = sanitize_text_field( $_POST['availability'] ?? '' );
+    $availability = isset( $_POST['availability'] ) ? sanitize_text_field( wp_unslash( $_POST['availability'] ) ) : '';
     if ( $availability && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $availability ) ) {
         update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_AVAILABILITY, $availability );
     }
 
     // Optional note (max 500 chars).
-    $note = sanitize_textarea_field( $_POST['note'] ?? '' );
+    $note = isset( $_POST['note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['note'] ) ) : '';
     if ( $note !== '' ) {
         update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_NOTE, substr( $note, 0, 500 ) );
     }
@@ -1010,8 +1020,9 @@ add_action( 'admin_post_nopriv_' . UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBM
  * @hook admin_post_nopriv_{UPKEEPIFY_ADMIN_ACTION_PROVIDER_QUOTE_SUBMIT}
  */
 function upkeepify_admin_post_provider_quote_submit() {
-    if ( ! isset( $_POST[ UPKEEPIFY_NONCE_PROVIDER_QUOTE ] ) ||
-        ! wp_verify_nonce( $_POST[ UPKEEPIFY_NONCE_PROVIDER_QUOTE ], UPKEEPIFY_NONCE_ACTION_PROVIDER_QUOTE ) ) {
+    $provider_quote_nonce = isset( $_POST[ UPKEEPIFY_NONCE_PROVIDER_QUOTE ] ) ? sanitize_text_field( wp_unslash( $_POST[ UPKEEPIFY_NONCE_PROVIDER_QUOTE ] ) ) : '';
+    if ( ! $provider_quote_nonce ||
+        ! wp_verify_nonce( $provider_quote_nonce, UPKEEPIFY_NONCE_ACTION_PROVIDER_QUOTE ) ) {
         wp_die( esc_html__( 'Security check failed.', 'upkeepify' ) );
     }
 
@@ -1019,7 +1030,7 @@ function upkeepify_admin_post_provider_quote_submit() {
         wp_die( esc_html__( 'Missing required fields.', 'upkeepify' ) );
     }
 
-    $response_id  = intval( $_POST['response_id'] );
+    $response_id  = isset( $_POST['response_id'] ) ? absint( wp_unslash( $_POST['response_id'] ) ) : 0;
     $response_post = get_post( $response_id );
 
     if ( ! $response_post || $response_post->post_type !== UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES ) {
@@ -1050,7 +1061,7 @@ function upkeepify_admin_post_provider_quote_submit() {
 
     update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, $quote );
 
-    $quote_note = sanitize_textarea_field( $_POST['quote_note'] ?? '' );
+    $quote_note = isset( $_POST['quote_note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['quote_note'] ) ) : '';
     if ( $quote_note !== '' ) {
         update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_QUOTE_NOTE, substr( $quote_note, 0, 500 ) );
     }
@@ -1104,8 +1115,9 @@ add_action( 'admin_post_nopriv_' . UPKEEPIFY_ADMIN_ACTION_PROVIDER_QUOTE_SUBMIT,
  * @hook admin_post_nopriv_{UPKEEPIFY_ADMIN_ACTION_PROVIDER_COMPLETION_SUBMIT}
  */
 function upkeepify_admin_post_provider_completion_submit() {
-    if ( ! isset( $_POST[ UPKEEPIFY_NONCE_PROVIDER_COMPLETION ] ) ||
-        ! wp_verify_nonce( $_POST[ UPKEEPIFY_NONCE_PROVIDER_COMPLETION ], UPKEEPIFY_NONCE_ACTION_PROVIDER_COMPLETION ) ) {
+    $provider_completion_nonce = isset( $_POST[ UPKEEPIFY_NONCE_PROVIDER_COMPLETION ] ) ? sanitize_text_field( wp_unslash( $_POST[ UPKEEPIFY_NONCE_PROVIDER_COMPLETION ] ) ) : '';
+    if ( ! $provider_completion_nonce ||
+        ! wp_verify_nonce( $provider_completion_nonce, UPKEEPIFY_NONCE_ACTION_PROVIDER_COMPLETION ) ) {
         wp_die( esc_html__( 'Security check failed.', 'upkeepify' ) );
     }
 
@@ -1113,7 +1125,7 @@ function upkeepify_admin_post_provider_completion_submit() {
         wp_die( esc_html__( 'Missing required fields.', 'upkeepify' ) );
     }
 
-    $response_id   = intval( $_POST['response_id'] );
+    $response_id   = isset( $_POST['response_id'] ) ? absint( wp_unslash( $_POST['response_id'] ) ) : 0;
     $response_post = get_post( $response_id );
 
     if ( ! $response_post || $response_post->post_type !== UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES ) {
@@ -1146,7 +1158,7 @@ function upkeepify_admin_post_provider_completion_submit() {
         require_once ABSPATH . 'wp-admin/includes/media.php';
         require_once ABSPATH . 'wp-admin/includes/image.php';
 
-        $files = $_FILES['completion_photos'];
+        $files = wp_unslash( $_FILES['completion_photos'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File upload data is normalized per item below and validated before use.
         $count = min( count( $files['name'] ), 3 ); // cap at 3
 
         for ( $i = 0; $i < $count; $i++ ) {
@@ -1155,11 +1167,11 @@ function upkeepify_admin_post_provider_completion_submit() {
             }
 
             $single_file = array(
-                'name'     => $files['name'][ $i ],
-                'type'     => $files['type'][ $i ],
-                'tmp_name' => $files['tmp_name'][ $i ],
-                'error'    => $files['error'][ $i ],
-                'size'     => $files['size'][ $i ],
+                'name'     => sanitize_file_name( $files['name'][ $i ] ),
+                'type'     => sanitize_mime_type( $files['type'][ $i ] ),
+                'tmp_name' => sanitize_text_field( $files['tmp_name'][ $i ] ),
+                'error'    => intval( $files['error'][ $i ] ),
+                'size'     => absint( $files['size'][ $i ] ),
             );
 
             $validation = upkeepify_validate_upload( $single_file );
@@ -1197,7 +1209,7 @@ function upkeepify_admin_post_provider_completion_submit() {
         update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_PHOTOS, $attachment_ids );
     }
 
-    $completion_note = sanitize_textarea_field( $_POST['completion_note'] ?? '' );
+    $completion_note = isset( $_POST['completion_note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['completion_note'] ) ) : '';
     if ( $completion_note !== '' ) {
         update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_NOTE, substr( $completion_note, 0, 500 ) );
     }
@@ -1471,7 +1483,7 @@ function upkeepify_resident_confirmation_form_shortcode() {
         foreach ( $completion_photos as $att_id ) {
             $img = wp_get_attachment_image( intval( $att_id ), 'medium', false, array( 'class' => 'upkeepify-completion-photo' ) );
             if ( $img ) {
-                echo '<div class="upkeepify-photo-item">' . $img . '</div>';
+                echo '<div class="upkeepify-photo-item">' . wp_kses_post( $img ) . '</div>';
             }
         }
         echo '</div>';
@@ -1529,12 +1541,13 @@ function upkeepify_resident_confirmation_form_shortcode() {
  * @hook admin_post_nopriv_{UPKEEPIFY_ADMIN_ACTION_RESIDENT_CONFIRM_SUBMIT}
  */
 function upkeepify_admin_post_resident_confirm_submit() {
-    if ( ! isset( $_POST[ UPKEEPIFY_NONCE_RESIDENT_CONFIRM ] ) ||
-        ! wp_verify_nonce( $_POST[ UPKEEPIFY_NONCE_RESIDENT_CONFIRM ], UPKEEPIFY_NONCE_ACTION_RESIDENT_CONFIRM ) ) {
+    $resident_confirm_nonce = isset( $_POST[ UPKEEPIFY_NONCE_RESIDENT_CONFIRM ] ) ? sanitize_text_field( wp_unslash( $_POST[ UPKEEPIFY_NONCE_RESIDENT_CONFIRM ] ) ) : '';
+    if ( ! $resident_confirm_nonce ||
+        ! wp_verify_nonce( $resident_confirm_nonce, UPKEEPIFY_NONCE_ACTION_RESIDENT_CONFIRM ) ) {
         wp_die( esc_html__( 'Security check failed.', 'upkeepify' ) );
     }
 
-    $task_id = intval( $_POST['task_id'] ?? 0 );
+    $task_id = isset( $_POST['task_id'] ) ? absint( wp_unslash( $_POST['task_id'] ) ) : 0;
     $task    = $task_id ? get_post( $task_id ) : null;
     if ( ! $task || $task->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS ) {
         wp_die( esc_html__( 'Invalid task.', 'upkeepify' ) );
@@ -1552,8 +1565,9 @@ function upkeepify_admin_post_resident_confirm_submit() {
         wp_die( esc_html__( 'You have already submitted your feedback for this job.', 'upkeepify' ) );
     }
 
-    $satisfied = isset( $_POST['resident_satisfied'] ) && $_POST['resident_satisfied'] === '1' ? '1' : '0';
-    $note      = sanitize_textarea_field( $_POST['resident_confirm_note'] ?? '' );
+    $resident_satisfied = isset( $_POST['resident_satisfied'] ) ? sanitize_key( wp_unslash( $_POST['resident_satisfied'] ) ) : '';
+    $satisfied          = $resident_satisfied === '1' ? '1' : '0';
+    $note               = isset( $_POST['resident_confirm_note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['resident_confirm_note'] ) ) : '';
 
     update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED,    $satisfied );
     update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT, time() );
