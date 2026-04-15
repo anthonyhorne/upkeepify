@@ -277,6 +277,17 @@ class ShortcodesTest extends TestCase {
 		$this->assertSame( 'contractor@example.com', $GLOBALS['_upkeepify_test_mail'][0]['to'] );
 	}
 
+	public function test_clear_resident_issue_followup_deletes_review_state() {
+		$task_id = 42;
+		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS ] = UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE;
+		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID ] = 123;
+
+		upkeepify_clear_resident_issue_followup( $task_id );
+
+		$this->assertArrayNotHasKey( UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, $GLOBALS['_upkeepify_test_post_meta'][ $task_id ] );
+		$this->assertArrayNotHasKey( UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID, $GLOBALS['_upkeepify_test_post_meta'][ $task_id ] );
+	}
+
 	// ─── upkeepify_send_resident_confirmation_email ──────────────────────────────
 
 	public function test_send_resident_confirmation_email_does_nothing_without_email() {

@@ -1510,6 +1510,16 @@ function upkeepify_open_resident_issue_followup( $task_id, $task_post, $settings
 }
 
 /**
+ * Clear any resident issue follow-up state from a task.
+ *
+ * @param int $task_id Maintenance task post ID.
+ */
+function upkeepify_clear_resident_issue_followup( $task_id ) {
+    delete_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS );
+    delete_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID );
+}
+
+/**
  * Send the resident their job-completion confirmation email.
  *
  * Called automatically when a contractor marks a job complete. Does nothing
@@ -1786,8 +1796,7 @@ function upkeepify_admin_post_resident_confirm_submit() {
     if ( $satisfied === '0' ) {
         $completed_response = upkeepify_open_resident_issue_followup( $task_id, $task, $settings, $note );
     } elseif ( $satisfied === '1' ) {
-        update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, '' );
-        update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID, '' );
+        upkeepify_clear_resident_issue_followup( $task_id );
     }
 
     $subject = $satisfied === '1'

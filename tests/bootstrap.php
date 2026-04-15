@@ -131,6 +131,15 @@ function update_post_meta( $post_id, $key, $value ) {
 	return true;
 }
 
+function delete_post_meta( $post_id, $key, $value = '' ) {
+	if ( ! isset( $GLOBALS['_upkeepify_test_post_meta'][ $post_id ][ $key ] ) ) {
+		return false;
+	}
+
+	unset( $GLOBALS['_upkeepify_test_post_meta'][ $post_id ][ $key ] );
+	return true;
+}
+
 function get_post( $post_id = null ) {
 	foreach ( $GLOBALS['_upkeepify_test_posts'] as $posts ) {
 		foreach ( $posts as $post ) {
