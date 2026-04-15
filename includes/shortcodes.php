@@ -462,6 +462,16 @@ function upkeepify_provider_response_form_shortcode($atts) {
         $decision     = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_DECISION,      true );
         $formal_quote = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE,  true );
         $completed_at = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT,  true );
+        $followup_status      = $task_id ? get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, true ) : '';
+        $followup_response_id = $task_id ? intval( get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID, true ) ) : 0;
+        $followup_for_this_response = (
+            $followup_status === UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE
+            && $followup_response_id === intval( $response_id )
+        );
+        $followup_submitted_for_this_response = (
+            $followup_status === UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_SUBMITTED
+            && $followup_response_id === intval( $response_id )
+        );
 
         // Currency symbol.
         $settings = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
@@ -474,6 +484,7 @@ function upkeepify_provider_response_form_shortcode($atts) {
                 'submitted' => __( 'Your estimate has been submitted.', 'upkeepify' ),
                 'quoted'    => __( 'Your formal quote has been submitted.', 'upkeepify' ),
                 'completed' => __( 'Job marked as complete. The property manager will notify the resident.', 'upkeepify' ),
+                'followup_submitted' => __( 'Your follow-up has been sent to the property manager for review.', 'upkeepify' ),
                 'declined'  => __( 'You have declined this job. No further action needed.', 'upkeepify' ),
             );
             if ( isset( $notices[ $resp_status ] ) ) {
@@ -617,11 +628,20 @@ function upkeepify_provider_response_form_shortcode($atts) {
             echo '</form>';
             ?><script>upkeepifyCharCounters();</script><?php
 
-        } elseif ( $completed_at === '' ) {
+        } elseif ( $completed_at === '' || $followup_for_this_response ) {
 
             // ── Step 3b: completion proof ─────────────────────────────────────
             $quote_val = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true );
-            echo '<p class="upkeepify-step-label">' . esc_html__( 'Step 3 of 3 — Mark Job Complete', 'upkeepify' ) . '</p>';
+            echo '<p class="upkeepify-step-label">' . ( $followup_for_this_response
+                ? esc_html__( 'Follow-up Requested', 'upkeepify' )
+                : esc_html__( 'Step 3 of 3 — Mark Job Complete', 'upkeepify' ) ) . '</p>';
+            if ( $followup_for_this_response ) {
+                $resident_note = $task_id ? get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRM_NOTE, true ) : '';
+                echo '<p class="upkeepify-notice upkeepify-notice--info">' . esc_html__( 'The resident reported an issue after completion. Submit what you changed or clarified for trustee review.', 'upkeepify' ) . '</p>';
+                if ( $resident_note ) {
+                    echo '<p><strong>' . esc_html__( 'Resident comment:', 'upkeepify' ) . '</strong><br>' . nl2br( esc_html( $resident_note ) ) . '</p>';
+                }
+            }
             if ( $quote_val !== '' ) {
                 echo '<p><small>' . sprintf(
                     /* translators: 1: currency, 2: quote amount */
@@ -637,17 +657,29 @@ function upkeepify_provider_response_form_shortcode($atts) {
             echo '<input type="hidden" name="' . esc_attr( UPKEEPIFY_QUERY_VAR_TOKEN ) . '" value="' . esc_attr( $token ) . '">';
             wp_nonce_field( UPKEEPIFY_NONCE_ACTION_PROVIDER_COMPLETION, UPKEEPIFY_NONCE_PROVIDER_COMPLETION );
 
-            echo '<p class="upkeepify-field"><label for="upkeepify-completion-photos">' . esc_html__( 'Completion photos (optional, up to 3)', 'upkeepify' ) . '</label><br>';
+            echo '<p class="upkeepify-field"><label for="upkeepify-completion-photos">' . ( $followup_for_this_response
+                ? esc_html__( 'Follow-up photos (optional, up to 3)', 'upkeepify' )
+                : esc_html__( 'Completion photos (optional, up to 3)', 'upkeepify' ) ) . '</label><br>';
             echo '<input type="file" id="upkeepify-completion-photos" name="completion_photos[]" accept="image/*" capture="environment" multiple class="upkeepify-file-input">';
             echo '<br><small>' . esc_html__( 'JPG, PNG or GIF, max 2 MB each.', 'upkeepify' ) . '</small></p>';
 
-            echo '<p class="upkeepify-field"><label for="upkeepify-completion-note">' . esc_html__( 'Completion note (optional)', 'upkeepify' ) . '</label><br>';
-            echo '<textarea name="completion_note" id="upkeepify-completion-note" maxlength="500" rows="3" class="upkeepify-textarea" placeholder="' . esc_attr__( 'Brief description of work completed, any follow-up needed, etc.', 'upkeepify' ) . '"></textarea>';
+            echo '<p class="upkeepify-field"><label for="upkeepify-completion-note">' . ( $followup_for_this_response
+                ? esc_html__( 'Follow-up note (optional)', 'upkeepify' )
+                : esc_html__( 'Completion note (optional)', 'upkeepify' ) ) . '</label><br>';
+            echo '<textarea name="completion_note" id="upkeepify-completion-note" maxlength="500" rows="3" class="upkeepify-textarea" placeholder="' . ( $followup_for_this_response
+                ? esc_attr__( 'What was fixed, checked, or clarified for the resident and trustee.', 'upkeepify' )
+                : esc_attr__( 'Brief description of work completed, any follow-up needed, etc.', 'upkeepify' ) ) . '"></textarea>';
             echo '<br><small class="upkeepify-charcount" data-target="upkeepify-completion-note" data-max="500">500 ' . esc_html__( 'characters remaining', 'upkeepify' ) . '</small></p>';
 
-            echo '<p class="upkeepify-field"><input type="submit" value="' . esc_attr__( 'Mark job as complete', 'upkeepify' ) . '" class="upkeepify-submit-button"></p>';
+            echo '<p class="upkeepify-field"><input type="submit" value="' . ( $followup_for_this_response
+                ? esc_attr__( 'Submit follow-up', 'upkeepify' )
+                : esc_attr__( 'Mark job as complete', 'upkeepify' ) ) . '" class="upkeepify-submit-button"></p>';
             echo '</form>';
             ?><script>upkeepifyCharCounters();</script><?php
+
+        } elseif ( $followup_submitted_for_this_response ) {
+
+            echo '<p class="upkeepify-notice upkeepify-notice--success">' . esc_html__( 'Your follow-up has been sent to the property manager. They will review the resident issue before closing the job.', 'upkeepify' ) . '</p>';
 
         } else {
 
@@ -1143,12 +1175,23 @@ function upkeepify_admin_post_provider_completion_submit() {
     $decision     = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_DECISION,     true );
     $formal_quote = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true );
     $completed_at = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT, true );
+    $task_id      = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true ) );
+    $followup_status      = $task_id ? get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, true ) : '';
+    $followup_response_id = $task_id ? intval( get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID, true ) ) : 0;
+    $is_followup_completion = (
+        $completed_at !== ''
+        && $followup_status === UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE
+        && $followup_response_id === intval( $response_id )
+    );
 
     if ( $decision !== 'accept' || $formal_quote === '' ) {
         wp_die( esc_html__( 'Please submit your formal quote before marking the job complete.', 'upkeepify' ) );
     }
-    if ( $completed_at !== '' ) {
+    if ( $completed_at !== '' && ! $is_followup_completion ) {
         wp_die( esc_html__( 'This job has already been marked as complete.', 'upkeepify' ) );
+    }
+    if ( $is_followup_completion && get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FOLLOWUP_COMPLETED_AT, true ) !== '' ) {
+        wp_die( esc_html__( 'A follow-up has already been submitted for this resident issue.', 'upkeepify' ) );
     }
 
     // Process completion photos (up to 3).
@@ -1205,19 +1248,26 @@ function upkeepify_admin_post_provider_completion_submit() {
         }
     }
 
-    if ( ! empty( $attachment_ids ) ) {
-        update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_PHOTOS, $attachment_ids );
-    }
-
     $completion_note = isset( $_POST['completion_note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['completion_note'] ) ) : '';
-    if ( $completion_note !== '' ) {
-        update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_NOTE, substr( $completion_note, 0, 500 ) );
+
+    $photos_meta_key    = $is_followup_completion ? UPKEEPIFY_META_KEY_RESPONSE_FOLLOWUP_PHOTOS : UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_PHOTOS;
+    $note_meta_key      = $is_followup_completion ? UPKEEPIFY_META_KEY_RESPONSE_FOLLOWUP_NOTE : UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_NOTE;
+    $completed_meta_key = $is_followup_completion ? UPKEEPIFY_META_KEY_RESPONSE_FOLLOWUP_COMPLETED_AT : UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT;
+
+    if ( ! empty( $attachment_ids ) ) {
+        update_post_meta( $response_id, $photos_meta_key, $attachment_ids );
     }
 
-    update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT, time() );
+    if ( $completion_note !== '' ) {
+        update_post_meta( $response_id, $note_meta_key, substr( $completion_note, 0, 500 ) );
+    }
+
+    update_post_meta( $response_id, $completed_meta_key, time() );
+    if ( $is_followup_completion ) {
+        update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_SUBMITTED );
+    }
 
     // Notify trustee — resident confirmation (Step 4) will be triggered from admin.
-    $task_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true ) );
     $task_post = $task_id ? get_post( $task_id ) : null;
     if ( $task_post ) {
         $settings      = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
@@ -1226,36 +1276,57 @@ function upkeepify_admin_post_provider_completion_submit() {
         $provider_term = $provider_id ? get_term( $provider_id, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ) : null;
         $provider_name = ( $provider_term && ! is_wp_error( $provider_term ) ) ? $provider_term->name : __( 'A contractor', 'upkeepify' );
 
-        $subject = sprintf( __( '[%s] Job complete — resident confirmation needed: %s', 'upkeepify' ), get_bloginfo( 'name' ), $task_post->post_title );
-        $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
-        $body   .= '<h2>' . esc_html__( 'Job Marked Complete', 'upkeepify' ) . '</h2>';
-        $body   .= '<p>' . sprintf( esc_html__( '%s has marked "%s" as complete.', 'upkeepify' ), esc_html( $provider_name ), esc_html( $task_post->post_title ) ) . '</p>';
-        if ( $completion_note ) {
-            $body .= '<p>' . esc_html__( 'Completion note:', 'upkeepify' ) . ' ' . nl2br( esc_html( $completion_note ) ) . '</p>';
-        }
-        if ( ! empty( $attachment_ids ) ) {
-            $body .= '<p>' . sprintf( esc_html__( '%d completion photo(s) uploaded.', 'upkeepify' ), count( $attachment_ids ) ) . '</p>';
-        }
-        // Include the resident confirmation link in the trustee email if available.
-        $confirmation_url = upkeepify_get_resident_confirmation_url( $task_id );
-        if ( $confirmation_url ) {
-            $body .= '<p><strong>' . esc_html__( 'Next step:', 'upkeepify' ) . '</strong> ';
-            $body .= esc_html__( 'The resident confirmation email has been sent automatically.', 'upkeepify' ) . '</p>';
-            $body .= '<p>' . esc_html__( 'Resident confirmation link (for reference):', 'upkeepify' ) . '<br>';
-            $body .= '<a href="' . esc_url( $confirmation_url ) . '">' . esc_url( $confirmation_url ) . '</a></p>';
+        if ( $is_followup_completion ) {
+            $resident_note = get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRM_NOTE, true );
+            $subject = sprintf( __( '[%s] Contractor follow-up submitted: %s', 'upkeepify' ), get_bloginfo( 'name' ), $task_post->post_title );
+            $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
+            $body   .= '<h2>' . esc_html__( 'Contractor Follow-up Submitted', 'upkeepify' ) . '</h2>';
+            $body   .= '<p>' . sprintf( esc_html__( '%s has submitted a follow-up for "%s" after the resident reported an issue.', 'upkeepify' ), esc_html( $provider_name ), esc_html( $task_post->post_title ) ) . '</p>';
+            if ( $resident_note ) {
+                $body .= '<p><strong>' . esc_html__( 'Resident comment:', 'upkeepify' ) . '</strong><br>' . nl2br( esc_html( $resident_note ) ) . '</p>';
+            }
+            if ( $completion_note ) {
+                $body .= '<p><strong>' . esc_html__( 'Contractor follow-up:', 'upkeepify' ) . '</strong><br>' . nl2br( esc_html( $completion_note ) ) . '</p>';
+            }
+            if ( ! empty( $attachment_ids ) ) {
+                $body .= '<p>' . sprintf( esc_html__( '%d follow-up photo(s) uploaded.', 'upkeepify' ), count( $attachment_ids ) ) . '</p>';
+            }
+            $body .= '<p>' . esc_html__( 'Review the resident issue and contractor follow-up before closing the job or requesting confirmation again.', 'upkeepify' ) . '</p>';
+            $body .= '</div>';
         } else {
-            $body .= '<p><strong>' . esc_html__( 'Next step:', 'upkeepify' ) . '</strong> ' . esc_html__( 'No resident email on file — confirmation link could not be sent automatically.', 'upkeepify' ) . '</p>';
+            $subject = sprintf( __( '[%s] Job complete — resident confirmation needed: %s', 'upkeepify' ), get_bloginfo( 'name' ), $task_post->post_title );
+            $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
+            $body   .= '<h2>' . esc_html__( 'Job Marked Complete', 'upkeepify' ) . '</h2>';
+            $body   .= '<p>' . sprintf( esc_html__( '%s has marked "%s" as complete.', 'upkeepify' ), esc_html( $provider_name ), esc_html( $task_post->post_title ) ) . '</p>';
+            if ( $completion_note ) {
+                $body .= '<p>' . esc_html__( 'Completion note:', 'upkeepify' ) . ' ' . nl2br( esc_html( $completion_note ) ) . '</p>';
+            }
+            if ( ! empty( $attachment_ids ) ) {
+                $body .= '<p>' . sprintf( esc_html__( '%d completion photo(s) uploaded.', 'upkeepify' ), count( $attachment_ids ) ) . '</p>';
+            }
+            // Include the resident confirmation link in the trustee email if available.
+            $confirmation_url = upkeepify_get_resident_confirmation_url( $task_id );
+            if ( $confirmation_url ) {
+                $body .= '<p><strong>' . esc_html__( 'Next step:', 'upkeepify' ) . '</strong> ';
+                $body .= esc_html__( 'The resident confirmation email has been sent automatically.', 'upkeepify' ) . '</p>';
+                $body .= '<p>' . esc_html__( 'Resident confirmation link (for reference):', 'upkeepify' ) . '<br>';
+                $body .= '<a href="' . esc_url( $confirmation_url ) . '">' . esc_url( $confirmation_url ) . '</a></p>';
+            } else {
+                $body .= '<p><strong>' . esc_html__( 'Next step:', 'upkeepify' ) . '</strong> ' . esc_html__( 'No resident email on file — confirmation link could not be sent automatically.', 'upkeepify' ) . '</p>';
+            }
+            $body .= '<p>' . esc_html__( 'Review the completed job in WordPress admin.', 'upkeepify' ) . '</p>';
+            $body .= '</div>';
         }
-        $body .= '<p>' . esc_html__( 'Review the completed job in WordPress admin.', 'upkeepify' ) . '</p>';
-        $body .= '</div>';
 
         wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
 
-        // Auto-send resident confirmation email if we have their address and token.
-        upkeepify_send_resident_confirmation_email( $task_id, $task_post );
+        if ( ! $is_followup_completion ) {
+            // Auto-send resident confirmation email if we have their address and token.
+            upkeepify_send_resident_confirmation_email( $task_id, $task_post );
+        }
     }
 
-    wp_safe_redirect( add_query_arg( 'upkeepify_response', 'completed', wp_get_referer() ?: home_url() ) );
+    wp_safe_redirect( add_query_arg( 'upkeepify_response', $is_followup_completion ? 'followup_submitted' : 'completed', wp_get_referer() ?: home_url() ) );
     exit;
 }
 add_action( 'admin_post_'        . UPKEEPIFY_ADMIN_ACTION_PROVIDER_COMPLETION_SUBMIT, 'upkeepify_admin_post_provider_completion_submit' );
@@ -1290,6 +1361,152 @@ function upkeepify_get_resident_confirmation_url( $task_id ) {
     }
 
     return add_query_arg( UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN, rawurlencode( $token ), untrailingslashit( $confirmation_page ) );
+}
+
+/**
+ * Build the tokenized provider response URL for a response post.
+ *
+ * @param int $response_id Provider response post ID.
+ * @return string|null Full URL or null.
+ */
+function upkeepify_get_provider_response_url( $response_id ) {
+    $token = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN, true );
+    if ( empty( $token ) ) {
+        return null;
+    }
+
+    $settings      = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+    $response_page = isset( $settings[ UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE ] )
+        ? trailingslashit( $settings[ UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE ] )
+        : '';
+
+    if ( empty( $response_page ) ) {
+        return null;
+    }
+
+    return add_query_arg( UPKEEPIFY_QUERY_VAR_TOKEN, rawurlencode( $token ), untrailingslashit( $response_page ) );
+}
+
+/**
+ * Find the most recently completed provider response for a task.
+ *
+ * @param int $task_id Maintenance task post ID.
+ * @return WP_Post|null Provider response post or null.
+ */
+function upkeepify_get_latest_completed_response_for_task( $task_id ) {
+    $responses = get_posts( array(
+        'post_type'      => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES,
+        'post_status'    => 'any',
+        'posts_per_page' => 1,
+        'no_found_rows'  => true,
+        'orderby'        => 'meta_value_num',
+        'order'          => 'DESC',
+        'meta_key'       => UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT,
+        'meta_query'     => array(
+            array(
+                'key'     => UPKEEPIFY_META_KEY_RESPONSE_TASK_ID,
+                'value'   => intval( $task_id ),
+                'type'    => 'NUMERIC',
+            ),
+            array(
+                'key'     => UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT,
+                'compare' => 'EXISTS',
+            ),
+        ),
+    ) );
+
+    return ! empty( $responses ) ? $responses[0] : null;
+}
+
+/**
+ * Notify the contractor that a resident reported a completion issue.
+ *
+ * @param int     $task_id     Maintenance task post ID.
+ * @param WP_Post $task_post   Maintenance task post object.
+ * @param int     $response_id Provider response post ID.
+ * @param string  $note        Resident note.
+ * @return bool True when sent.
+ */
+function upkeepify_send_contractor_resident_issue_email( $task_id, $task_post, $response_id, $note ) {
+    $provider_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true ) );
+    $provider_term = $provider_id ? get_term( $provider_id, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ) : null;
+    $provider_name = ( $provider_term && ! is_wp_error( $provider_term ) ) ? $provider_term->name : __( 'Contractor', 'upkeepify' );
+    $provider_email = $provider_id ? get_term_meta( $provider_id, UPKEEPIFY_TERM_META_PROVIDER_EMAIL, true ) : '';
+
+    if ( ! is_email( $provider_email ) ) {
+        return false;
+    }
+
+    $response_url = upkeepify_get_provider_response_url( $response_id );
+    if ( ! $response_url ) {
+        return false;
+    }
+
+    $subject = sprintf( __( '[%s] Resident reported an issue: %s', 'upkeepify' ), get_bloginfo( 'name' ), $task_post->post_title );
+    $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
+    $body   .= '<h2>' . esc_html__( 'Resident Follow-up Requested', 'upkeepify' ) . '</h2>';
+    $body   .= '<p>' . sprintf( esc_html__( 'Hi %s,', 'upkeepify' ), esc_html( $provider_name ) ) . '</p>';
+    $body   .= '<p>' . sprintf( esc_html__( 'The resident was not satisfied with "%s". The trustee has also been notified and will review the job.', 'upkeepify' ), esc_html( $task_post->post_title ) ) . '</p>';
+    if ( $note ) {
+        $body .= '<p><strong>' . esc_html__( 'Resident comment:', 'upkeepify' ) . '</strong><br>' . nl2br( esc_html( $note ) ) . '</p>';
+    }
+    $body .= '<p>' . esc_html__( 'You can submit a follow-up note or photos using your job link. This does not close the issue; it gives the trustee more information while they review.', 'upkeepify' ) . '</p>';
+    $body .= '<p style="margin:24px 0;">';
+    $body .= '<a href="' . esc_url( $response_url ) . '" style="background:#0073aa;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;display:inline-block;">';
+    $body .= esc_html__( 'Submit follow-up', 'upkeepify' );
+    $body .= '</a></p>';
+    $body .= '<p style="color:#999;font-size:12px;">' . esc_html__( 'Or copy this link:', 'upkeepify' ) . '<br>';
+    $body .= '<code style="word-break:break-all;">' . esc_url( $response_url ) . '</code></p>';
+    $body .= '</div>';
+
+    $sent = wp_mail( $provider_email, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+    if ( $sent ) {
+        update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_CONTRACTOR_NOTIFIED_AT, time() );
+    }
+
+    return $sent;
+}
+
+/**
+ * Determine whether contractors should be notified about resident issues.
+ *
+ * Missing settings use the product default: notify the contractor.
+ *
+ * @param array $settings Plugin settings.
+ * @return bool
+ */
+function upkeepify_should_notify_contractor_on_resident_issue( $settings ) {
+    $settings = is_array( $settings ) ? $settings : array();
+
+    return array_key_exists( UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE, $settings )
+        ? ! empty( $settings[ UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE ] )
+        : true;
+}
+
+/**
+ * Open the follow-up state when a resident is not satisfied.
+ *
+ * @param int     $task_id   Maintenance task post ID.
+ * @param WP_Post $task_post Maintenance task post object.
+ * @param array   $settings  Plugin settings.
+ * @param string  $note      Resident note.
+ * @return WP_Post|null Completed response selected for follow-up.
+ */
+function upkeepify_open_resident_issue_followup( $task_id, $task_post, $settings, $note ) {
+    $completed_response = upkeepify_get_latest_completed_response_for_task( $task_id );
+    if ( ! $completed_response ) {
+        return null;
+    }
+
+    update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE );
+    update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID, intval( $completed_response->ID ) );
+    update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_REPORTED_AT, time() );
+
+    if ( upkeepify_should_notify_contractor_on_resident_issue( $settings ) ) {
+        upkeepify_send_contractor_resident_issue_email( $task_id, $task_post, intval( $completed_response->ID ), $note );
+    }
+
+    return $completed_response;
 }
 
 /**
@@ -1413,37 +1630,16 @@ function upkeepify_resident_confirmation_form_shortcode() {
         ) . '</p>';
         echo '<p>' . ( $was_satisfied === '1'
             ? esc_html__( 'You marked this job as: Satisfied.', 'upkeepify' )
-            : esc_html__( 'You marked this job as: Not satisfied.', 'upkeepify' ) ) . '</p>';
+            : esc_html__( 'You marked this job as: Not satisfied. The property manager has been asked to review it.', 'upkeepify' ) ) . '</p>';
         echo '</div>';
         return ob_get_clean();
     }
 
-    // Find the most recently completed response for this task.
-    $responses = get_posts( array(
-        'post_type'      => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES,
-        'post_status'    => 'any',
-        'posts_per_page' => 1,
-        'no_found_rows'  => true,
-        'orderby'        => 'meta_value_num',
-        'order'          => 'DESC',
-        'meta_key'       => UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT,
-        'meta_query'     => array(
-            array(
-                'key'     => UPKEEPIFY_META_KEY_RESPONSE_TASK_ID,
-                'value'   => $task_id,
-                'type'    => 'NUMERIC',
-            ),
-            array(
-                'key'     => UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT,
-                'compare' => 'EXISTS',
-            ),
-        ),
-    ) );
-
     $completion_photos = array();
     $provider_name     = '';
-    if ( ! empty( $responses ) ) {
-        $resp_id           = $responses[0]->ID;
+    $completed_response = upkeepify_get_latest_completed_response_for_task( $task_id );
+    if ( $completed_response ) {
+        $resp_id           = $completed_response->ID;
         $completion_photos = get_post_meta( $resp_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_PHOTOS, true );
         $completion_photos = is_array( $completion_photos ) ? $completion_photos : array();
         $provider_id       = intval( get_post_meta( $resp_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true ) );
@@ -1534,8 +1730,9 @@ function upkeepify_resident_confirmation_form_shortcode() {
 /**
  * Handle resident confirmation form submission.
  *
- * Saves the resident's vote to the task post meta and notifies the trustee
- * that the lifecycle is closed.
+ * Saves the resident's vote to the task post meta. Satisfied feedback closes
+ * the lifecycle; dissatisfied feedback opens trustee review and can notify
+ * the contractor for a follow-up.
  *
  * @hook admin_post_{UPKEEPIFY_ADMIN_ACTION_RESIDENT_CONFIRM_SUBMIT}
  * @hook admin_post_nopriv_{UPKEEPIFY_ADMIN_ACTION_RESIDENT_CONFIRM_SUBMIT}
@@ -1575,23 +1772,47 @@ function upkeepify_admin_post_resident_confirm_submit() {
         update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRM_NOTE, substr( $note, 0, 500 ) );
     }
 
-    // Notify trustee — lifecycle is now closed.
+    // Notify trustee. A satisfied response closes the lifecycle; a dissatisfied
+    // response opens a review/follow-up state.
     $settings  = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
     $recipient = ! empty( $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] ) ? $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] : get_option( 'admin_email' );
+    $notify_contractor_on_issue = upkeepify_should_notify_contractor_on_resident_issue( $settings );
 
     $satisfaction_label = $satisfied === '1'
         ? __( 'Satisfied ✓', 'upkeepify' )
         : __( 'Not satisfied ✗', 'upkeepify' );
 
-    $subject = sprintf( __( '[%s] Lifecycle closed — resident confirmed: %s', 'upkeepify' ), get_bloginfo( 'name' ), $task->post_title );
+    $completed_response = null;
+    if ( $satisfied === '0' ) {
+        $completed_response = upkeepify_open_resident_issue_followup( $task_id, $task, $settings, $note );
+    } elseif ( $satisfied === '1' ) {
+        update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, '' );
+        update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID, '' );
+    }
+
+    $subject = $satisfied === '1'
+        ? sprintf( __( '[%s] Lifecycle closed — resident confirmed: %s', 'upkeepify' ), get_bloginfo( 'name' ), $task->post_title )
+        : sprintf( __( '[%s] Resident reported an issue: %s', 'upkeepify' ), get_bloginfo( 'name' ), $task->post_title );
     $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
-    $body   .= '<h2>' . esc_html__( 'Resident Confirmation Received', 'upkeepify' ) . '</h2>';
-    $body   .= '<p>' . sprintf( esc_html__( 'The resident has confirmed the completion of "%s".', 'upkeepify' ), esc_html( $task->post_title ) ) . '</p>';
+    $body   .= '<h2>' . ( $satisfied === '1'
+        ? esc_html__( 'Resident Confirmation Received', 'upkeepify' )
+        : esc_html__( 'Resident Issue Reported', 'upkeepify' ) ) . '</h2>';
+    $body   .= '<p>' . ( $satisfied === '1'
+        ? sprintf( esc_html__( 'The resident has confirmed the completion of "%s".', 'upkeepify' ), esc_html( $task->post_title ) )
+        : sprintf( esc_html__( 'The resident was not satisfied with "%s". Review the issue before closing the job.', 'upkeepify' ), esc_html( $task->post_title ) ) ) . '</p>';
     $body   .= '<p><strong>' . esc_html__( 'Satisfaction:', 'upkeepify' ) . '</strong> ' . esc_html( $satisfaction_label ) . '</p>';
     if ( $note ) {
         $body .= '<p><strong>' . esc_html__( 'Resident comment:', 'upkeepify' ) . '</strong><br>' . nl2br( esc_html( $note ) ) . '</p>';
     }
-    $body .= '<p style="color:#666;font-size:12px;">' . esc_html__( 'The full job lifecycle is now closed.', 'upkeepify' ) . '</p>';
+    if ( $satisfied === '0' ) {
+        $contractor_notice = $notify_contractor_on_issue && $completed_response
+            ? __( 'The contractor has been notified and can submit a follow-up note/photos using their existing job link.', 'upkeepify' )
+            : __( 'Contractor notification is disabled or no completed contractor response was found.', 'upkeepify' );
+        $body .= '<p>' . esc_html( $contractor_notice ) . '</p>';
+        $body .= '<p style="color:#666;font-size:12px;">' . esc_html__( 'This job is pending trustee review; the contractor cannot close it from the follow-up link.', 'upkeepify' ) . '</p>';
+    } else {
+        $body .= '<p style="color:#666;font-size:12px;">' . esc_html__( 'The full job lifecycle is now closed.', 'upkeepify' ) . '</p>';
+    }
     $body .= '</div>';
 
     wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );

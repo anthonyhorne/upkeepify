@@ -161,6 +161,9 @@ Options are stored in `wp_options`.
 | `UPKEEPIFY_SETTING_CURRENCY` | `upkeepify_currency` | string | `$` | Currency symbol for estimates | `includes/shortcodes.php` |
 | `UPKEEPIFY_SETTING_ENABLE_THANK_YOU_PAGE` | `upkeepify_enable_thank_you_page` | bool/int | `0` | Enable custom thank-you redirect | `includes/settings.php` |
 | `UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL` | `upkeepify_thank_you_page_url` | string | `''` | Thank-you page URL | `includes/settings.php` |
+| `UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE` | `upkeepify_provider_response_page` | string | `''` | Contractor response page URL | `includes/settings.php`, `includes/shortcodes.php` |
+| `UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE` | `upkeepify_resident_confirmation_page` | string | `''` | Resident confirmation page URL | `includes/settings.php`, `includes/shortcodes.php` |
+| `UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE` | `upkeepify_notify_contractor_on_resident_issue` | bool/int | `1` | Notify contractor when resident is not satisfied | `includes/settings.php`, `includes/shortcodes.php` |
 
 ### 6.2 Sample Data Marker
 

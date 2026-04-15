@@ -101,6 +101,7 @@ $GLOBALS['_upkeepify_test_inserted_posts']  = [];
 $GLOBALS['_upkeepify_test_deleted_attachments'] = [];
 $GLOBALS['_upkeepify_test_deleted_posts']   = [];
 $GLOBALS['_upkeepify_test_deleted_terms']   = [];
+$GLOBALS['_upkeepify_test_mail']            = [];
 
 // ─── Load plugin constants ────────────────────────────────────────────────────
 
@@ -131,6 +132,13 @@ function update_post_meta( $post_id, $key, $value ) {
 }
 
 function get_post( $post_id = null ) {
+	foreach ( $GLOBALS['_upkeepify_test_posts'] as $posts ) {
+		foreach ( $posts as $post ) {
+			if ( is_object( $post ) && isset( $post->ID ) && intval( $post->ID ) === intval( $post_id ) ) {
+				return $post;
+			}
+		}
+	}
 	return null;
 }
 
@@ -207,6 +215,13 @@ function delete_transient( $transient ) {
 }
 
 function wp_mail( $to, $subject, $message, $headers = '', $attachments = [] ) {
+	$GLOBALS['_upkeepify_test_mail'][] = [
+		'to'          => $to,
+		'subject'     => $subject,
+		'message'     => $message,
+		'headers'     => $headers,
+		'attachments' => $attachments,
+	];
 	return true;
 }
 
@@ -572,6 +587,16 @@ function wp_die( $message = '', $title = '', $args = [] ) {
 }
 
 function get_term( $term, $taxonomy = '', $output = OBJECT, $filter = 'raw' ) {
+    $terms = isset( $GLOBALS['_upkeepify_test_taxonomy_terms'][ $taxonomy ] )
+        ? $GLOBALS['_upkeepify_test_taxonomy_terms'][ $taxonomy ]
+        : [];
+
+    foreach ( $terms as $candidate ) {
+        if ( is_object( $candidate ) && isset( $candidate->term_id ) && intval( $candidate->term_id ) === intval( $term ) ) {
+            return $candidate;
+        }
+    }
+
     return null;
 }
 

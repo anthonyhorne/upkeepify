@@ -17,3 +17,6 @@ Use this checklist before tagging or deploying changes that touch public task su
 - Edit and update the already-published task.
 - Confirm provider response posts are not duplicated on later updates.
 - If resident email was supplied, complete the contractor flow through completion proof and confirm the resident confirmation email is sent.
+- Submit a resident "No, there is an issue" response and confirm the trustee receives a review email instead of a lifecycle-closed email.
+- With "Notify Contractor When Resident Reports an Issue" enabled, confirm the contractor receives the follow-up email and their token link opens a follow-up note/photo form.
+- Submit the contractor follow-up and confirm the trustee receives the follow-up review email; the contractor should not be able to close the lifecycle from that link.

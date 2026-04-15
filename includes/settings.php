@@ -236,6 +236,18 @@ add_settings_field(
         )
     );
 
+    add_settings_field(
+        UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE,
+        __('Notify Contractor When Resident Reports an Issue', 'upkeepify'),
+        'upkeepify_checkbox_field_callback',
+        UPKEEPIFY_OPTION_SETTINGS,
+        'upkeepify_contractor_invite_settings',
+        array(
+            'label_for'   => UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE,
+            'description' => __('When a resident is not satisfied after completion, email the contractor their response link so they can submit a follow-up note or photos while the trustee reviews.', 'upkeepify'),
+        )
+    );
+
     // Thank You Page Setting
     add_settings_section(
         'upkeepify_provider_thank_you_settings',
@@ -332,8 +344,15 @@ function upkeepify_settings_page() {
  */
 function upkeepify_checkbox_field_callback($args) {
     $options = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
-    $checked = isset($options[$args['label_for']]) ? (bool) $options[$args['label_for']] : false;
+    $defaults = function_exists( 'upkeepify_get_default_settings' ) ? upkeepify_get_default_settings() : array();
+    $checked = isset($options[$args['label_for']])
+        ? (bool) $options[$args['label_for']]
+        : ( ! empty( $defaults[ $args['label_for'] ] ) );
+    echo '<input type="hidden" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']" value="0">';
     echo '<input id="' . esc_attr($args['label_for']) . '" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']" type="checkbox" value="1" ' . checked($checked, true, false) . '>';
+    if ( ! empty( $args['description'] ) ) {
+        echo '<p class="description">' . esc_html( $args['description'] ) . '</p>';
+    }
 }
 
 /**
@@ -353,6 +372,9 @@ function upkeepify_text_field_callback($args) {
     $options = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
     $value = isset($options[$args['label_for']]) ? $options[$args['label_for']] : '';
     echo '<input id="' . esc_attr($args['label_for']) . '" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']" type="text" value="' . esc_attr($value) . '">';
+    if ( ! empty( $args['description'] ) ) {
+        echo '<p class="description">' . esc_html( $args['description'] ) . '</p>';
+    }
 }
 
 /**

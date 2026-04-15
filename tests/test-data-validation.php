@@ -366,9 +366,11 @@ class DataValidationTest extends TestCase {
 	public function test_validate_settings_casts_boolean_fields_to_int() {
 		$result = upkeepify_validate_settings( [
 			UPKEEPIFY_SETTING_SMTP_OPTION => true,
+			UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE => true,
 		] );
 		$this->assertIsArray( $result );
 		$this->assertSame( 1, $result[ UPKEEPIFY_SETTING_SMTP_OPTION ] );
+		$this->assertSame( 1, $result[ UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE ] );
 	}
 
 	public function test_validate_settings_empty_value_gives_zero_for_boolean_field() {

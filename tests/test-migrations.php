@@ -36,6 +36,9 @@ class MigrationsTest extends TestCase {
 			UPKEEPIFY_SETTING_CURRENCY,
 			UPKEEPIFY_SETTING_ENABLE_THANK_YOU_PAGE,
 			UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL,
+			UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE,
+			UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE,
+			UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE,
 		];
 		foreach ( $expected_keys as $key ) {
 			$this->assertArrayHasKey( $key, $defaults, "Missing default setting: $key" );
@@ -68,6 +71,8 @@ class MigrationsTest extends TestCase {
 			UPKEEPIFY_SETTING_SMTP_HOST,
 			UPKEEPIFY_SETTING_OVERRIDE_EMAIL,
 			UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL,
+			UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE,
+			UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE,
 		];
 		foreach ( $string_fields as $field ) {
 			$this->assertSame( '', $defaults[ $field ], "Field $field should default to empty string" );
@@ -86,6 +91,11 @@ class MigrationsTest extends TestCase {
 		foreach ( $boolean_fields as $field ) {
 			$this->assertSame( 0, $defaults[ $field ], "Field $field should default to 0" );
 		}
+	}
+
+	public function test_get_default_settings_contractor_issue_notifications_enabled_by_default() {
+		$defaults = upkeepify_get_default_settings();
+		$this->assertSame( 1, $defaults[ UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE ] );
 	}
 
 	// ─── upkeepify_get_current_db_version ────────────────────────────────────

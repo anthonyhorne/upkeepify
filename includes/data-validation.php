@@ -226,11 +226,14 @@ function upkeepify_validate_settings($settings) {
             case UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING:
             case UPKEEPIFY_SETTING_ENABLE_TOKEN_UPDATE:
             case UPKEEPIFY_SETTING_ENABLE_THANK_YOU_PAGE:
+            case UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE:
                 $sanitized[$key] = !empty($value) ? 1 : 0;
                 break;
 
             case UPKEEPIFY_SETTING_SMTP_HOST:
             case UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL:
+            case UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE:
+            case UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE:
                 $sanitized[$key] = sanitize_text_field((string) $value);
                 break;
 

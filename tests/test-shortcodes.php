@@ -26,6 +26,7 @@ class ShortcodesTest extends TestCase {
 		$GLOBALS['_upkeepify_test_taxonomy_terms'] = [];
 		$GLOBALS['_upkeepify_test_object_terms']   = [];
 		$GLOBALS['_upkeepify_test_inserted_posts'] = [];
+		$GLOBALS['_upkeepify_test_mail']           = [];
 		$_SERVER['REQUEST_URI']                    = '/report-an-issue';
 		$_SERVER['REQUEST_METHOD']                 = 'GET';
 		$_GET                                      = [];
@@ -182,6 +183,98 @@ class ShortcodesTest extends TestCase {
 		// Settings have no confirmation page URL — should return null.
 		$url = upkeepify_get_resident_confirmation_url( 42 );
 		$this->assertNull( $url );
+	}
+
+	// ─── upkeepify_get_provider_response_url ───────────────────────────────────
+
+	public function test_get_provider_response_url_uses_configured_response_page() {
+		$GLOBALS['_upkeepify_test_options'][ UPKEEPIFY_OPTION_SETTINGS ][ UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE ] = 'https://example.com/provider-response';
+		$GLOBALS['_upkeepify_test_cache'] = [];
+		$GLOBALS['_upkeepify_test_post_meta'][123][ UPKEEPIFY_META_KEY_RESPONSE_TOKEN ] = 'providertoken123';
+
+		$url = upkeepify_get_provider_response_url( 123 );
+
+		$this->assertSame( 'https://example.com/provider-response?upkeepify_token=providertoken123', $url );
+	}
+
+	public function test_send_contractor_resident_issue_email_notifies_provider_and_marks_task() {
+		$task_id     = 42;
+		$response_id = 123;
+		$provider_id = 77;
+		$task        = new WP_Post( [
+			'ID'           => $task_id,
+			'post_title'   => 'Leaking roof',
+			'post_type'    => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
+			'post_content' => 'Leak above the garage.',
+		] );
+
+		$GLOBALS['_upkeepify_test_options'][ UPKEEPIFY_OPTION_SETTINGS ][ UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE ] = 'https://example.com/provider-response';
+		$GLOBALS['_upkeepify_test_cache'] = [];
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_PROVIDER_ID ] = $provider_id;
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TOKEN ] = 'providertoken123';
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ] = [
+			new WP_Term( [
+				'term_id' => $provider_id,
+				'name'    => 'Fix It Fast',
+			] ),
+		];
+		$GLOBALS['_upkeepify_test_term_meta'][ $provider_id ][ UPKEEPIFY_TERM_META_PROVIDER_EMAIL ] = 'contractor@example.com';
+
+		$sent = upkeepify_send_contractor_resident_issue_email( $task_id, $task, $response_id, 'Still leaking.' );
+
+		$this->assertTrue( $sent );
+		$this->assertCount( 1, $GLOBALS['_upkeepify_test_mail'] );
+		$this->assertSame( 'contractor@example.com', $GLOBALS['_upkeepify_test_mail'][0]['to'] );
+		$this->assertStringContainsString( 'Resident reported an issue', $GLOBALS['_upkeepify_test_mail'][0]['subject'] );
+		$this->assertStringContainsString( 'Still leaking.', $GLOBALS['_upkeepify_test_mail'][0]['message'] );
+		$this->assertNotEmpty( $GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_CONTRACTOR_NOTIFIED_AT ] );
+	}
+
+	public function test_open_resident_issue_followup_sets_review_state_and_notifies_contractor() {
+		$task_id     = 42;
+		$response_id = 123;
+		$provider_id = 77;
+		$task        = new WP_Post( [
+			'ID'           => $task_id,
+			'post_title'   => 'Leaking roof',
+			'post_type'    => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
+			'post_content' => 'Leak above the garage.',
+		] );
+		$response    = new WP_Post( [
+			'ID'        => $response_id,
+			'post_type' => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES,
+		] );
+
+		$GLOBALS['_upkeepify_test_options'][ UPKEEPIFY_OPTION_SETTINGS ][ UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE ] = 'https://example.com/provider-response';
+		$GLOBALS['_upkeepify_test_cache'] = [];
+		$GLOBALS['_upkeepify_test_posts'][ UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES ] = [ $response ];
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TASK_ID ] = $task_id;
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT ] = time();
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_PROVIDER_ID ] = $provider_id;
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TOKEN ] = 'providertoken123';
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ] = [
+			new WP_Term( [
+				'term_id' => $provider_id,
+				'name'    => 'Fix It Fast',
+			] ),
+		];
+		$GLOBALS['_upkeepify_test_term_meta'][ $provider_id ][ UPKEEPIFY_TERM_META_PROVIDER_EMAIL ] = 'contractor@example.com';
+
+		$completed_response = upkeepify_open_resident_issue_followup(
+			$task_id,
+			$task,
+			[
+				UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE => 1,
+			],
+			'Still leaking.'
+		);
+
+		$this->assertSame( $response_id, $completed_response->ID );
+		$this->assertSame( UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE, $GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS ] );
+		$this->assertSame( $response_id, $GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID ] );
+		$this->assertNotEmpty( $GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_REPORTED_AT ] );
+		$this->assertCount( 1, $GLOBALS['_upkeepify_test_mail'] );
+		$this->assertSame( 'contractor@example.com', $GLOBALS['_upkeepify_test_mail'][0]['to'] );
 	}
 
 	// ─── upkeepify_send_resident_confirmation_email ──────────────────────────────

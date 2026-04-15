@@ -103,12 +103,23 @@ define('UPKEEPIFY_META_KEY_TASK_RESIDENT_TOKEN',        '_upkeepify_resident_tok
 define('UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED',    '_upkeepify_resident_confirmed');     // '1' = satisfied, '0' = not satisfied
 define('UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT', '_upkeepify_resident_confirmed_at'); // Unix timestamp of confirmation
 define('UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRM_NOTE', '_upkeepify_resident_confirm_note'); // optional resident note (≤500 chars)
+define('UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS', '_upkeepify_resident_followup_status'); // resident_issue|contractor_followup_submitted
+define('UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID', '_upkeepify_resident_followup_response_id'); // provider response handling the follow-up
+define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_REPORTED_AT', '_upkeepify_resident_issue_reported_at'); // Unix timestamp of resident issue report
+define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_CONTRACTOR_NOTIFIED_AT', '_upkeepify_resident_issue_contractor_notified_at'); // Unix timestamp of contractor notice
 define('UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE',  'upkeepify_resident_confirmation_page');
 define('UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN',            'upkeepify_resident_token');
 define('UPKEEPIFY_SHORTCODE_RESIDENT_CONFIRMATION_FORM', 'upkeepify_resident_confirmation_form');
 define('UPKEEPIFY_ADMIN_ACTION_RESIDENT_CONFIRM_SUBMIT', 'upkeepify_resident_confirm_submit');
 define('UPKEEPIFY_NONCE_RESIDENT_CONFIRM',               'upkeepify_resident_confirm_nonce');
 define('UPKEEPIFY_NONCE_ACTION_RESIDENT_CONFIRM',        'upkeepify_resident_confirm_action');
+define('UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE',       'resident_issue');
+define('UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_SUBMITTED',   'contractor_followup_submitted');
+
+// Contractor follow-up after resident dissatisfaction.
+define('UPKEEPIFY_META_KEY_RESPONSE_FOLLOWUP_COMPLETED_AT', 'response_followup_completed_at');
+define('UPKEEPIFY_META_KEY_RESPONSE_FOLLOWUP_NOTE',         'response_followup_note');
+define('UPKEEPIFY_META_KEY_RESPONSE_FOLLOWUP_PHOTOS',       'response_followup_photos');
 
 // Option Names
 define('UPKEEPIFY_OPTION_SETTINGS', 'upkeepify_settings');
@@ -127,6 +138,7 @@ define('UPKEEPIFY_SETTING_NUMBER_OF_UNITS', 'upkeepify_number_of_units');
 define('UPKEEPIFY_SETTING_CURRENCY', 'upkeepify_currency');
 define('UPKEEPIFY_SETTING_ENABLE_THANK_YOU_PAGE', 'upkeepify_enable_thank_you_page');
 define('UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL', 'upkeepify_thank_you_page_url');
+define('UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE', 'upkeepify_notify_contractor_on_resident_issue');
 
 // Shortcode Names
 define('UPKEEPIFY_SHORTCODE_MAINTENANCE_TASKS', 'maintenance_tasks');

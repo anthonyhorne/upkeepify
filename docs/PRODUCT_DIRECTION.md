@@ -52,6 +52,7 @@ The response post (already the core data carrier) becomes the single state machi
 
 ```
 SUBMITTED → INVITED → ACCEPTED/DECLINED → ESTIMATED → QUOTED → COMPLETED → CONFIRMED
+                                                                     ↘ NEEDS REVIEW → CONTRACTOR FOLLOW-UP
 ```
 
 | State | Actor | Key data captured |
@@ -62,7 +63,9 @@ SUBMITTED → INVITED → ACCEPTED/DECLINED → ESTIMATED → QUOTED → COMPLET
 | Estimated | Contractor | Ballpark figure, optional range + confidence, availability, short note |
 | Quoted | Contractor | Formal quote amount, updated availability |
 | Completed | Contractor | Completion photos, confirmation of work done |
-| Confirmed | Resident | Up/down vote via tokenized link |
+| Confirmed | Resident | Satisfied vote via tokenized link |
+| Needs review | Resident / Trustee | Not-satisfied vote, resident comment, contractor follow-up status |
+| Contractor follow-up | Contractor | Follow-up note/photos after resident dissatisfaction |
 
 Each transition is timestamped and immutable. The estimate and formal quote are separate records — the delta between them is what feeds variance scoring.
 
@@ -73,6 +76,7 @@ Each transition is timestamped and immutable. The estimate and formal quote are 
 - Formal quote field: `formal_quote_amount`
 - Completion photo attachments (same pattern as task photo, linked to response post)
 - Resident confirmation field: `resident_confirmed` (boolean + timestamp)
+- Resident follow-up status for not-satisfied responses
 - Resident confirmation token (separate from contractor token, issued at task creation)
 
 ---
@@ -104,7 +108,7 @@ Same token, later form state. Contractor records:
 Completion photos trigger resident notification.
 
 ### Step 4 — Resident confirmation token flow
-At task submission, generate a second token for the original submitter. On contractor completion, send the resident a tokenized link with a simple up/down confirmation. No login, one click. Confirmation closes the lifecycle.
+At task submission, generate a second token for the original submitter. On contractor completion, send the resident a tokenized link with a simple up/down confirmation. No login, one click. Satisfied confirmation closes the lifecycle. A not-satisfied response opens trustee review and can optionally notify the contractor so they can submit a follow-up note/photos before the trustee makes the final closure decision.
 
 ### Step 5 — Variance scoring and contractor reliability views
 Trustees see, per contractor:
