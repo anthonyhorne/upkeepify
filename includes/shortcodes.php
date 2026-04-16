@@ -155,6 +155,203 @@ function upkeepify_list_tasks_shortcode() {
 }
 
 /**
+ * Pick a compact icon for resident-facing task choices.
+ *
+ * Uses HTML entities so source files remain ASCII while the UI can still show
+ * recognizable tap targets.
+ *
+ * @since 1.0
+ * @param string $label Choice label.
+ * @return string HTML entity for the icon.
+ */
+function upkeepify_get_task_choice_icon($label) {
+    $text = strtolower($label);
+
+    if (strpos($text, 'plumb') !== false || strpos($text, 'water') !== false || strpos($text, 'leak') !== false || strpos($text, 'drain') !== false) {
+        return '&#128167;';
+    }
+
+    if (strpos($text, 'electric') !== false || strpos($text, 'light') !== false || strpos($text, 'power') !== false) {
+        return '&#9889;';
+    }
+
+    if (strpos($text, 'garden') !== false || strpos($text, 'landscap') !== false || strpos($text, 'tree') !== false) {
+        return '&#127807;';
+    }
+
+    if (strpos($text, 'security') !== false || strpos($text, 'gate') !== false || strpos($text, 'lock') !== false) {
+        return '&#128274;';
+    }
+
+    if (strpos($text, 'clean') !== false || strpos($text, 'bin') !== false || strpos($text, 'rubbish') !== false) {
+        return '&#10024;';
+    }
+
+    if (strpos($text, 'inspect') !== false) {
+        return '&#128269;';
+    }
+
+    if (strpos($text, 'install') !== false) {
+        return '&#128296;';
+    }
+
+    return '&#128295;';
+}
+
+/**
+ * Render taxonomy choices as tap-friendly chips.
+ *
+ * @since 1.0
+ * @param string $taxonomy_slug Taxonomy slug.
+ * @param string $legend Fieldset legend.
+ * @return void
+ */
+function upkeepify_render_taxonomy_choice_chips($taxonomy_slug, $legend) {
+    $terms = get_terms(array('taxonomy' => $taxonomy_slug, 'hide_empty' => false));
+    if (is_wp_error($terms) || empty($terms)) {
+        return;
+    }
+
+    echo '<fieldset class="upkeepify-choice-group">';
+    echo '<legend>' . esc_html($legend) . '</legend>';
+    echo '<div class="upkeepify-choice-grid">';
+    foreach ($terms as $term) {
+        echo '<label class="upkeepify-choice-chip">';
+        echo '<input type="radio" name="' . esc_attr($taxonomy_slug) . '" value="' . esc_attr($term->term_id) . '" required>';
+        echo '<span class="upkeepify-choice-card">';
+        echo '<span class="upkeepify-choice-icon" aria-hidden="true">' . upkeepify_get_task_choice_icon($term->name) . '</span>';
+        echo '<span class="upkeepify-choice-label">' . esc_html($term->name) . '</span>';
+        echo '</span>';
+        echo '</label>';
+    }
+    echo '</div>';
+    echo '</fieldset>';
+}
+
+/**
+ * Render unit selection as chips grouped into small ranges.
+ *
+ * @since 1.0
+ * @param int $number_of_units Number of units configured for the complex.
+ * @return void
+ */
+function upkeepify_render_unit_picker($number_of_units) {
+    $number_of_units = max(1, intval($number_of_units));
+    $range_size = 5;
+
+    echo '<fieldset class="upkeepify-choice-group upkeepify-unit-picker">';
+    echo '<legend>' . esc_html__('Where is it?', 'upkeepify') . '</legend>';
+
+    if ($number_of_units > 20) {
+        echo '<div class="upkeepify-range-toolbar" aria-label="' . esc_attr__('Unit ranges', 'upkeepify') . '">';
+        for ($start = 1; $start <= $number_of_units; $start += $range_size) {
+            $end = min($number_of_units, $start + $range_size - 1);
+            $range_id = 'upkeepify-unit-range-' . $start . '-' . $end;
+            $active = (1 === $start) ? ' is-active' : '';
+            echo '<button type="button" class="upkeepify-range-button' . esc_attr($active) . '" data-upkeepify-range="' . esc_attr($range_id) . '">';
+            echo esc_html($start . '-' . $end);
+            echo '</button>';
+        }
+        echo '</div>';
+    }
+
+    for ($start = 1; $start <= $number_of_units; $start += $range_size) {
+        $end = min($number_of_units, $start + $range_size - 1);
+        $range_id = 'upkeepify-unit-range-' . $start . '-' . $end;
+        $active = ($number_of_units <= 20 || 1 === $start) ? ' is-active' : '';
+        echo '<div class="upkeepify-unit-group' . esc_attr($active) . '" id="' . esc_attr($range_id) . '">';
+        if ($number_of_units > 20) {
+            echo '<span class="upkeepify-unit-range-label">' . esc_html(sprintf(__('Units %1$d-%2$d', 'upkeepify'), $start, $end)) . '</span>';
+        }
+        echo '<div class="upkeepify-unit-grid">';
+        for ($unit = $start; $unit <= $end; $unit++) {
+            echo '<label class="upkeepify-unit-chip">';
+            echo '<input type="radio" name="nearest_unit" value="' . esc_attr($unit) . '" required>';
+            echo '<span>' . esc_html($unit) . '</span>';
+            echo '</label>';
+        }
+        echo '</div>';
+        echo '</div>';
+    }
+
+    echo '</fieldset>';
+}
+
+/**
+ * Build a short, readable title from the resident submission.
+ *
+ * @since 1.0
+ * @param string $description Task description.
+ * @param string $category_name Selected category name.
+ * @param string $type_name Selected type name.
+ * @param int    $nearest_unit Nearest unit number.
+ * @return string Inferred task title.
+ */
+function upkeepify_infer_task_title($description, $category_name = '', $type_name = '', $nearest_unit = 0) {
+    $category_name = trim(wp_strip_all_tags((string) $category_name));
+    $type_name = trim(wp_strip_all_tags((string) $type_name));
+    $nearest_unit = intval($nearest_unit);
+
+    $generic_categories = array('general', 'general maintenance', 'other');
+    $generic_types = array('', 'repair', 'inspection', 'installation', 'other');
+
+    $category_key = strtolower($category_name);
+    $type_key = strtolower($type_name);
+    $base = '';
+
+    if ($category_name !== '' && !in_array($category_key, $generic_categories, true)) {
+        $base = $category_name;
+        if ($type_name !== '' && !in_array($type_key, $generic_types, true)) {
+            $base .= ' ' . strtolower($type_name);
+        } elseif ('repair' === $type_key) {
+            $base .= ' repair';
+        } else {
+            $base .= ' issue';
+        }
+    } elseif ($type_name !== '' && !in_array($type_key, $generic_types, true)) {
+        $base = $type_name;
+    } else {
+        $base = upkeepify_summarize_task_description($description);
+    }
+
+    if ($base === '') {
+        $base = __('Maintenance request', 'upkeepify');
+    }
+
+    if ($nearest_unit > 0) {
+        $base .= ' near Unit ' . $nearest_unit;
+    }
+
+    return sanitize_text_field($base);
+}
+
+/**
+ * Summarize the first useful words from a resident description.
+ *
+ * @since 1.0
+ * @param string $description Task description.
+ * @return string Short summary.
+ */
+function upkeepify_summarize_task_description($description) {
+    $text = preg_replace('/\s+/', ' ', trim(wp_strip_all_tags((string) $description)));
+    if ($text === '') {
+        return '';
+    }
+
+    $parts = preg_split('/[.!?\r\n]+/', $text);
+    $summary = isset($parts[0]) ? trim($parts[0]) : $text;
+    $summary = preg_replace('/^(please|the|a|an|there is|there are|we have|i have)\s+/i', '', $summary);
+    $summary = wp_trim_words($summary, 8, '');
+    $summary = trim($summary, " \t\n\r\0\x0B,.;:-");
+
+    if ($summary === '') {
+        return '';
+    }
+
+    return ucfirst($summary);
+}
+
+/**
  * Shortcode for task submission form.
  *
  * @since 1.0
@@ -182,60 +379,49 @@ function upkeepify_task_form_shortcode() {
     ob_start();
 
     $form_action = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
-    echo '<form id="upkeepify-task-form" class="upkeepify-form" action="' . esc_url($form_action) . '" method="post" enctype="multipart/form-data">';
+    echo '<form id="upkeepify-task-form" class="upkeepify-form upkeepify-request-form" action="' . esc_url($form_action) . '" method="post" enctype="multipart/form-data">';
     wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT, UPKEEPIFY_NONCE_TASK_SUBMIT);
     echo '<input type="hidden" name="upkeepify_upload" value="1">';
+    echo '<input type="hidden" id="task_title" name="task_title" value="">';
 
-    echo '<p><label for="task_title">' . esc_html__('Task Title:', 'upkeepify') . '</label><br />';
-    echo '<input type="text" id="task_title" name="task_title" required class="upkeepify-input"></p>';
+    echo '<div class="upkeepify-form-intro">';
+    echo '<h2>' . esc_html__('Report an issue', 'upkeepify') . '</h2>';
+    echo '<p>' . esc_html__('Tap what fits, add the details, and send it through.', 'upkeepify') . '</p>';
+    echo '</div>';
 
-    echo '<p><label for="task_description">' . esc_html__('Task Description:', 'upkeepify') . '</label><br />';
-    echo '<textarea id="task_description" name="task_description" required class="upkeepify-textarea"></textarea></p>';
+    upkeepify_render_taxonomy_choice_chips(UPKEEPIFY_TAXONOMY_TASK_CATEGORY, __('What needs attention?', 'upkeepify'));
+    upkeepify_render_taxonomy_choice_chips(UPKEEPIFY_TAXONOMY_TASK_TYPE, __('What kind of work?', 'upkeepify'));
+    upkeepify_render_unit_picker($number_of_units);
 
-    echo '<p><label for="nearest_unit">' . esc_html__('Nearest Unit:', 'upkeepify') . '</label><br />';
-    echo '<select id="nearest_unit" name="nearest_unit" class="upkeepify-select">';
-    for ($i = 1; $i <= $number_of_units; $i++) {
-        echo '<option value="' . esc_attr($i) . '">' . esc_html($i) . '</option>';
-    }
-    echo '</select></p>';
+    echo '<div class="upkeepify-field">';
+    echo '<label for="task_description">' . esc_html__('What is happening?', 'upkeepify') . '</label>';
+    echo '<textarea id="task_description" name="task_description" required class="upkeepify-textarea" rows="5" placeholder="' . esc_attr__('A short note is enough.', 'upkeepify') . '"></textarea>';
+    echo '</div>';
 
-    // Only expose resident-facing taxonomies; status and provider are internal workflow fields.
-    $public_taxonomies = array( UPKEEPIFY_TAXONOMY_TASK_CATEGORY, UPKEEPIFY_TAXONOMY_TASK_TYPE );
-    foreach ($public_taxonomies as $taxonomy_slug) {
-        $taxonomy_obj = get_taxonomy( $taxonomy_slug );
-        if ( ! $taxonomy_obj ) {
-            continue;
-        }
-        $terms = get_terms(array('taxonomy' => $taxonomy_slug, 'hide_empty' => false));
-        if (is_wp_error($terms) || empty($terms)) {
-            continue;
-        }
+    echo '<div class="upkeepify-field upkeepify-photo-field">';
+    echo '<label for="task_photo">' . esc_html__('Add a photo', 'upkeepify') . '</label>';
+    echo '<input type="file" id="task_photo" name="task_photo" accept="image/*" capture="environment" class="upkeepify-file-input">';
+    echo '</div>';
 
-        echo '<p><label for="' . esc_attr($taxonomy_slug) . '">' . esc_html($taxonomy_obj->label) . ':</label><br />';
-        echo '<select id="' . esc_attr($taxonomy_slug) . '" name="' . esc_attr($taxonomy_slug) . '" class="upkeepify-select">';
-        foreach ($terms as $term) {
-            echo '<option value="' . esc_attr($term->term_id) . '">' . esc_html($term->name) . '</option>';
-        }
-        echo '</select></p>';
-    }
+    echo '<div class="upkeepify-field upkeepify-geo-field">';
+    echo '<input type="hidden" id="gps_latitude" name="gps_latitude" class="upkeepify-input">';
+    echo '<input type="hidden" id="gps_longitude" name="gps_longitude" class="upkeepify-input">';
+    echo '<button type="button" class="upkeepify-geo-button">' . esc_html__('Use my current location', 'upkeepify') . '</button>';
+    echo '<span class="upkeepify-geo-status" role="status">' . esc_html__('Optional, useful for common areas.', 'upkeepify') . '</span>';
+    echo '</div>';
 
-    echo '<p><label for="task_photo">' . esc_html__('Upload Photo:', 'upkeepify') . '</label><br />';
-    echo '<input type="file" id="task_photo" name="task_photo" accept="image/*" capture="environment" class="upkeepify-file-input"></p>';
+    echo '<div class="upkeepify-field">';
+    echo '<label for="submitter_email">' . esc_html__('Your email', 'upkeepify') . '</label>';
+    echo '<input type="email" id="submitter_email" name="submitter_email" class="upkeepify-input" placeholder="' . esc_attr__('Optional', 'upkeepify') . '">';
+    echo '<span class="upkeepify-field-hint">' . esc_html__('We can send you a link to confirm the job is done.', 'upkeepify') . '</span>';
+    echo '</div>';
 
-    echo '<p><label for="gps_latitude">' . esc_html__('Latitude (optional):', 'upkeepify') . '</label><br />';
-    echo '<input type="text" id="gps_latitude" name="gps_latitude" class="upkeepify-input"></p>';
+    echo '<div class="upkeepify-field upkeepify-math-field">';
+    echo '<label for="math">' . esc_html(sprintf(__('What is %1$d + %2$d?', 'upkeepify'), $num1, $num2)) . '</label>';
+    echo '<input type="text" id="math" name="math" required class="upkeepify-input" inputmode="numeric">';
+    echo '</div>';
 
-    echo '<p><label for="gps_longitude">' . esc_html__('Longitude (optional):', 'upkeepify') . '</label><br />';
-    echo '<input type="text" id="gps_longitude" name="gps_longitude" class="upkeepify-input"></p>';
-
-    echo '<p><label for="submitter_email">' . esc_html__('Your email (optional):', 'upkeepify') . '</label><br />';
-    echo '<input type="email" id="submitter_email" name="submitter_email" class="upkeepify-input">';
-    echo '<span class="upkeepify-field-hint">' . esc_html__('We\'ll send you a link to confirm the job is done.', 'upkeepify') . '</span></p>';
-
-    echo '<p><label for="math">' . esc_html(sprintf('What is %d + %d? (For spam prevention)', $num1, $num2)) . '</label><br />';
-    echo '<input type="text" id="math" name="math" required class="upkeepify-input"></p>';
-
-    echo '<p><input type="submit" name="upkeepify_task_submit" value="' . esc_attr__('Submit Task', 'upkeepify') . '" class="upkeepify-submit-button"></p>';
+    echo '<p><input type="submit" name="upkeepify_task_submit" value="' . esc_attr__('Send request', 'upkeepify') . '" class="upkeepify-submit-button"></p>';
 
     echo '</form>';
 
@@ -278,12 +464,33 @@ function upkeepify_handle_task_form_submission() {
         return;
     }
 
-    $task_title = isset($_POST['task_title']) ? sanitize_text_field( wp_unslash( $_POST['task_title'] ) ) : '';
     $task_description = isset($_POST['task_description']) ? sanitize_textarea_field( wp_unslash( $_POST['task_description'] ) ) : '';
 
     $nearest_unit = isset($_POST['nearest_unit']) ? intval( wp_unslash( $_POST['nearest_unit'] ) ) : 1;
     $latitude = isset($_POST['gps_latitude']) ? sanitize_text_field( wp_unslash( $_POST['gps_latitude'] ) ) : '';
     $longitude = isset($_POST['gps_longitude']) ? sanitize_text_field( wp_unslash( $_POST['gps_longitude'] ) ) : '';
+
+    $public_taxonomies = array( UPKEEPIFY_TAXONOMY_TASK_CATEGORY, UPKEEPIFY_TAXONOMY_TASK_TYPE );
+    $submitted_terms = array();
+    foreach ($public_taxonomies as $taxonomy) {
+        $taxonomy_term = isset($_POST[$taxonomy]) ? sanitize_text_field( wp_unslash( $_POST[$taxonomy] ) ) : '';
+        if (is_numeric($taxonomy_term)) {
+            $term = get_term(intval($taxonomy_term), $taxonomy);
+            if ($term && !is_wp_error($term) && isset($term->name)) {
+                $submitted_terms[$taxonomy] = $term->name;
+            }
+        }
+    }
+
+    $task_title = isset($_POST['task_title']) ? sanitize_text_field( wp_unslash( $_POST['task_title'] ) ) : '';
+    if ('' === $task_title) {
+        $task_title = upkeepify_infer_task_title(
+            $task_description,
+            isset($submitted_terms[UPKEEPIFY_TAXONOMY_TASK_CATEGORY]) ? $submitted_terms[UPKEEPIFY_TAXONOMY_TASK_CATEGORY] : '',
+            isset($submitted_terms[UPKEEPIFY_TAXONOMY_TASK_TYPE]) ? $submitted_terms[UPKEEPIFY_TAXONOMY_TASK_TYPE] : '',
+            $nearest_unit
+        );
+    }
 
     // Handle file upload with scoped validation
     $photo_attachment_id = 0;
@@ -385,7 +592,6 @@ function upkeepify_handle_task_form_submission() {
     }
 
     // Only accept resident-facing taxonomies; never allow status or provider from public input.
-    $public_taxonomies = array( UPKEEPIFY_TAXONOMY_TASK_CATEGORY, UPKEEPIFY_TAXONOMY_TASK_TYPE );
     foreach ($public_taxonomies as $taxonomy) {
         $taxonomy_term = isset($_POST[$taxonomy]) ? sanitize_text_field( wp_unslash( $_POST[$taxonomy] ) ) : '';
         if (is_numeric($taxonomy_term)) {

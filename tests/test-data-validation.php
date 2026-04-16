@@ -412,12 +412,12 @@ class DataValidationTest extends TestCase {
 		$this->assertSame( 'upkeepify_invalid_number_of_units', $result->get_error_code() );
 	}
 
-	public function test_validate_settings_accepts_zero_units() {
+	public function test_validate_settings_rejects_zero_units() {
 		$result = upkeepify_validate_settings( [
 			UPKEEPIFY_SETTING_NUMBER_OF_UNITS => 0,
 		] );
-		$this->assertIsArray( $result );
-		$this->assertSame( 0, $result[ UPKEEPIFY_SETTING_NUMBER_OF_UNITS ] );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'upkeepify_invalid_number_of_units', $result->get_error_code() );
 	}
 
 	public function test_validate_settings_rejects_currency_too_long() {

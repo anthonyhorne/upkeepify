@@ -158,6 +158,7 @@ define('UPKEEPIFY_NONCE_TASK_SUBMIT', 'upkeepify_task_submit_nonce');
 define('UPKEEPIFY_NONCE_RUN_MIGRATIONS', 'upkeepify_run_migrations_nonce');
 define('UPKEEPIFY_NONCE_DB_TOOLS', 'upkeepify_db_tools_nonce');
 define('UPKEEPIFY_NONCE_PROVIDER_RESPONSE', 'upkeepify_provider_response_nonce');
+define('UPKEEPIFY_NONCE_CREATE_DEFAULT_PAGES', 'upkeepify_create_default_pages_nonce');
 
 // Nonce Actions
 define('UPKEEPIFY_NONCE_ACTION_NEAREST_UNIT_SAVE', 'upkeepify_nearest_unit_save');
@@ -166,6 +167,7 @@ define('UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT', 'upkeepify_task_submit_action');
 define('UPKEEPIFY_NONCE_ACTION_RUN_MIGRATIONS', 'upkeepify_run_migrations');
 define('UPKEEPIFY_NONCE_ACTION_DB_TOOLS', 'upkeepify_db_tools');
 define('UPKEEPIFY_NONCE_ACTION_PROVIDER_RESPONSE', 'upkeepify_provider_response_action');
+define('UPKEEPIFY_NONCE_ACTION_CREATE_DEFAULT_PAGES', 'upkeepify_create_default_pages');
 
 // Post Type Labels
 define('UPKEEPIFY_LABEL_MAINTENANCE_TASKS', 'Maintenance Tasks');
@@ -203,6 +205,7 @@ define('UPKEEPIFY_ADMIN_ACTION_EXPORT_ALL_DATA', 'upkeepify_export_all_data');
 define('UPKEEPIFY_ADMIN_ACTION_EXPORT_SETTINGS', 'upkeepify_export_settings');
 define('UPKEEPIFY_ADMIN_ACTION_IMPORT_ALL_DATA', 'upkeepify_import_all_data');
 define('UPKEEPIFY_ADMIN_ACTION_ROLLBACK_LAST_MIGRATION', 'upkeepify_rollback_last_migration');
+define('UPKEEPIFY_ADMIN_ACTION_CREATE_DEFAULT_PAGES', 'upkeepify_create_default_pages');
 
 // Menu Slugs
 define('UPKEEPIFY_MENU_SETTINGS_PAGE', 'upkeepify_settings');

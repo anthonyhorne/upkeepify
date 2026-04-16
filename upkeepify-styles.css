@@ -259,6 +259,212 @@
     background-color: #f9f9f9;
 }
 
+/* Tap-first resident request form */
+.upkeepify-request-form {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.upkeepify-form-intro {
+    margin-bottom: 20px;
+}
+
+.upkeepify-form-intro h2 {
+    margin: 0 0 6px;
+    color: #1f2933;
+}
+
+.upkeepify-form-intro p {
+    margin: 0;
+    color: #52606d;
+}
+
+.upkeepify-choice-group {
+    margin: 0 0 22px;
+    padding: 0;
+    border: 0;
+}
+
+.upkeepify-choice-group legend,
+.upkeepify-field label {
+    margin-bottom: 10px;
+    font-weight: 700;
+    color: #1f2933;
+}
+
+.upkeepify-choice-grid,
+.upkeepify-unit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
+    gap: 10px;
+}
+
+.upkeepify-choice-chip,
+.upkeepify-unit-chip {
+    position: relative;
+    display: block;
+    margin: 0;
+}
+
+.upkeepify-choice-chip input,
+.upkeepify-unit-chip input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.upkeepify-choice-card,
+.upkeepify-unit-chip span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 56px;
+    padding: 10px;
+    border: 1px solid #cbd5df;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #1f2933;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.upkeepify-choice-card {
+    gap: 8px;
+    justify-content: flex-start;
+}
+
+.upkeepify-choice-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #eef7f2;
+    color: #0f766e;
+    font-size: 1.1rem;
+    flex: 0 0 auto;
+}
+
+.upkeepify-choice-label {
+    overflow-wrap: anywhere;
+}
+
+.upkeepify-choice-chip input:checked + .upkeepify-choice-card,
+.upkeepify-unit-chip input:checked + span {
+    border-color: #0f766e;
+    background: #f0fdfa;
+    box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.18);
+}
+
+.upkeepify-choice-chip:focus-within .upkeepify-choice-card,
+.upkeepify-unit-chip:focus-within span {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.upkeepify-range-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.upkeepify-range-button,
+.upkeepify-geo-button {
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1px solid #9aa5b1;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #1f2933;
+    cursor: pointer;
+}
+
+.upkeepify-range-button.is-active,
+.upkeepify-geo-button:hover {
+    border-color: #0f766e;
+    background: #eef7f2;
+}
+
+.upkeepify-unit-group {
+    display: none;
+}
+
+.upkeepify-unit-group.is-active {
+    display: block;
+}
+
+.upkeepify-unit-range-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #52606d;
+    font-size: 0.95rem;
+}
+
+.upkeepify-field {
+    margin-bottom: 18px;
+}
+
+.upkeepify-request-form .upkeepify-input,
+.upkeepify-request-form .upkeepify-textarea,
+.upkeepify-request-form .upkeepify-file-input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #cbd5df;
+    border-radius: 8px;
+    padding: 12px;
+    background: #ffffff;
+}
+
+.upkeepify-request-form .upkeepify-textarea {
+    min-height: 132px;
+    resize: vertical;
+}
+
+.upkeepify-geo-field {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.upkeepify-geo-status,
+.upkeepify-field-hint {
+    display: block;
+    color: #52606d;
+    font-size: 0.95rem;
+}
+
+.upkeepify-request-form .upkeepify-submit-button {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 8px;
+    background: #0f766e;
+    font-weight: 700;
+}
+
+.upkeepify-request-form .upkeepify-submit-button:hover {
+    background: #115e59;
+}
+
+@media (max-width: 520px) {
+    .upkeepify-choice-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .upkeepify-unit-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .upkeepify-choice-card {
+        min-height: 72px;
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
 .upkeepify-tasks-table tr:hover {
     background-color: #f1f1f1;
 }

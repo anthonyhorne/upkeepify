@@ -247,8 +247,8 @@ function upkeepify_validate_settings($settings) {
 
             case UPKEEPIFY_SETTING_NUMBER_OF_UNITS:
                 $count = intval($value);
-                if ($count < 0) {
-                    return new WP_Error('upkeepify_invalid_number_of_units', 'Number of units must be 0 or greater.');
+                if ($count < 1) {
+                    return new WP_Error('upkeepify_invalid_number_of_units', 'Number of units must be 1 or greater.');
                 }
                 $sanitized[$key] = $count;
                 break;

@@ -193,6 +193,32 @@ function upkeepify_get_shortcode_output_cached($shortcode_name, $atts, $callback
 }
 
 /**
+ * Flush an object-cache group when supported, with a safe fallback for older WordPress.
+ *
+ * `wp_cache_flush_group()` is only available on newer WordPress versions. Calling it
+ * unconditionally can fatal on older installs during settings saves.
+ *
+ * @since 1.0
+ * @param string $group Cache group to flush.
+ * @return bool True when an object-cache flush method was called.
+ */
+function upkeepify_flush_object_cache_group($group) {
+    if (function_exists('wp_cache_supports') && wp_cache_supports('flush_group') && function_exists('wp_cache_flush_group')) {
+        return wp_cache_flush_group($group);
+    }
+
+    if (!function_exists('wp_cache_supports') && function_exists('wp_cache_flush_group')) {
+        return wp_cache_flush_group($group);
+    }
+
+    if (function_exists('wp_cache_flush')) {
+        return wp_cache_flush();
+    }
+
+    return false;
+}
+
+/**
  * Invalidate all caches for a specific group.
  *
  * Clears all cached data for a given cache group. Useful for bulk
@@ -209,6 +235,10 @@ function upkeepify_invalidate_cache_group($group) {
     switch ($group) {
         case UPKEEPIFY_CACHE_GROUP_SETTINGS:
         case 'settings':
+            if (!is_object($wpdb) || !method_exists($wpdb, 'get_col')) {
+                upkeepify_flush_object_cache_group(UPKEEPIFY_CACHE_GROUP_SETTINGS);
+                break;
+            }
             $prefix = UPKEEPIFY_CACHE_GROUP_SETTINGS . '_';
             $transients = $wpdb->get_col(
                 $wpdb->prepare(
@@ -220,11 +250,15 @@ function upkeepify_invalidate_cache_group($group) {
                 delete_transient(str_replace('_transient_', '', $transient));
                 $count++;
             }
-            wp_cache_flush_group(UPKEEPIFY_CACHE_GROUP_SETTINGS);
+            upkeepify_flush_object_cache_group(UPKEEPIFY_CACHE_GROUP_SETTINGS);
             break;
 
         case UPKEEPIFY_CACHE_GROUP_TERMS:
         case 'terms':
+            if (!is_object($wpdb) || !method_exists($wpdb, 'get_col')) {
+                upkeepify_flush_object_cache_group(UPKEEPIFY_CACHE_GROUP_TERMS);
+                break;
+            }
             $prefix = UPKEEPIFY_CACHE_GROUP_TERMS . '_';
             $transients = $wpdb->get_col(
                 $wpdb->prepare(
@@ -236,11 +270,15 @@ function upkeepify_invalidate_cache_group($group) {
                 delete_transient(str_replace('_transient_', '', $transient));
                 $count++;
             }
-            wp_cache_flush_group(UPKEEPIFY_CACHE_GROUP_TERMS);
+            upkeepify_flush_object_cache_group(UPKEEPIFY_CACHE_GROUP_TERMS);
             break;
 
         case UPKEEPIFY_CACHE_GROUP_SHORTCODES:
         case 'shortcodes':
+            if (!is_object($wpdb) || !method_exists($wpdb, 'get_col')) {
+                upkeepify_flush_object_cache_group(UPKEEPIFY_CACHE_GROUP_SHORTCODES);
+                break;
+            }
             $prefix = UPKEEPIFY_CACHE_GROUP_SHORTCODES . '_';
             $transients = $wpdb->get_col(
                 $wpdb->prepare(
@@ -252,11 +290,15 @@ function upkeepify_invalidate_cache_group($group) {
                 delete_transient(str_replace('_transient_', '', $transient));
                 $count++;
             }
-            wp_cache_flush_group(UPKEEPIFY_CACHE_GROUP_SHORTCODES);
+            upkeepify_flush_object_cache_group(UPKEEPIFY_CACHE_GROUP_SHORTCODES);
             break;
 
         case UPKEEPIFY_CACHE_GROUP_QUERIES:
         case 'queries':
+            if (!is_object($wpdb) || !method_exists($wpdb, 'get_col')) {
+                upkeepify_flush_object_cache_group(UPKEEPIFY_CACHE_GROUP_QUERIES);
+                break;
+            }
             $prefix = UPKEEPIFY_CACHE_GROUP_QUERIES . '_';
             $transients = $wpdb->get_col(
                 $wpdb->prepare(
@@ -268,7 +310,7 @@ function upkeepify_invalidate_cache_group($group) {
                 delete_transient(str_replace('_transient_', '', $transient));
                 $count++;
             }
-            wp_cache_flush_group(UPKEEPIFY_CACHE_GROUP_QUERIES);
+            upkeepify_flush_object_cache_group(UPKEEPIFY_CACHE_GROUP_QUERIES);
             break;
 
         case 'all':
@@ -388,7 +430,7 @@ function upkeepify_register_cache_invalidation_hooks() {
     add_action('delete_term', 'upkeepify_invalidate_terms_cache_on_term_update', 10, 3);
 
     // Clear settings cache when options are updated
-    add_action('update_option_' . UPKEEPIFY_OPTION_SETTINGS, 'upkeepify_invalidate_settings_cache');
+    add_action('update_option_' . UPKEEPIFY_OPTION_SETTINGS, 'upkeepify_invalidate_settings_cache', 10, 2);
 }
 add_action('init', 'upkeepify_register_cache_invalidation_hooks');
 
@@ -437,7 +479,7 @@ function upkeepify_invalidate_terms_cache_on_term_update($term_id, $tt_id, $taxo
  * @param mixed $old_value Old settings value.
  * @param mixed $new_value New settings value.
  */
-function upkeepify_invalidate_settings_cache($old_value, $new_value) {
+function upkeepify_invalidate_settings_cache($old_value = null, $new_value = null) {
     upkeepify_invalidate_cache_group('settings');
     upkeepify_invalidate_cache_group('shortcodes');
 }

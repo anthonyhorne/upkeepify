@@ -151,6 +151,28 @@ function get_post( $post_id = null ) {
 	return null;
 }
 
+function get_page_by_path( $page_path, $output = OBJECT, $post_type = 'page' ) {
+	$posts = isset( $GLOBALS['_upkeepify_test_posts'][ $post_type ] )
+		? $GLOBALS['_upkeepify_test_posts'][ $post_type ]
+		: [];
+
+	foreach ( $posts as $post ) {
+		if ( is_object( $post ) && isset( $post->post_name ) && $post->post_name === $page_path ) {
+			return $post;
+		}
+	}
+
+	return null;
+}
+
+function get_permalink( $post = 0 ) {
+	$post_obj = is_object( $post ) ? $post : get_post( $post );
+	if ( $post_obj && isset( $post_obj->post_name ) ) {
+		return home_url( '/' . $post_obj->post_name . '/' );
+	}
+	return home_url( '/?p=' . intval( $post ) );
+}
+
 function get_option( $option, $default = false ) {
 	if ( array_key_exists( $option, $GLOBALS['_upkeepify_test_options'] ) ) {
 		return $GLOBALS['_upkeepify_test_options'][ $option ];

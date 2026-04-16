@@ -38,12 +38,30 @@ class ShortcodesTest extends TestCase {
 	public function test_task_form_renders_optional_gps_fields_without_required_attribute() {
 		$output = upkeepify_task_form_shortcode();
 
-		$this->assertStringContainsString( 'Latitude (optional):', $output );
-		$this->assertStringContainsString( 'Longitude (optional):', $output );
-		$this->assertStringContainsString( 'id="gps_latitude" name="gps_latitude" class="upkeepify-input"', $output );
-		$this->assertStringContainsString( 'id="gps_longitude" name="gps_longitude" class="upkeepify-input"', $output );
+		$this->assertStringContainsString( 'Use my current location', $output );
+		$this->assertStringContainsString( 'type="hidden" id="gps_latitude" name="gps_latitude" class="upkeepify-input"', $output );
+		$this->assertStringContainsString( 'type="hidden" id="gps_longitude" name="gps_longitude" class="upkeepify-input"', $output );
 		$this->assertStringNotContainsString( 'id="gps_latitude" name="gps_latitude" required', $output );
 		$this->assertStringNotContainsString( 'id="gps_longitude" name="gps_longitude" required', $output );
+	}
+
+	public function test_task_form_uses_tap_first_fields_without_visible_title() {
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_TASK_CATEGORY ] = [
+			new WP_Term(
+				[
+					'term_id' => 12,
+					'name'    => 'Plumbing',
+				]
+			),
+		];
+
+		$output = upkeepify_task_form_shortcode();
+
+		$this->assertStringContainsString( 'Report an issue', $output );
+		$this->assertStringContainsString( 'What needs attention?', $output );
+		$this->assertStringContainsString( 'upkeepify-choice-chip', $output );
+		$this->assertStringContainsString( 'type="hidden" id="task_title" name="task_title"', $output );
+		$this->assertStringNotContainsString( 'Task Title:', $output );
 	}
 
 	public function test_task_form_renders_optional_email_field() {
@@ -106,6 +124,44 @@ class ShortcodesTest extends TestCase {
 		$this->assertSame( [ 12 ], $GLOBALS['_upkeepify_test_object_terms'][1000][ UPKEEPIFY_TAXONOMY_TASK_CATEGORY ] );
 		$this->assertSame( [ 22 ], $GLOBALS['_upkeepify_test_object_terms'][1000][ UPKEEPIFY_TAXONOMY_TASK_TYPE ] );
 		$this->assertSame( [ 31 ], $GLOBALS['_upkeepify_test_object_terms'][1000][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] );
+	}
+
+	public function test_task_form_submission_infers_title_when_title_is_empty() {
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_SESSION[ UPKEEPIFY_SESSION_MATH_RESULT ] = 4;
+
+		$_POST = [
+			'upkeepify_task_submit'          => '1',
+			'upkeepify_upload'               => '1',
+			UPKEEPIFY_NONCE_TASK_SUBMIT      => 'test-nonce',
+			'math'                           => '4',
+			'task_title'                     => '',
+			'task_description'               => 'The kitchen sink is leaking under the cupboard.',
+			'nearest_unit'                   => '7',
+			UPKEEPIFY_TAXONOMY_TASK_CATEGORY => '12',
+			UPKEEPIFY_TAXONOMY_TASK_TYPE     => '22',
+		];
+
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_TASK_CATEGORY ] = [
+			new WP_Term(
+				[
+					'term_id' => 12,
+					'name'    => 'Plumbing',
+				]
+			),
+		];
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_TASK_TYPE ] = [
+			new WP_Term(
+				[
+					'term_id' => 22,
+					'name'    => 'Repair',
+				]
+			),
+		];
+
+		upkeepify_handle_task_form_submission();
+
+		$this->assertSame( 'Plumbing repair near Unit 7', $GLOBALS['_upkeepify_test_inserted_posts'][1000]['post_title'] );
 	}
 
 	// ─── Resident confirmation form ──────────────────────────────────────────────

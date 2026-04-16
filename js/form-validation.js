@@ -14,6 +14,7 @@
          * Initialize form validation
          */
         init: function() {
+            this.setupTaskFormInteractions();
             this.setupTaskFormValidation();
             this.setupAdminFormValidation();
             this.setupProviderFormValidation();
@@ -22,16 +23,64 @@
         },
 
         /**
+         * Setup tap-first task form interactions.
+         */
+        setupTaskFormInteractions: function() {
+            $('form').on('click', '.upkeepify-range-button', function(e) {
+                e.preventDefault();
+
+                var $button = $(this);
+                var target = $button.data('upkeepify-range');
+                var $picker = $button.closest('.upkeepify-unit-picker');
+
+                $picker.find('.upkeepify-range-button').removeClass('is-active');
+                $button.addClass('is-active');
+                $picker.find('.upkeepify-unit-group').removeClass('is-active');
+                $('#' + target).addClass('is-active');
+            });
+
+            $('form').on('click', '.upkeepify-geo-button', function(e) {
+                e.preventDefault();
+
+                var $button = $(this);
+                var $field = $button.closest('.upkeepify-geo-field');
+                var $status = $field.find('.upkeepify-geo-status');
+                var $lat = $field.find('#gps_latitude');
+                var $lng = $field.find('#gps_longitude');
+
+                if (!navigator.geolocation) {
+                    $status.text('Location is not available on this device.');
+                    return;
+                }
+
+                $button.prop('disabled', true);
+                $status.text('Getting location...');
+
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        $lat.val(position.coords.latitude.toFixed(6)).trigger('change');
+                        $lng.val(position.coords.longitude.toFixed(6)).trigger('change');
+                        $status.text('Location added.');
+                        $button.prop('disabled', false);
+                    },
+                    function() {
+                        $status.text('No problem, unit number is enough.');
+                        $button.prop('disabled', false);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    }
+                );
+            });
+        },
+
+        /**
          * Setup validation rules for task submission form
          */
         setupTaskFormValidation: function() {
             this.validationRules['upkeepify-task-form'] = {
-                'task_title': {
-                    required: true,
-                    minLength: 3,
-                    maxLength: 200,
-                    message: 'Task title is required (3-200 characters)'
-                },
                 'task_description': {
                     required: true,
                     minLength: 10,
@@ -71,8 +120,8 @@
                 'number_of_units': {
                     required: true,
                     pattern: /^\d+$/,
-                    min: 0,
-                    message: 'Please enter a valid number of units (0 or greater)'
+                    min: 1,
+                    message: 'Please enter a valid number of units (1 or greater)'
                 },
                 'currency': {
                     required: true,

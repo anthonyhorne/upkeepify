@@ -56,6 +56,9 @@ function upkeepify_render_settings_field($args) {
     }
 
     echo '>';
+    if ( ! empty( $args['description'] ) ) {
+        echo '<p class="description">' . esc_html( $args['description'] ) . '</p>';
+    }
 }
 
 /**
@@ -185,9 +188,10 @@ add_settings_field(
         'name' => UPKEEPIFY_SETTING_NUMBER_OF_UNITS,
         'type' => 'number',
         'attributes' => [
-            'min' => '0', // Example validation attribute
+            'min' => '1',
             'step' => '1'
-        ]
+        ],
+        'description' => __('Used to build the resident unit buttons on the maintenance request form.', 'upkeepify'),
     ]
 );
 
@@ -317,6 +321,7 @@ function upkeepify_settings_page() {
     ?>
     <div class="wrap">
         <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+        <?php upkeepify_render_default_pages_setup_panel(); ?>
         <form action="options.php" method="post">
             <?php
             settings_fields('upkeepify');
@@ -327,6 +332,177 @@ function upkeepify_settings_page() {
     </div>
     <?php
 }
+
+/**
+ * Return the default front-end pages needed for a working Upkeepify flow.
+ *
+ * @since 1.0
+ * @return array<string,array<string,string|null>>
+ */
+function upkeepify_get_default_page_definitions() {
+    return array(
+        'request' => array(
+            'title'    => 'Maintenance Request',
+            'slug'     => 'maintenance-request',
+            'shortcode' => '[' . UPKEEPIFY_SHORTCODE_TASK_FORM . ']',
+            'setting'  => null,
+        ),
+        'tasks' => array(
+            'title'    => 'Maintenance Tasks',
+            'slug'     => 'maintenance-tasks',
+            'shortcode' => '[' . UPKEEPIFY_SHORTCODE_LIST_TASKS . ']',
+            'setting'  => null,
+        ),
+        'contractor_response' => array(
+            'title'    => 'Contractor Response',
+            'slug'     => 'contractor-response',
+            'shortcode' => '[' . UPKEEPIFY_SHORTCODE_PROVIDER_RESPONSE_FORM . ']',
+            'setting'  => UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE,
+        ),
+        'resident_confirmation' => array(
+            'title'    => 'Resident Confirmation',
+            'slug'     => 'resident-confirmation',
+            'shortcode' => '[' . UPKEEPIFY_SHORTCODE_RESIDENT_CONFIRMATION_FORM . ']',
+            'setting'  => UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE,
+        ),
+    );
+}
+
+/**
+ * Create or reuse a page containing a default shortcode.
+ *
+ * @since 1.0
+ * @param array $definition Page definition from upkeepify_get_default_page_definitions().
+ * @return array|WP_Error Page setup details or error.
+ */
+function upkeepify_create_or_reuse_default_page($definition) {
+    $page = get_page_by_path($definition['slug'], OBJECT, 'page');
+    $status = 'reused';
+
+    if (!$page) {
+        $page_id = wp_insert_post(
+            array(
+                'post_title'     => $definition['title'],
+                'post_name'      => $definition['slug'],
+                'post_content'   => $definition['shortcode'],
+                'post_status'    => 'publish',
+                'post_type'      => 'page',
+                'post_author'    => get_current_user_id(),
+                'comment_status' => 'closed',
+                'ping_status'    => 'closed',
+            ),
+            true
+        );
+
+        if (is_wp_error($page_id)) {
+            return $page_id;
+        }
+
+        $status = 'created';
+    } else {
+        $page_id = intval($page->ID);
+    }
+
+    return array(
+        'id'        => $page_id,
+        'title'     => $definition['title'],
+        'shortcode' => $definition['shortcode'],
+        'setting'   => $definition['setting'],
+        'status'    => $status,
+        'url'       => get_permalink($page_id),
+    );
+}
+
+/**
+ * Create default pages and save settings that need page URLs.
+ *
+ * @since 1.0
+ * @return array|WP_Error Page setup results or error.
+ */
+function upkeepify_create_default_pages() {
+    $definitions = upkeepify_get_default_page_definitions();
+    $results = array();
+
+    foreach ($definitions as $key => $definition) {
+        $result = upkeepify_create_or_reuse_default_page($definition);
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        $results[$key] = $result;
+    }
+
+    $settings = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
+    if (!is_array($settings)) {
+        $settings = array();
+    }
+
+    $settings = array_merge(upkeepify_get_default_settings(), $settings);
+    $settings[UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING] = 1;
+
+    foreach ($results as $result) {
+        if (!empty($result['setting']) && !empty($result['url'])) {
+            $settings[$result['setting']] = $result['url'];
+        }
+    }
+
+    $validated = upkeepify_validate_settings($settings);
+    if (is_wp_error($validated)) {
+        return $validated;
+    }
+
+    update_option(UPKEEPIFY_OPTION_SETTINGS, $validated, false);
+    upkeepify_invalidate_cache_group('settings');
+
+    return $results;
+}
+
+/**
+ * Render the setup panel for default pages.
+ *
+ * @since 1.0
+ */
+function upkeepify_render_default_pages_setup_panel() {
+    if (isset($_GET['upkeepify_pages_setup'])) {
+        $status = sanitize_key(wp_unslash($_GET['upkeepify_pages_setup']));
+        if ('success' === $status) {
+            echo '<div class="notice notice-success"><p>' . esc_html__('Default Upkeepify pages are ready.', 'upkeepify') . '</p></div>';
+        } elseif ('failed' === $status) {
+            echo '<div class="notice notice-error"><p>' . esc_html__('Default page setup could not be completed.', 'upkeepify') . '</p></div>';
+        }
+    }
+    ?>
+    <div class="card">
+        <h2><?php echo esc_html__('Default Setup', 'upkeepify'); ?></h2>
+        <p><?php echo esc_html__('Create the request, task list, contractor response, and resident confirmation pages in one step.', 'upkeepify'); ?></p>
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="<?php echo esc_attr(UPKEEPIFY_ADMIN_ACTION_CREATE_DEFAULT_PAGES); ?>">
+            <?php wp_nonce_field(UPKEEPIFY_NONCE_ACTION_CREATE_DEFAULT_PAGES, UPKEEPIFY_NONCE_CREATE_DEFAULT_PAGES); ?>
+            <?php submit_button(__('Create Default Pages', 'upkeepify'), 'secondary', 'submit', false); ?>
+        </form>
+    </div>
+    <?php
+}
+
+/**
+ * Handle default page setup requests from wp-admin.
+ *
+ * @since 1.0
+ */
+function upkeepify_admin_post_create_default_pages() {
+    if (!current_user_can('manage_options')) {
+        wp_die('Insufficient permissions');
+    }
+
+    check_admin_referer(UPKEEPIFY_NONCE_ACTION_CREATE_DEFAULT_PAGES, UPKEEPIFY_NONCE_CREATE_DEFAULT_PAGES);
+
+    $result = upkeepify_create_default_pages();
+    $status = is_wp_error($result) ? 'failed' : 'success';
+    $redirect = wp_get_referer() ?: admin_url('edit.php?post_type=' . UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS . '&page=' . UPKEEPIFY_MENU_SETUP_WIZARD_PAGE);
+
+    wp_safe_redirect(add_query_arg('upkeepify_pages_setup', $status, $redirect));
+    exit;
+}
+add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_CREATE_DEFAULT_PAGES, 'upkeepify_admin_post_create_default_pages');
 
 /**
  * Callback to render checkbox settings fields.
@@ -662,6 +838,7 @@ function upkeepify_setup_wizard_page() {
     <div class="wrap">
         <h1><?php echo esc_html__('Upkeepify Setup Wizard', 'upkeepify'); ?></h1>
         <p><?php echo esc_html__('Welcome to the Upkeepify Setup Wizard. Follow the steps below to configure the plugin.', 'upkeepify'); ?></p>
+        <?php upkeepify_render_default_pages_setup_panel(); ?>
         <form method="post" action="options.php">
             <?php
             settings_fields('upkeepify');
