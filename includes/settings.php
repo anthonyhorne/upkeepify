@@ -624,7 +624,7 @@ function upkeepify_enqueue_admin_scripts($hook_suffix) {
         'upkeepify-utils-js',
         $js_dir . 'utils.min.js',
         array('jquery'),
-        '1.0.0',
+        UPKEEPIFY_VERSION,
         true
     );
 
@@ -633,7 +633,7 @@ function upkeepify_enqueue_admin_scripts($hook_suffix) {
         'upkeepify-notifications-js',
         $js_dir . 'notifications.min.js',
         array('jquery', 'upkeepify-utils-js'),
-        '1.0.0',
+        UPKEEPIFY_VERSION,
         true
     );
 
@@ -642,7 +642,7 @@ function upkeepify_enqueue_admin_scripts($hook_suffix) {
         'upkeepify-admin-settings-js',
         $js_dir . 'admin-settings.min.js',
         array('jquery', 'upkeepify-utils-js', 'upkeepify-notifications-js'),
-        '1.0.1',
+        UPKEEPIFY_VERSION,
         true
     );
 }
@@ -698,7 +698,7 @@ function upkeepify_enqueue_frontend_scripts() {
         'upkeepify-utils-js',
         $js_dir . 'utils.min.js',
         array('jquery'),
-        '1.0.0',
+        UPKEEPIFY_VERSION,
         true
     );
 
@@ -707,7 +707,7 @@ function upkeepify_enqueue_frontend_scripts() {
         'upkeepify-notifications-js',
         $js_dir . 'notifications.min.js',
         array('jquery', 'upkeepify-utils-js'),
-        '1.0.0',
+        UPKEEPIFY_VERSION,
         true
     );
 
@@ -716,7 +716,7 @@ function upkeepify_enqueue_frontend_scripts() {
         'upkeepify-form-validation-js',
         $js_dir . 'form-validation.min.js',
         array('jquery', 'upkeepify-utils-js'),
-        '1.0.0',
+        UPKEEPIFY_VERSION,
         true
     );
 
@@ -725,7 +725,7 @@ function upkeepify_enqueue_frontend_scripts() {
         'upkeepify-upload-handler-js',
         $js_dir . 'upload-handler.min.js',
         array('jquery', 'upkeepify-utils-js'),
-        '1.0.0',
+        UPKEEPIFY_VERSION,
         true
     );
 
@@ -734,7 +734,7 @@ function upkeepify_enqueue_frontend_scripts() {
         'upkeepify-task-filters-js',
         $js_dir . 'task-filters.min.js',
         array('jquery', 'upkeepify-utils-js'),
-        '1.0.0',
+        UPKEEPIFY_VERSION,
         true
     );
 
@@ -743,7 +743,7 @@ function upkeepify_enqueue_frontend_scripts() {
         'upkeepify-calendar-interactions-js',
         $js_dir . 'calendar-interactions.min.js',
         array('jquery', 'upkeepify-utils-js'),
-        '1.0.0',
+        UPKEEPIFY_VERSION,
         true
     );
 
@@ -752,7 +752,7 @@ function upkeepify_enqueue_frontend_scripts() {
         'upkeepify-enhanced-styles',
         $css_dir . 'upkeepify-styles.css',
         array(),
-        '1.0.0'
+        UPKEEPIFY_VERSION
     );
 }
 add_action('wp_enqueue_scripts', 'upkeepify_enqueue_frontend_scripts');

@@ -4,7 +4,7 @@ Tags: maintenance, task-management, facility-management, HOA, property-managemen
 Requires at least: 5.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.0
+Stable tag: 1.1.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -104,6 +104,13 @@ Yes. Administrators can export all data via **Maintenance Tasks → Database Hea
 
 == Changelog ==
 
+= 1.1.0 - April 2026 =
+* Added one-click default page setup for resident, contractor, and confirmation flows
+* Redesigned the public request form around mobile-friendly tap controls
+* Added automatic task title inference from request details
+* Added optional geolocation capture button for common-area issues
+* Versioned front-end assets from the plugin version constant
+
 = 1.0 - March 2026 =
 * Initial release on WordPress.org
 * Task creation and management with full status workflow
@@ -117,6 +124,9 @@ Yes. Administrators can export all data via **Maintenance Tasks → Database Hea
 * Security audit completion (nonce verification, input sanitization, output escaping)
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Adds default setup pages and a faster resident request flow.
 
 = 1.0 =
 First public release. Fresh installation required. No upgrade path from previous versions.

@@ -444,6 +444,13 @@ If you encounter issues not covered here:
 
 ## Changelog
 
+### Version 1.1.0
+- Added one-click default page setup
+- Redesigned the resident request form for mobile tap-first submissions
+- Added inferred task titles from resident request details
+- Added optional geolocation capture button
+- Versioned front-end assets from the plugin version constant
+
 ### Version 1.0.0
 - Initial release
 - Maintenance Tasks custom post type
