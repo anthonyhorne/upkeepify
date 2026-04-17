@@ -107,6 +107,12 @@ define('UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS', '_upkeepify_resident_
 define('UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID', '_upkeepify_resident_followup_response_id'); // provider response handling the follow-up
 define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_REPORTED_AT', '_upkeepify_resident_issue_reported_at'); // Unix timestamp of resident issue report
 define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_CONTRACTOR_NOTIFIED_AT', '_upkeepify_resident_issue_contractor_notified_at'); // Unix timestamp of contractor notice
+define('UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_RESPONSE_ID', '_upkeepify_approved_estimate_response_id'); // provider response approved for formal quote
+define('UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_AT', '_upkeepify_approved_estimate_at'); // Unix timestamp of estimate approval
+define('UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_BY', '_upkeepify_approved_estimate_by'); // WP user ID that approved estimate
+define('UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_RESPONSE_ID', '_upkeepify_approved_quote_response_id'); // provider response approved for work/completion
+define('UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_AT', '_upkeepify_approved_quote_at'); // Unix timestamp of quote approval
+define('UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_BY', '_upkeepify_approved_quote_by'); // WP user ID that approved quote
 define('UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE',  'upkeepify_resident_confirmation_page');
 define('UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN',            'upkeepify_resident_token');
 define('UPKEEPIFY_SHORTCODE_RESIDENT_CONFIRMATION_FORM', 'upkeepify_resident_confirmation_form');
@@ -154,6 +160,7 @@ define('UPKEEPIFY_SHORTCODE_TASK_CALENDAR', 'upkeepify_task_calendar');
 // Nonce Names
 define('UPKEEPIFY_NONCE_NEAREST_UNIT', 'upkeepify_nearest_unit_nonce');
 define('UPKEEPIFY_NONCE_ROUGH_ESTIMATE', 'upkeepify_rough_estimate_nonce');
+define('UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE', 'upkeepify_trustee_lifecycle_nonce');
 define('UPKEEPIFY_NONCE_TASK_SUBMIT', 'upkeepify_task_submit_nonce');
 define('UPKEEPIFY_NONCE_RUN_MIGRATIONS', 'upkeepify_run_migrations_nonce');
 define('UPKEEPIFY_NONCE_DB_TOOLS', 'upkeepify_db_tools_nonce');
@@ -163,6 +170,7 @@ define('UPKEEPIFY_NONCE_CREATE_DEFAULT_PAGES', 'upkeepify_create_default_pages_n
 // Nonce Actions
 define('UPKEEPIFY_NONCE_ACTION_NEAREST_UNIT_SAVE', 'upkeepify_nearest_unit_save');
 define('UPKEEPIFY_NONCE_ACTION_ROUGH_ESTIMATE_SAVE', 'upkeepify_rough_estimate_save');
+define('UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE', 'upkeepify_trustee_lifecycle_action');
 define('UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT', 'upkeepify_task_submit_action');
 define('UPKEEPIFY_NONCE_ACTION_RUN_MIGRATIONS', 'upkeepify_run_migrations');
 define('UPKEEPIFY_NONCE_ACTION_DB_TOOLS', 'upkeepify_db_tools');
@@ -197,6 +205,7 @@ define('UPKEEPIFY_MAX_UPLOAD_SIZE', 2 * 1024 * 1024); // 2MB
 
 // Admin Actions
 define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT', 'upkeepify_provider_response_submit');
+define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_APPROVAL', 'upkeepify_trustee_lifecycle_approval');
 define('UPKEEPIFY_ADMIN_ACTION_RUN_MIGRATIONS', 'upkeepify_run_migrations');
 define('UPKEEPIFY_ADMIN_ACTION_REPAIR_SCHEMA', 'upkeepify_repair_schema');
 define('UPKEEPIFY_ADMIN_ACTION_RESET_DATABASE', 'upkeepify_reset_database');

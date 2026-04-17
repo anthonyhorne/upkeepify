@@ -246,6 +246,365 @@ function upkeepify_save_rough_estimate_meta_box_data($post_id) {
 add_action('save_post', 'upkeepify_save_rough_estimate_meta_box_data');
 
 /**
+ * Register the trustee lifecycle panel on maintenance task edit screens.
+ *
+ * @since 1.1
+ * @hook add_meta_boxes
+ */
+function upkeepify_add_trustee_lifecycle_meta_box() {
+    add_meta_box(
+        'upkeepify_trustee_lifecycle',
+        __('Trustee Lifecycle', 'upkeepify'),
+        'upkeepify_trustee_lifecycle_meta_box_callback',
+        UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
+        'normal',
+        'high'
+    );
+}
+add_action('add_meta_boxes', 'upkeepify_add_trustee_lifecycle_meta_box');
+
+/**
+ * Fetch provider responses connected to a maintenance task.
+ *
+ * @since 1.1
+ * @param int $task_id Maintenance task post ID.
+ * @return WP_Post[] Provider response posts.
+ */
+function upkeepify_get_provider_responses_for_task($task_id) {
+    return get_posts(
+        array(
+            'post_type'      => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES,
+            'post_status'    => 'any',
+            'posts_per_page' => 50,
+            'no_found_rows'  => true,
+            'orderby'        => 'date',
+            'order'          => 'ASC',
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Provider responses are linked to tasks through post meta in the existing schema.
+            'meta_query'     => array(
+                array(
+                    'key'     => UPKEEPIFY_META_KEY_RESPONSE_TASK_ID,
+                    'value'   => intval($task_id),
+                    'compare' => '=',
+                ),
+            ),
+        )
+    );
+}
+
+/**
+ * Return the display name for a provider response's provider term.
+ *
+ * @since 1.1
+ * @param int $response_id Provider response post ID.
+ * @return string Provider name.
+ */
+function upkeepify_get_response_provider_name($response_id) {
+    $provider_id = intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true));
+    if (!$provider_id) {
+        return __('Unknown provider', 'upkeepify');
+    }
+
+    $provider = get_term($provider_id, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER);
+    if ($provider && !is_wp_error($provider) && !empty($provider->name)) {
+        return $provider->name;
+    }
+
+    return __('Unknown provider', 'upkeepify');
+}
+
+/**
+ * Format a stored monetary value for lifecycle display.
+ *
+ * @since 1.1
+ * @param mixed  $amount   Stored numeric amount.
+ * @param string $currency Currency symbol.
+ * @return string Human-readable amount or dash.
+ */
+function upkeepify_format_lifecycle_money($amount, $currency) {
+    if ($amount === '' || $amount === null) {
+        return '&mdash;';
+    }
+
+    return esc_html($currency . number_format((float) $amount, 2));
+}
+
+/**
+ * Render a lifecycle approval button.
+ *
+ * @since 1.1
+ * @param int    $task_id     Maintenance task post ID.
+ * @param int    $response_id Provider response post ID.
+ * @param string $approval    Approval type: estimate|quote.
+ * @param string $label       Button label.
+ * @return void
+ */
+function upkeepify_render_lifecycle_approval_button($task_id, $response_id, $approval, $label) {
+    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block;margin:0;">';
+    echo '<input type="hidden" name="action" value="' . esc_attr(UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_APPROVAL) . '">';
+    echo '<input type="hidden" name="task_id" value="' . esc_attr($task_id) . '">';
+    echo '<input type="hidden" name="response_id" value="' . esc_attr($response_id) . '">';
+    echo '<input type="hidden" name="approval_type" value="' . esc_attr($approval) . '">';
+    wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+    echo '<button type="submit" class="button button-secondary">' . esc_html($label) . '</button>';
+    echo '</form>';
+}
+
+/**
+ * Render the trustee-facing response lifecycle panel.
+ *
+ * @since 1.1
+ * @param WP_Post $post Maintenance task post object.
+ * @return void
+ */
+function upkeepify_trustee_lifecycle_meta_box_callback($post) {
+    $responses = upkeepify_get_provider_responses_for_task($post->ID);
+    $settings  = function_exists('upkeepify_get_setting_cached') ? upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array()) : array();
+    $currency  = !empty($settings[UPKEEPIFY_SETTING_CURRENCY]) ? $settings[UPKEEPIFY_SETTING_CURRENCY] : '$';
+
+    $approved_estimate_id = intval(get_post_meta($post->ID, UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_RESPONSE_ID, true));
+    $approved_quote_id    = intval(get_post_meta($post->ID, UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_RESPONSE_ID, true));
+
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice flag after a nonce-checked redirect.
+    if (isset($_GET['upkeepify_lifecycle'])) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice flag after a nonce-checked redirect.
+        $notice = sanitize_key(wp_unslash($_GET['upkeepify_lifecycle']));
+        if ($notice === 'estimate_approved') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Estimate approved. The contractor can now submit a formal quote.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'quote_approved') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Quote approved. The contractor can now complete the work and upload proof.', 'upkeepify') . '</p></div>';
+        }
+    }
+
+    echo '<p>' . esc_html__('Approve an estimate before asking for a formal quote, then approve the formal quote before the contractor can mark the job complete.', 'upkeepify') . '</p>';
+
+    if (empty($responses)) {
+        echo '<p>' . esc_html__('No contractor responses have been created yet. They are generated when this task is published and matching service providers exist.', 'upkeepify') . '</p>';
+        return;
+    }
+
+    echo '<table class="widefat striped">';
+    echo '<thead><tr>';
+    echo '<th>' . esc_html__('Provider', 'upkeepify') . '</th>';
+    echo '<th>' . esc_html__('Decision', 'upkeepify') . '</th>';
+    echo '<th>' . esc_html__('Estimate', 'upkeepify') . '</th>';
+    echo '<th>' . esc_html__('Quote', 'upkeepify') . '</th>';
+    echo '<th>' . esc_html__('Completion', 'upkeepify') . '</th>';
+    echo '<th>' . esc_html__('Trustee action', 'upkeepify') . '</th>';
+    echo '</tr></thead><tbody>';
+
+    foreach ($responses as $response) {
+        $response_id  = intval($response->ID);
+        $provider     = upkeepify_get_response_provider_name($response_id);
+        $decision     = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_DECISION, true);
+        $estimate     = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true);
+        $formal_quote = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true);
+        $completed_at = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT, true);
+
+        $decision_label = __('Waiting', 'upkeepify');
+        if ($decision === 'accept') {
+            $decision_label = __('Accepted', 'upkeepify');
+        } elseif ($decision === 'decline') {
+            $decision_label = __('Declined', 'upkeepify');
+        }
+
+        echo '<tr>';
+        echo '<td><strong>' . esc_html($provider) . '</strong><br><small>' . esc_html(sprintf(__('Response #%d', 'upkeepify'), $response_id)) . '</small></td>';
+        echo '<td>' . esc_html($decision_label) . '</td>';
+        echo '<td>' . wp_kses_post(upkeepify_format_lifecycle_money($estimate, $currency));
+        if ($approved_estimate_id === $response_id) {
+            echo '<br><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span> ' . esc_html__('Approved', 'upkeepify');
+        } elseif ($approved_estimate_id && $decision === 'accept') {
+            echo '<br><small>' . esc_html__('Another estimate is approved.', 'upkeepify') . '</small>';
+        }
+        echo '</td>';
+        echo '<td>' . wp_kses_post(upkeepify_format_lifecycle_money($formal_quote, $currency));
+        if ($approved_quote_id === $response_id) {
+            echo '<br><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span> ' . esc_html__('Approved', 'upkeepify');
+        } elseif ($approved_quote_id && $formal_quote !== '') {
+            echo '<br><small>' . esc_html__('Another quote is approved.', 'upkeepify') . '</small>';
+        }
+        echo '</td>';
+        echo '<td>';
+        if ($completed_at) {
+            echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), intval($completed_at)));
+        } else {
+            echo '&mdash;';
+        }
+        echo '</td>';
+        echo '<td>';
+        if ($decision === 'accept' && $estimate !== '' && (!$approved_quote_id || $approved_estimate_id === $response_id) && $approved_estimate_id !== $response_id) {
+            upkeepify_render_lifecycle_approval_button($post->ID, $response_id, 'estimate', $approved_estimate_id ? __('Switch estimate approval', 'upkeepify') : __('Approve estimate', 'upkeepify'));
+        } elseif ($decision === 'accept' && $estimate === '') {
+            echo '<small>' . esc_html__('Waiting for estimate.', 'upkeepify') . '</small>';
+        }
+
+        if ($formal_quote !== '' && $approved_estimate_id === $response_id && $approved_quote_id !== $response_id && !$completed_at) {
+            if ($decision === 'accept' && $estimate !== '') {
+                echo $approved_estimate_id === $response_id ? '<br>' : '';
+                upkeepify_render_lifecycle_approval_button($post->ID, $response_id, 'quote', $approved_quote_id ? __('Switch quote approval', 'upkeepify') : __('Approve quote', 'upkeepify'));
+            }
+        } elseif ($formal_quote !== '' && $approved_estimate_id !== $response_id) {
+            echo '<small>' . esc_html__('Approve this estimate before approving its quote.', 'upkeepify') . '</small>';
+        }
+
+        if ($decision === 'decline') {
+            echo '<small>' . esc_html__('No action needed.', 'upkeepify') . '</small>';
+        } elseif ($completed_at) {
+            echo '<small>' . esc_html__('Completion submitted.', 'upkeepify') . '</small>';
+        }
+        echo '</td>';
+        echo '</tr>';
+    }
+
+    echo '</tbody></table>';
+}
+
+/**
+ * Set a task status term by name when that term exists.
+ *
+ * @since 1.1
+ * @param int    $task_id     Maintenance task post ID.
+ * @param string $status_name Task status term name.
+ * @return void
+ */
+function upkeepify_set_task_status_by_name($task_id, $status_name) {
+    $term = get_term_by('name', $status_name, UPKEEPIFY_TAXONOMY_TASK_STATUS);
+    if ($term && !is_wp_error($term)) {
+        wp_set_object_terms($task_id, array(intval($term->term_id)), UPKEEPIFY_TAXONOMY_TASK_STATUS);
+    }
+}
+
+/**
+ * Email the contractor when a trustee approval unlocks the next step.
+ *
+ * @since 1.1
+ * @param int    $task_id     Maintenance task post ID.
+ * @param int    $response_id Provider response post ID.
+ * @param string $approval    Approval type: estimate|quote.
+ * @return bool True when email was sent.
+ */
+function upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id, $approval) {
+    $provider_id    = intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true));
+    $provider_email = $provider_id ? get_term_meta($provider_id, UPKEEPIFY_TERM_META_PROVIDER_EMAIL, true) : '';
+    if (!is_email($provider_email)) {
+        return false;
+    }
+
+    $response_url = function_exists('upkeepify_get_provider_response_url') ? upkeepify_get_provider_response_url($response_id) : null;
+    if (!$response_url) {
+        return false;
+    }
+
+    $task          = get_post($task_id);
+    $provider_name = upkeepify_get_response_provider_name($response_id);
+    $site_name     = get_bloginfo('name');
+
+    if ($approval === 'estimate') {
+        $subject = sprintf(__('[%s] Estimate approved: %s', 'upkeepify'), $site_name, $task ? $task->post_title : __('Maintenance job', 'upkeepify'));
+        $heading = __('Estimate Approved', 'upkeepify');
+        $message = __('Your estimate has been approved. Please submit a formal quote using your job link.', 'upkeepify');
+        $button  = __('Submit formal quote', 'upkeepify');
+    } else {
+        $subject = sprintf(__('[%s] Quote approved: %s', 'upkeepify'), $site_name, $task ? $task->post_title : __('Maintenance job', 'upkeepify'));
+        $heading = __('Quote Approved', 'upkeepify');
+        $message = __('Your formal quote has been approved. Once the work is complete, use your job link to upload completion proof.', 'upkeepify');
+        $button  = __('Upload completion proof', 'upkeepify');
+    }
+
+    $body  = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
+    $body .= '<h2>' . esc_html($heading) . '</h2>';
+    $body .= '<p>' . sprintf(esc_html__('Hi %s,', 'upkeepify'), esc_html($provider_name)) . '</p>';
+    $body .= '<p>' . esc_html($message) . '</p>';
+    $body .= '<p style="margin:24px 0;"><a href="' . esc_url($response_url) . '" style="background:#0073aa;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;display:inline-block;">' . esc_html($button) . '</a></p>';
+    $body .= '<p style="color:#999;font-size:12px;">' . esc_html__('Or copy this link:', 'upkeepify') . '<br><code style="word-break:break-all;">' . esc_url($response_url) . '</code></p>';
+    $body .= '</div>';
+
+    return wp_mail($provider_email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
+}
+
+/**
+ * Handle trustee estimate/quote approvals from the lifecycle panel.
+ *
+ * @since 1.1
+ * @hook admin_post_{UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_APPROVAL}
+ */
+function upkeepify_admin_post_trustee_lifecycle_approval() {
+    $task_id       = isset($_POST['task_id']) ? absint(wp_unslash($_POST['task_id'])) : 0;
+    $response_id   = isset($_POST['response_id']) ? absint(wp_unslash($_POST['response_id'])) : 0;
+    $approval_type = isset($_POST['approval_type']) ? sanitize_key(wp_unslash($_POST['approval_type'])) : '';
+
+    if (!$task_id || !current_user_can('edit_post', $task_id)) {
+        wp_die(esc_html__('Insufficient permissions.', 'upkeepify'));
+    }
+
+    check_admin_referer(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+
+    $task     = get_post($task_id);
+    $response = get_post($response_id);
+    if (!$task || $task->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS || !$response || $response->post_type !== UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES) {
+        wp_die(esc_html__('Invalid lifecycle approval request.', 'upkeepify'));
+    }
+
+    $response_task_id = intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true));
+    if ($response_task_id !== intval($task_id)) {
+        wp_die(esc_html__('This provider response does not belong to this task.', 'upkeepify'));
+    }
+
+    $decision = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_DECISION, true);
+    if ($decision !== 'accept') {
+        wp_die(esc_html__('Only accepted estimates can be approved.', 'upkeepify'));
+    }
+
+    $redirect_status = '';
+    if ($approval_type === 'estimate') {
+        $estimate = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true);
+        if ($estimate === '') {
+            wp_die(esc_html__('This response does not have an estimate to approve.', 'upkeepify'));
+        }
+
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_RESPONSE_ID, $response_id);
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_AT, time());
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_BY, get_current_user_id());
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_ASSIGNED_SERVICE_PROVIDER, intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true)));
+        upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id, 'estimate');
+        $redirect_status = 'estimate_approved';
+    } elseif ($approval_type === 'quote') {
+        $formal_quote = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true);
+        $approved_estimate_id = intval(get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_RESPONSE_ID, true));
+
+        if ($formal_quote === '') {
+            wp_die(esc_html__('This response does not have a formal quote to approve.', 'upkeepify'));
+        }
+        if ($approved_estimate_id !== intval($response_id)) {
+            wp_die(esc_html__('Approve this estimate before approving its formal quote.', 'upkeepify'));
+        }
+
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_RESPONSE_ID, $response_id);
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_AT, time());
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_BY, get_current_user_id());
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_ASSIGNED_SERVICE_PROVIDER, intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true)));
+        upkeepify_set_task_status_by_name($task_id, 'In Progress');
+        upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id, 'quote');
+        $redirect_status = 'quote_approved';
+    } else {
+        wp_die(esc_html__('Unknown lifecycle approval type.', 'upkeepify'));
+    }
+
+    $redirect = add_query_arg(
+        array(
+            'post'                 => $task_id,
+            'action'               => 'edit',
+            'upkeepify_lifecycle'  => $redirect_status,
+        ),
+        admin_url('post.php')
+    );
+
+    wp_safe_redirect($redirect);
+    exit;
+}
+add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_APPROVAL, 'upkeepify_admin_post_trustee_lifecycle_approval');
+
+/**
  * Register the Responses custom post type.
  *
  * Registers a post type for storing task responses. This post type is

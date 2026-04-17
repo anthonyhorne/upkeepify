@@ -16,6 +16,11 @@ Use this checklist before tagging or deploying changes that touch public task su
 - Confirm contractor invite emails are sent when matching providers have valid email addresses and the provider response page setting is configured.
 - Edit and update the already-published task.
 - Confirm provider response posts are not duplicated on later updates.
+- Submit a contractor acceptance and ballpark estimate.
+- In the task edit screen, confirm the **Trustee Lifecycle** panel shows the estimate and an **Approve estimate** action.
+- Approve the estimate and confirm the contractor receives an email that unlocks the formal quote step.
+- Submit a contractor formal quote.
+- In the **Trustee Lifecycle** panel, approve the quote and confirm the contractor receives an email that unlocks completion proof.
 - If resident email was supplied, complete the contractor flow through completion proof and confirm the resident confirmation email is sent.
 - Submit a resident "No, there is an issue" response and confirm the trustee receives a review email instead of a lifecycle-closed email.
 - With "Notify Contractor When Resident Reports an Issue" enabled, confirm the contractor receives the follow-up email and their token link opens a follow-up note/photo form.

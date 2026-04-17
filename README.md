@@ -529,6 +529,10 @@ Performance logs will appear in your WordPress debug log file.
 ## Roadmap
 
 Future planned features:
+- [ ] Trustee resolution controls for resident-reported issues after contractor follow-up
+- [ ] Lifecycle status columns and filters for trustee triage
+- [ ] Manual resident-confirmation/manual-close path for tasks without resident email
+- [ ] Contractor token revoke/regenerate controls
 - [ ] Automated email reminders for overdue tasks
 - [ ] Mobile app for residents
 - [ ] Advanced reporting and analytics
@@ -539,3 +543,5 @@ Future planned features:
 - [ ] Task templates for common issues
 - [ ] Approval workflow for public submissions
 - [ ] Cost tracking and budget management
+
+See `TODO.md` for the current end-to-end lifecycle gap list.

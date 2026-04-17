@@ -806,7 +806,18 @@ function upkeepify_provider_response_form_shortcode($atts) {
 
             // ── Step 3a: formal quote ─────────────────────────────────────────
             $ballpark = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true );
+            $approved_estimate_id = $task_id ? intval( get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_RESPONSE_ID, true ) ) : 0;
             echo '<p class="upkeepify-step-label">' . esc_html__( 'Step 2 of 3 — Formal Quote', 'upkeepify' ) . '</p>';
+            if ( $approved_estimate_id !== intval( $response_id ) ) {
+                if ( $approved_estimate_id ) {
+                    echo '<p class="upkeepify-notice upkeepify-notice--info">' . esc_html__( 'Another contractor estimate has been approved for this job. Contact the property manager if you think this is incorrect.', 'upkeepify' ) . '</p>';
+                } else {
+                    echo '<p class="upkeepify-notice upkeepify-notice--info">' . esc_html__( 'Your estimate has been submitted. The property manager needs to approve it before you can submit a formal quote.', 'upkeepify' ) . '</p>';
+                }
+                wp_reset_postdata();
+                return ob_get_clean();
+            }
+
             if ( $ballpark !== '' ) {
                 echo '<p><small>' . sprintf(
                     /* translators: 1: currency, 2: ballpark amount */
@@ -838,6 +849,7 @@ function upkeepify_provider_response_form_shortcode($atts) {
 
             // ── Step 3b: completion proof ─────────────────────────────────────
             $quote_val = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true );
+            $approved_quote_id = $task_id ? intval( get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_RESPONSE_ID, true ) ) : 0;
             echo '<p class="upkeepify-step-label">' . ( $followup_for_this_response
                 ? esc_html__( 'Follow-up Requested', 'upkeepify' )
                 : esc_html__( 'Step 3 of 3 — Mark Job Complete', 'upkeepify' ) ) . '</p>';
@@ -855,6 +867,16 @@ function upkeepify_provider_response_form_shortcode($atts) {
                     esc_html( $currency ),
                     esc_html( number_format( (float) $quote_val, 2 ) )
                 ) . '</small></p>';
+            }
+
+            if ( ! $followup_for_this_response && $approved_quote_id !== intval( $response_id ) ) {
+                if ( $approved_quote_id ) {
+                    echo '<p class="upkeepify-notice upkeepify-notice--info">' . esc_html__( 'Another formal quote has been approved for this job. Contact the property manager if you think this is incorrect.', 'upkeepify' ) . '</p>';
+                } else {
+                    echo '<p class="upkeepify-notice upkeepify-notice--info">' . esc_html__( 'Your formal quote has been submitted. The property manager needs to approve it before you can mark the job complete.', 'upkeepify' ) . '</p>';
+                }
+                wp_reset_postdata();
+                return ob_get_clean();
             }
 
             echo '<form action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" method="post" enctype="multipart/form-data" class="upkeepify-estimate-form">';
@@ -1238,6 +1260,32 @@ function upkeepify_admin_post_provider_response_submit() {
         'post_status' => 'publish',
     ) );
 
+    $task_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true ) );
+    $task_post = $task_id ? get_post( $task_id ) : null;
+    if ( $task_post ) {
+        $settings      = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+        $currency      = ! empty( $settings[ UPKEEPIFY_SETTING_CURRENCY ] ) ? $settings[ UPKEEPIFY_SETTING_CURRENCY ] : '$';
+        $recipient     = ! empty( $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] ) ? $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] : get_option( 'admin_email' );
+        $provider_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true ) );
+        $provider_term = $provider_id ? get_term( $provider_id, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ) : null;
+        $provider_name = ( $provider_term && ! is_wp_error( $provider_term ) ) ? $provider_term->name : __( 'A contractor', 'upkeepify' );
+        $review_url    = admin_url( 'post.php?post=' . intval( $task_id ) . '&action=edit' );
+
+        $subject = sprintf( __( '[%s] Estimate received — %s', 'upkeepify' ), get_bloginfo( 'name' ), $task_post->post_title );
+        $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
+        $body   .= '<h2>' . esc_html__( 'Estimate Received', 'upkeepify' ) . '</h2>';
+        $body   .= '<p>' . sprintf( esc_html__( '%s has submitted an estimate for "%s".', 'upkeepify' ), esc_html( $provider_name ), esc_html( $task_post->post_title ) ) . '</p>';
+        $body   .= '<p><strong>' . sprintf( esc_html__( 'Ballpark estimate: %1$s%2$s', 'upkeepify' ), esc_html( $currency ), esc_html( number_format( (float) $estimate, 2 ) ) ) . '</strong></p>';
+        if ( $note !== '' ) {
+            $body .= '<p><strong>' . esc_html__( 'Contractor note:', 'upkeepify' ) . '</strong><br>' . nl2br( esc_html( $note ) ) . '</p>';
+        }
+        $body .= '<p>' . esc_html__( 'Review the Trustee Lifecycle panel and approve the estimate before the contractor can submit a formal quote.', 'upkeepify' ) . '</p>';
+        $body .= '<p><a href="' . esc_url( $review_url ) . '">' . esc_html__( 'Review estimate', 'upkeepify' ) . '</a></p>';
+        $body .= '</div>';
+
+        wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+    }
+
     $redirect = add_query_arg(
         array( 'upkeepify_response' => 'submitted' ),
         wp_get_referer() ?: home_url()
@@ -1292,6 +1340,12 @@ function upkeepify_admin_post_provider_quote_submit() {
         wp_die( esc_html__( 'A formal quote has already been submitted.', 'upkeepify' ) );
     }
 
+    $task_id = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true ) );
+    $approved_estimate_id = $task_id ? intval( get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_RESPONSE_ID, true ) ) : 0;
+    if ( $approved_estimate_id !== intval( $response_id ) ) {
+        wp_die( esc_html__( 'Your estimate must be approved before you can submit a formal quote.', 'upkeepify' ) );
+    }
+
     $quote = filter_input( INPUT_POST, 'formal_quote', FILTER_VALIDATE_FLOAT );
     if ( $quote === false || $quote < 0 ) {
         wp_die( esc_html__( 'Please enter a valid quote amount.', 'upkeepify' ) );
@@ -1305,7 +1359,6 @@ function upkeepify_admin_post_provider_quote_submit() {
     }
 
     // Notify trustee of the formal quote.
-    $task_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true ) );
     $task_post = $task_id ? get_post( $task_id ) : null;
     if ( $task_post ) {
         $settings  = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
@@ -1392,6 +1445,12 @@ function upkeepify_admin_post_provider_completion_submit() {
 
     if ( $decision !== 'accept' || $formal_quote === '' ) {
         wp_die( esc_html__( 'Please submit your formal quote before marking the job complete.', 'upkeepify' ) );
+    }
+    if ( ! $is_followup_completion ) {
+        $approved_quote_id = $task_id ? intval( get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_RESPONSE_ID, true ) ) : 0;
+        if ( $approved_quote_id !== intval( $response_id ) ) {
+            wp_die( esc_html__( 'Your formal quote must be approved before you can mark the job complete.', 'upkeepify' ) );
+        }
     }
     if ( $completed_at !== '' && ! $is_followup_completion ) {
         wp_die( esc_html__( 'This job has already been marked as complete.', 'upkeepify' ) );
