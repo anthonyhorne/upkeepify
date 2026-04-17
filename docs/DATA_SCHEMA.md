@@ -156,6 +156,7 @@ Options are stored in `wp_options`.
 | `UPKEEPIFY_SETTING_PROVIDER_DELETE_TASK` | `upkeepify_provider_delete_task` | bool/int | `0` | Allow providers to delete tasks | `includes/settings.php` |
 | `UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING` | `upkeepify_public_task_logging` | bool/int | `0` | Allow public logging | `includes/settings.php` |
 | `UPKEEPIFY_SETTING_OVERRIDE_EMAIL` | `upkeepify_override_email` | string | `''` | Override email for notifications | `includes/utility-functions.php`, `includes/settings.php` |
+| `UPKEEPIFY_SETTING_AUDIT_EMAIL` | `upkeepify_audit_email` | string | `''` | Recipient for approved quote audit packs | `includes/custom-post-types.php`, `includes/settings.php` |
 | `UPKEEPIFY_SETTING_ENABLE_TOKEN_UPDATE` | `upkeepify_enable_token_update` | bool/int | `0` | Enable provider token update flows | `includes/settings.php`, `includes/utility-functions.php` |
 | `UPKEEPIFY_SETTING_NUMBER_OF_UNITS` | `upkeepify_number_of_units` | int | `10` | Number of units (drives UI selectors) | `includes/custom-post-types.php`, `includes/shortcodes.php` |
 | `UPKEEPIFY_SETTING_CURRENCY` | `upkeepify_currency` | string | `$` | Currency symbol for estimates | `includes/shortcodes.php` |

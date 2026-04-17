@@ -102,6 +102,8 @@ $GLOBALS['_upkeepify_test_deleted_attachments'] = [];
 $GLOBALS['_upkeepify_test_deleted_posts']   = [];
 $GLOBALS['_upkeepify_test_deleted_terms']   = [];
 $GLOBALS['_upkeepify_test_mail']            = [];
+$GLOBALS['_upkeepify_test_attachment_files'] = [];
+$GLOBALS['_upkeepify_test_attachment_urls']  = [];
 
 // ─── Load plugin constants ────────────────────────────────────────────────────
 
@@ -272,6 +274,14 @@ function sanitize_text_field( $str ) {
 
 function sanitize_textarea_field( $str ) {
 	return (string) $str;
+}
+
+function sanitize_file_name( $filename ) {
+	return basename( preg_replace( '/[^A-Za-z0-9._-]/', '', (string) $filename ) );
+}
+
+function sanitize_mime_type( $mime_type ) {
+	return preg_replace( '/[^A-Za-z0-9_+.-\\/]/', '', (string) $mime_type );
 }
 
 function sanitize_email( $email ) {
@@ -464,6 +474,18 @@ function wp_delete_attachment( $attachment_id, $force_delete = false ) {
 		'force_delete'  => (bool) $force_delete,
 	];
 	return true;
+}
+
+function get_attached_file( $attachment_id ) {
+	return isset( $GLOBALS['_upkeepify_test_attachment_files'][ $attachment_id ] )
+		? $GLOBALS['_upkeepify_test_attachment_files'][ $attachment_id ]
+		: '';
+}
+
+function wp_get_attachment_url( $attachment_id ) {
+	return isset( $GLOBALS['_upkeepify_test_attachment_urls'][ $attachment_id ] )
+		? $GLOBALS['_upkeepify_test_attachment_urls'][ $attachment_id ]
+		: '';
 }
 
 function wp_delete_post( $post_id, $force_delete = false ) {

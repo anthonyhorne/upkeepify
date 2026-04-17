@@ -78,6 +78,7 @@ define('UPKEEPIFY_META_KEY_RESPONSE_NOTE',                'response_note');     
 // Formal quote + completion meta keys (set in Step 3 form)
 define('UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE',        'response_formal_quote');        // numeric formal quote
 define('UPKEEPIFY_META_KEY_RESPONSE_QUOTE_NOTE',          'response_quote_note');          // quote conditions ≤500 chars
+define('UPKEEPIFY_META_KEY_RESPONSE_QUOTE_ATTACHMENTS',   'response_quote_attachments');   // serialized formal quote attachment ID array
 define('UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT',        'response_completed_at');        // Unix timestamp of completion
 define('UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_PHOTOS',   'response_completion_photos');   // serialized attachment ID array
 define('UPKEEPIFY_META_KEY_RESPONSE_COMPLETION_NOTE',     'response_completion_note');     // completion note ≤500 chars
@@ -139,6 +140,7 @@ define('UPKEEPIFY_SETTING_NOTIFY_OPTION', 'upkeepify_notify_option');
 define('UPKEEPIFY_SETTING_PROVIDER_DELETE_TASK', 'upkeepify_provider_delete_task');
 define('UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING', 'upkeepify_public_task_logging');
 define('UPKEEPIFY_SETTING_OVERRIDE_EMAIL', 'upkeepify_override_email');
+define('UPKEEPIFY_SETTING_AUDIT_EMAIL', 'upkeepify_audit_email');
 define('UPKEEPIFY_SETTING_ENABLE_TOKEN_UPDATE', 'upkeepify_enable_token_update');
 define('UPKEEPIFY_SETTING_NUMBER_OF_UNITS', 'upkeepify_number_of_units');
 define('UPKEEPIFY_SETTING_CURRENCY', 'upkeepify_currency');
@@ -202,6 +204,7 @@ define('UPKEEPIFY_SESSION_MATH_RESULT', 'upkeepify_math_result');
 
 // File Upload Limits
 define('UPKEEPIFY_MAX_UPLOAD_SIZE', 2 * 1024 * 1024); // 2MB
+define('UPKEEPIFY_MAX_QUOTE_UPLOAD_SIZE', 5 * 1024 * 1024); // 5MB
 
 // Admin Actions
 define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT', 'upkeepify_provider_response_submit');

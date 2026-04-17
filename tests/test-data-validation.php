@@ -404,6 +404,22 @@ class DataValidationTest extends TestCase {
 		$this->assertSame( 'admin@example.com', $result[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] );
 	}
 
+	public function test_validate_settings_rejects_invalid_audit_email() {
+		$result = upkeepify_validate_settings( [
+			UPKEEPIFY_SETTING_AUDIT_EMAIL => 'bad-email',
+		] );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'upkeepify_invalid_audit_email', $result->get_error_code() );
+	}
+
+	public function test_validate_settings_accepts_valid_audit_email() {
+		$result = upkeepify_validate_settings( [
+			UPKEEPIFY_SETTING_AUDIT_EMAIL => 'auditor@example.com',
+		] );
+		$this->assertIsArray( $result );
+		$this->assertSame( 'auditor@example.com', $result[ UPKEEPIFY_SETTING_AUDIT_EMAIL ] );
+	}
+
 	public function test_validate_settings_rejects_negative_unit_count() {
 		$result = upkeepify_validate_settings( [
 			UPKEEPIFY_SETTING_NUMBER_OF_UNITS => -1,

@@ -34,6 +34,7 @@ class MetaRegistryTest extends TestCase {
 			UPKEEPIFY_META_KEY_RESPONSE_TASK_ID,
 			UPKEEPIFY_META_KEY_PROVIDER_ID,
 			UPKEEPIFY_META_KEY_RESPONSE_TOKEN,
+			UPKEEPIFY_META_KEY_RESPONSE_QUOTE_ATTACHMENTS,
 		];
 		foreach ( $expected_keys as $key ) {
 			$this->assertArrayHasKey( $key, $registry, "Registry missing meta key: $key" );

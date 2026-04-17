@@ -12,6 +12,8 @@ require_once dirname( __DIR__ ) . '/includes/custom-post-types.php';
 
 class TrusteeLifecycleTest extends TestCase {
 
+	private $tmp_file = null;
+
 	protected function setUp(): void {
 		$GLOBALS['_upkeepify_test_options']        = [
 			UPKEEPIFY_OPTION_SETTINGS => [
@@ -26,8 +28,17 @@ class TrusteeLifecycleTest extends TestCase {
 		$GLOBALS['_upkeepify_test_taxonomy_terms'] = [];
 		$GLOBALS['_upkeepify_test_term_meta']      = [];
 		$GLOBALS['_upkeepify_test_mail']           = [];
+		$GLOBALS['_upkeepify_test_attachment_files'] = [];
+		$GLOBALS['_upkeepify_test_attachment_urls']  = [];
 		$_GET                                     = [];
 		$_POST                                    = [];
+	}
+
+	protected function tearDown(): void {
+		if ( $this->tmp_file && file_exists( $this->tmp_file ) ) {
+			unlink( $this->tmp_file );
+			$this->tmp_file = null;
+		}
 	}
 
 	public function test_lifecycle_panel_shows_approve_estimate_action() {
@@ -105,5 +116,85 @@ class TrusteeLifecycleTest extends TestCase {
 		$this->assertSame( 'contractor@example.com', $GLOBALS['_upkeepify_test_mail'][0]['to'] );
 		$this->assertStringContainsString( 'Estimate approved', $GLOBALS['_upkeepify_test_mail'][0]['subject'] );
 		$this->assertStringContainsString( 'Submit formal quote', $GLOBALS['_upkeepify_test_mail'][0]['message'] );
+	}
+
+	public function test_quote_audit_email_includes_approved_quote_documents_and_other_response_references() {
+		$task_id              = 42;
+		$approved_response_id = 123;
+		$other_response_id    = 124;
+		$provider_id          = 77;
+		$other_provider_id    = 78;
+		$attachment_id        = 901;
+
+		$GLOBALS['_upkeepify_test_options'][ UPKEEPIFY_OPTION_SETTINGS ][ UPKEEPIFY_SETTING_AUDIT_EMAIL ] = 'auditor@example.com';
+
+		$GLOBALS['_upkeepify_test_posts'][ UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS ] = [
+			new WP_Post(
+				[
+					'ID'         => $task_id,
+					'post_type'  => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
+					'post_title' => 'Gate motor repair',
+				]
+			),
+		];
+		$GLOBALS['_upkeepify_test_posts'][ UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES ] = [
+			new WP_Post(
+				[
+					'ID'        => $approved_response_id,
+					'post_type' => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES,
+				]
+			),
+			new WP_Post(
+				[
+					'ID'        => $other_response_id,
+					'post_type' => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES,
+				]
+			),
+		];
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ] = [
+			new WP_Term(
+				[
+					'term_id' => $provider_id,
+					'name'    => 'Fix It Fast',
+				]
+			),
+			new WP_Term(
+				[
+					'term_id' => $other_provider_id,
+					'name'    => 'Slow But Steady',
+				]
+			),
+		];
+
+		$GLOBALS['_upkeepify_test_post_meta'][ $approved_response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TASK_ID ]            = $task_id;
+		$GLOBALS['_upkeepify_test_post_meta'][ $approved_response_id ][ UPKEEPIFY_META_KEY_PROVIDER_ID ]                 = $provider_id;
+		$GLOBALS['_upkeepify_test_post_meta'][ $approved_response_id ][ UPKEEPIFY_META_KEY_RESPONSE_DECISION ]            = 'accept';
+		$GLOBALS['_upkeepify_test_post_meta'][ $approved_response_id ][ UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE ]            = '1000';
+		$GLOBALS['_upkeepify_test_post_meta'][ $approved_response_id ][ UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE ]        = '1250';
+		$GLOBALS['_upkeepify_test_post_meta'][ $approved_response_id ][ UPKEEPIFY_META_KEY_RESPONSE_QUOTE_NOTE ]          = 'Includes gate controller replacement.';
+		$GLOBALS['_upkeepify_test_post_meta'][ $approved_response_id ][ UPKEEPIFY_META_KEY_RESPONSE_QUOTE_ATTACHMENTS ]   = [ $attachment_id ];
+
+		$GLOBALS['_upkeepify_test_post_meta'][ $other_response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TASK_ID ]     = $task_id;
+		$GLOBALS['_upkeepify_test_post_meta'][ $other_response_id ][ UPKEEPIFY_META_KEY_PROVIDER_ID ]          = $other_provider_id;
+		$GLOBALS['_upkeepify_test_post_meta'][ $other_response_id ][ UPKEEPIFY_META_KEY_RESPONSE_DECISION ]     = 'accept';
+		$GLOBALS['_upkeepify_test_post_meta'][ $other_response_id ][ UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE ]     = '900';
+		$GLOBALS['_upkeepify_test_post_meta'][ $other_response_id ][ UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE ] = '1400';
+
+		$this->tmp_file = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'upkeepify_quote_audit_test.pdf';
+		file_put_contents( $this->tmp_file, "%PDF-1.4\n% test quote\n" );
+		$GLOBALS['_upkeepify_test_attachment_files'][ $attachment_id ] = $this->tmp_file;
+		$GLOBALS['_upkeepify_test_attachment_urls'][ $attachment_id ]  = 'https://example.com/uploads/quote.pdf';
+
+		$sent = upkeepify_send_quote_audit_email( $task_id, $approved_response_id );
+
+		$this->assertTrue( $sent );
+		$this->assertCount( 1, $GLOBALS['_upkeepify_test_mail'] );
+		$this->assertSame( 'auditor@example.com', $GLOBALS['_upkeepify_test_mail'][0]['to'] );
+		$this->assertStringContainsString( 'Approved quote audit pack', $GLOBALS['_upkeepify_test_mail'][0]['subject'] );
+		$this->assertStringContainsString( 'Fix It Fast', $GLOBALS['_upkeepify_test_mail'][0]['message'] );
+		$this->assertStringContainsString( '$1,250.00', $GLOBALS['_upkeepify_test_mail'][0]['message'] );
+		$this->assertStringContainsString( 'Quote document #901', $GLOBALS['_upkeepify_test_mail'][0]['message'] );
+		$this->assertStringContainsString( 'Slow But Steady', $GLOBALS['_upkeepify_test_mail'][0]['message'] );
+		$this->assertSame( [ $this->tmp_file ], $GLOBALS['_upkeepify_test_mail'][0]['attachments'] );
 	}
 }

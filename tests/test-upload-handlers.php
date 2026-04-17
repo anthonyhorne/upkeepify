@@ -34,6 +34,13 @@ class UploadHandlersTest extends TestCase {
 		return $path;
 	}
 
+	private function make_temp_pdf( string $name = 'quote.pdf' ): string {
+		$path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $name;
+		file_put_contents( $path, "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n" );
+		$this->tmp_file = $path;
+		return $path;
+	}
+
 	// ─── PHP-reported upload errors ───────────────────────────────────────────
 
 	public function test_rejects_ini_size_error() {
@@ -184,5 +191,31 @@ class UploadHandlersTest extends TestCase {
 			'tmp_name' => $path,
 		] );
 		$this->assertTrue( $result );
+	}
+
+	public function test_accepts_quote_pdf_document() {
+		$path   = $this->make_temp_pdf( 'upkeepify_valid_quote.pdf' );
+		$result = upkeepify_validate_quote_document_upload( [
+			'name'     => 'contractor-quote.pdf',
+			'error'    => UPLOAD_ERR_OK,
+			'size'     => filesize( $path ),
+			'tmp_name' => $path,
+		] );
+		$this->assertTrue( $result );
+	}
+
+	public function test_rejects_text_quote_document() {
+		$path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'upkeepify_invalid_quote.txt';
+		file_put_contents( $path, 'not a quote pdf' );
+		$this->tmp_file = $path;
+
+		$result = upkeepify_validate_quote_document_upload( [
+			'name'     => 'quote.txt',
+			'error'    => UPLOAD_ERR_OK,
+			'size'     => filesize( $path ),
+			'tmp_name' => $path,
+		] );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'quote_invalid_file_type', $result->get_error_code() );
 	}
 }

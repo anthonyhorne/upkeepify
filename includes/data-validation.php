@@ -238,9 +238,11 @@ function upkeepify_validate_settings($settings) {
                 break;
 
             case UPKEEPIFY_SETTING_OVERRIDE_EMAIL:
+            case UPKEEPIFY_SETTING_AUDIT_EMAIL:
                 $email = sanitize_email((string) $value);
                 if ($email !== '' && !is_email($email)) {
-                    return new WP_Error('upkeepify_invalid_override_email', 'Override email address is invalid.');
+                    $error_code = $key === UPKEEPIFY_SETTING_AUDIT_EMAIL ? 'upkeepify_invalid_audit_email' : 'upkeepify_invalid_override_email';
+                    return new WP_Error($error_code, 'Email address is invalid.');
                 }
                 $sanitized[$key] = $email;
                 break;

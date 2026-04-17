@@ -827,7 +827,7 @@ function upkeepify_provider_response_form_shortcode($atts) {
                 ) . '</small></p>';
             }
 
-            echo '<form action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" method="post" class="upkeepify-estimate-form">';
+            echo '<form action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" method="post" enctype="multipart/form-data" class="upkeepify-estimate-form">';
             echo '<input type="hidden" name="action" value="' . esc_attr( UPKEEPIFY_ADMIN_ACTION_PROVIDER_QUOTE_SUBMIT ) . '">';
             echo '<input type="hidden" name="response_id" value="' . esc_attr( $response_id ) . '">';
             echo '<input type="hidden" name="' . esc_attr( UPKEEPIFY_QUERY_VAR_TOKEN ) . '" value="' . esc_attr( $token ) . '">';
@@ -840,6 +840,10 @@ function upkeepify_provider_response_form_shortcode($atts) {
             echo '<p class="upkeepify-field"><label for="upkeepify-quote-note">' . esc_html__( 'Conditions or scope notes (optional)', 'upkeepify' ) . '</label><br>';
             echo '<textarea name="quote_note" id="upkeepify-quote-note" maxlength="500" rows="3" class="upkeepify-textarea" placeholder="' . esc_attr__( 'Any conditions, exclusions, or scope clarifications.', 'upkeepify' ) . '"></textarea>';
             echo '<br><small class="upkeepify-charcount" data-target="upkeepify-quote-note" data-max="500">500 ' . esc_html__( 'characters remaining', 'upkeepify' ) . '</small></p>';
+
+            echo '<p class="upkeepify-field"><label for="upkeepify-quote-documents">' . esc_html__( 'Quote document (optional)', 'upkeepify' ) . '</label><br>';
+            echo '<input type="file" id="upkeepify-quote-documents" name="quote_documents[]" accept="application/pdf,image/jpeg,image/png,image/gif" multiple class="upkeepify-file-input">';
+            echo '<br><small>' . esc_html__( 'PDF, JPG, PNG or GIF, up to 3 files, max 5 MB each. Uploaded quote files are included in the approval audit pack.', 'upkeepify' ) . '</small></p>';
 
             echo '<p class="upkeepify-field"><input type="submit" value="' . esc_attr__( 'Submit formal quote', 'upkeepify' ) . '" class="upkeepify-submit-button"></p>';
             echo '</form>';
@@ -1299,6 +1303,78 @@ add_action( 'admin_post_nopriv_' . UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBM
 // ─── Step 3a: Formal quote submission ────────────────────────────────────────
 
 /**
+ * Handle optional formal quote document uploads.
+ *
+ * @since 1.1
+ * @param int $response_id Provider response post ID to attach documents to.
+ * @return int[]|WP_Error Attachment IDs, or WP_Error on upload failure.
+ */
+function upkeepify_handle_quote_document_uploads( $response_id ) {
+    if ( empty( $_FILES['quote_documents'] ) || empty( $_FILES['quote_documents']['name'] ) ) {
+        return array();
+    }
+
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/media.php';
+    require_once ABSPATH . 'wp-admin/includes/image.php';
+
+    $files = wp_unslash( $_FILES['quote_documents'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File upload data is normalized per item below and validated before use.
+    if ( ! is_array( $files['name'] ) ) {
+        $files = array(
+            'name'     => array( $files['name'] ),
+            'type'     => array( isset( $files['type'] ) ? $files['type'] : '' ),
+            'tmp_name' => array( isset( $files['tmp_name'] ) ? $files['tmp_name'] : '' ),
+            'error'    => array( isset( $files['error'] ) ? $files['error'] : UPLOAD_ERR_NO_FILE ),
+            'size'     => array( isset( $files['size'] ) ? $files['size'] : 0 ),
+        );
+    }
+
+    $attachment_ids = array();
+    $count          = min( count( $files['name'] ), 3 );
+
+    for ( $i = 0; $i < $count; $i++ ) {
+        if ( empty( $files['name'][ $i ] ) && intval( $files['error'][ $i ] ) === UPLOAD_ERR_NO_FILE ) {
+            continue;
+        }
+
+        $single_file = array(
+            'name'     => sanitize_file_name( $files['name'][ $i ] ),
+            'type'     => sanitize_mime_type( $files['type'][ $i ] ),
+            'tmp_name' => sanitize_text_field( $files['tmp_name'][ $i ] ),
+            'error'    => intval( $files['error'][ $i ] ),
+            'size'     => absint( $files['size'][ $i ] ),
+        );
+
+        $validation = upkeepify_validate_quote_document_upload( $single_file );
+        if ( is_wp_error( $validation ) ) {
+            return $validation;
+        }
+
+        $upload = wp_handle_upload( $single_file, array( 'test_form' => false ) );
+        if ( isset( $upload['error'] ) ) {
+            return new WP_Error( 'quote_upload_failed', $upload['error'] );
+        }
+
+        $sideload_data = array(
+            'name'     => $single_file['name'],
+            'type'     => $upload['type'],
+            'tmp_name' => $upload['file'],
+            'error'    => UPLOAD_ERR_OK,
+            'size'     => $single_file['size'],
+        );
+
+        $attachment_id = media_handle_sideload( $sideload_data, $response_id );
+        if ( is_wp_error( $attachment_id ) ) {
+            return $attachment_id;
+        }
+
+        $attachment_ids[] = intval( $attachment_id );
+    }
+
+    return $attachment_ids;
+}
+
+/**
  * Handle contractor formal quote form submission.
  *
  * @since 1.1
@@ -1351,7 +1427,15 @@ function upkeepify_admin_post_provider_quote_submit() {
         wp_die( esc_html__( 'Please enter a valid quote amount.', 'upkeepify' ) );
     }
 
+    $quote_attachment_ids = upkeepify_handle_quote_document_uploads( $response_id );
+    if ( is_wp_error( $quote_attachment_ids ) ) {
+        wp_die( esc_html( $quote_attachment_ids->get_error_message() ) );
+    }
+
     update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, $quote );
+    if ( ! empty( $quote_attachment_ids ) ) {
+        update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_QUOTE_ATTACHMENTS, $quote_attachment_ids );
+    }
 
     $quote_note = isset( $_POST['quote_note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['quote_note'] ) ) : '';
     if ( $quote_note !== '' ) {
@@ -1380,6 +1464,9 @@ function upkeepify_admin_post_provider_quote_submit() {
         $body .= '<p><strong>' . sprintf( esc_html__( 'Formal quote: %1$s%2$s', 'upkeepify' ), esc_html( $currency ), esc_html( number_format( $quote, 2 ) ) ) . '</strong></p>';
         if ( $quote_note ) {
             $body .= '<p>' . esc_html__( 'Notes:', 'upkeepify' ) . ' ' . nl2br( esc_html( $quote_note ) ) . '</p>';
+        }
+        if ( ! empty( $quote_attachment_ids ) ) {
+            $body .= '<p>' . sprintf( esc_html__( '%d quote document(s) uploaded for audit.', 'upkeepify' ), count( $quote_attachment_ids ) ) . '</p>';
         }
         $body .= '<p>' . esc_html__( 'Review this quote in the WordPress admin.', 'upkeepify' ) . '</p>';
         $body .= '</div>';

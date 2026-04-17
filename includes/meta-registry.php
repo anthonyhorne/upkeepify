@@ -154,6 +154,19 @@ function upkeepify_get_meta_field_registry() {
             'used_by' => array('upkeepify_admin_post_trustee_lifecycle_approval()'),
             'validation' => 'Positive WordPress user ID',
         ),
+        UPKEEPIFY_META_KEY_RESPONSE_QUOTE_ATTACHMENTS => array(
+            'constant' => 'UPKEEPIFY_META_KEY_RESPONSE_QUOTE_ATTACHMENTS',
+            'type' => 'integer[]',
+            'default' => array(),
+            'description' => 'On provider response posts: attachment IDs for uploaded formal quote documents.',
+            'examples' => array(array(901, 902)),
+            'used_by' => array(
+                'upkeepify_admin_post_provider_quote_submit()',
+                'upkeepify_trustee_lifecycle_meta_box_callback()',
+                'upkeepify_send_quote_audit_email()',
+            ),
+            'validation' => 'Array of positive WordPress attachment IDs',
+        ),
         UPKEEPIFY_META_KEY_DUE_DATE => array(
             'constant' => 'UPKEEPIFY_META_KEY_DUE_DATE',
             'type' => 'string',

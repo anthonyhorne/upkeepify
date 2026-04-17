@@ -329,6 +329,88 @@ function upkeepify_format_lifecycle_money($amount, $currency) {
 }
 
 /**
+ * Format a stored monetary value for plain-text email copy.
+ *
+ * @since 1.1
+ * @param mixed  $amount   Stored numeric amount.
+ * @param string $currency Currency symbol.
+ * @return string Human-readable amount or dash.
+ */
+function upkeepify_format_lifecycle_money_text($amount, $currency) {
+    if ($amount === '' || $amount === null) {
+        return '-';
+    }
+
+    return $currency . number_format((float) $amount, 2);
+}
+
+/**
+ * Return quote attachment IDs for a provider response.
+ *
+ * @since 1.1
+ * @param int $response_id Provider response post ID.
+ * @return int[] Attachment IDs.
+ */
+function upkeepify_get_response_quote_attachment_ids($response_id) {
+    $attachment_ids = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_QUOTE_ATTACHMENTS, true);
+    if (empty($attachment_ids)) {
+        return array();
+    }
+
+    $attachment_ids = is_array($attachment_ids) ? $attachment_ids : array($attachment_ids);
+    return array_values(array_filter(array_map('intval', $attachment_ids)));
+}
+
+/**
+ * Render quote document references for emails/admin screens.
+ *
+ * @since 1.1
+ * @param int[] $attachment_ids Attachment IDs.
+ * @return string HTML list of quote document references.
+ */
+function upkeepify_render_quote_attachment_references($attachment_ids) {
+    if (empty($attachment_ids)) {
+        return '';
+    }
+
+    $items = array();
+    foreach ($attachment_ids as $attachment_id) {
+        $attachment_id = intval($attachment_id);
+        $url = function_exists('wp_get_attachment_url') ? wp_get_attachment_url($attachment_id) : '';
+        if ($url) {
+            $items[] = '<li><a href="' . esc_url($url) . '">' . esc_html(sprintf(__('Quote document #%d', 'upkeepify'), $attachment_id)) . '</a></li>';
+        } else {
+            $items[] = '<li>' . esc_html(sprintf(__('Quote document #%d', 'upkeepify'), $attachment_id)) . '</li>';
+        }
+    }
+
+    return '<ul>' . implode('', $items) . '</ul>';
+}
+
+/**
+ * Get local file paths for quote document attachments when available.
+ *
+ * @since 1.1
+ * @param int[] $attachment_ids Attachment IDs.
+ * @return string[] Local file paths suitable for wp_mail attachments.
+ */
+function upkeepify_get_quote_attachment_file_paths($attachment_ids) {
+    if (empty($attachment_ids) || !function_exists('get_attached_file')) {
+        return array();
+    }
+
+    $paths = array();
+    foreach ($attachment_ids as $attachment_id) {
+        $path = get_attached_file(intval($attachment_id));
+        if ($path && file_exists($path)) {
+            $paths[] = $path;
+        }
+    }
+
+    return $paths;
+}
+
+/**
  * Render a lifecycle approval button.
  *
  * @since 1.1
@@ -398,6 +480,7 @@ function upkeepify_trustee_lifecycle_meta_box_callback($post) {
         $decision     = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_DECISION, true);
         $estimate     = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true);
         $formal_quote = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true);
+        $quote_attachments = upkeepify_get_response_quote_attachment_ids($response_id);
         $completed_at = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT, true);
 
         $decision_label = __('Waiting', 'upkeepify');
@@ -418,6 +501,9 @@ function upkeepify_trustee_lifecycle_meta_box_callback($post) {
         }
         echo '</td>';
         echo '<td>' . wp_kses_post(upkeepify_format_lifecycle_money($formal_quote, $currency));
+        if (!empty($quote_attachments)) {
+            echo '<br><small>' . esc_html(sprintf(__('%d quote document(s) uploaded.', 'upkeepify'), count($quote_attachments))) . '</small>';
+        }
         if ($approved_quote_id === $response_id) {
             echo '<br><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span> ' . esc_html__('Approved', 'upkeepify');
         } elseif ($approved_quote_id && $formal_quote !== '') {
@@ -523,6 +609,104 @@ function upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id,
 }
 
 /**
+ * Email an audit pack when a formal quote is approved.
+ *
+ * @since 1.1
+ * @param int         $task_id     Maintenance task post ID.
+ * @param int         $response_id Approved provider response post ID.
+ * @param string|null $recipient   Optional explicit recipient email.
+ * @return bool Whether the email was sent.
+ */
+function upkeepify_send_quote_audit_email($task_id, $response_id, $recipient = null) {
+    $task = get_post($task_id);
+    if (!$task || $task->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS) {
+        return false;
+    }
+
+    $settings = function_exists('upkeepify_get_setting_cached') ? upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array()) : array();
+    $recipient = $recipient ?: (!empty($settings[UPKEEPIFY_SETTING_AUDIT_EMAIL]) ? $settings[UPKEEPIFY_SETTING_AUDIT_EMAIL] : '');
+    if (!$recipient) {
+        $recipient = !empty($settings[UPKEEPIFY_SETTING_OVERRIDE_EMAIL]) ? $settings[UPKEEPIFY_SETTING_OVERRIDE_EMAIL] : get_option('admin_email');
+    }
+    $recipient = sanitize_email((string) $recipient);
+    if (!$recipient || !is_email($recipient)) {
+        return false;
+    }
+
+    $currency        = !empty($settings[UPKEEPIFY_SETTING_CURRENCY]) ? $settings[UPKEEPIFY_SETTING_CURRENCY] : '$';
+    $provider_name   = upkeepify_get_response_provider_name($response_id);
+    $estimate        = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true);
+    $formal_quote    = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true);
+    $quote_note      = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_QUOTE_NOTE, true);
+    $quote_documents = upkeepify_get_response_quote_attachment_ids($response_id);
+    $approved_at     = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_AT, true);
+    $approved_at     = $approved_at ? intval($approved_at) : time();
+    $approved_label  = function_exists('date_i18n')
+        ? date_i18n(get_option('date_format') . ' ' . get_option('time_format'), $approved_at)
+        : date('Y-m-d H:i', $approved_at);
+    $admin_url       = admin_url('post.php?post=' . intval($task_id) . '&action=edit');
+
+    $subject = sprintf(__('[%s] Approved quote audit pack: %s', 'upkeepify'), get_bloginfo('name'), $task->post_title);
+    $body    = '<div style="font-family:Arial,sans-serif;max-width:760px;">';
+    $body   .= '<h2>' . esc_html__('Approved Quote Audit Pack', 'upkeepify') . '</h2>';
+    $body   .= '<p>' . sprintf(esc_html__('Task: %s', 'upkeepify'), esc_html($task->post_title)) . '</p>';
+    $body   .= '<p>' . sprintf(esc_html__('Approved contractor: %s', 'upkeepify'), esc_html($provider_name)) . '<br>';
+    $body   .= sprintf(esc_html__('Estimate: %s', 'upkeepify'), esc_html(upkeepify_format_lifecycle_money_text($estimate, $currency))) . '<br>';
+    $body   .= '<strong>' . sprintf(esc_html__('Approved quote: %s', 'upkeepify'), esc_html(upkeepify_format_lifecycle_money_text($formal_quote, $currency))) . '</strong><br>';
+    $body   .= sprintf(esc_html__('Approved at: %s', 'upkeepify'), esc_html($approved_label)) . '</p>';
+
+    if ($quote_note !== '') {
+        $body .= '<p><strong>' . esc_html__('Quote notes:', 'upkeepify') . '</strong><br>' . nl2br(esc_html($quote_note)) . '</p>';
+    }
+
+    if (!empty($quote_documents)) {
+        $body .= '<p><strong>' . esc_html__('Accepted quote document(s):', 'upkeepify') . '</strong></p>';
+        $body .= upkeepify_render_quote_attachment_references($quote_documents);
+    } else {
+        $body .= '<p>' . esc_html__('No quote document was uploaded; the approved quote amount and notes are recorded above.', 'upkeepify') . '</p>';
+    }
+
+    $responses = upkeepify_get_provider_responses_for_task($task_id);
+    if (!empty($responses)) {
+        $reference_rows = '';
+        foreach ($responses as $response) {
+            $candidate_id = intval($response->ID);
+            if ($candidate_id === intval($response_id)) {
+                continue;
+            }
+
+            $decision = get_post_meta($candidate_id, UPKEEPIFY_META_KEY_RESPONSE_DECISION, true);
+            $decision_label = $decision === 'accept' ? __('Accepted', 'upkeepify') : ($decision === 'decline' ? __('Declined', 'upkeepify') : __('Waiting', 'upkeepify'));
+            $candidate_estimate = get_post_meta($candidate_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true);
+            $candidate_quote = get_post_meta($candidate_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true);
+            $candidate_docs = upkeepify_get_response_quote_attachment_ids($candidate_id);
+
+            $reference_rows .= '<tr>';
+            $reference_rows .= '<td>' . esc_html(upkeepify_get_response_provider_name($candidate_id)) . '</td>';
+            $reference_rows .= '<td>' . esc_html($decision_label) . '</td>';
+            $reference_rows .= '<td>' . esc_html(upkeepify_format_lifecycle_money_text($candidate_estimate, $currency)) . '</td>';
+            $reference_rows .= '<td>' . esc_html(upkeepify_format_lifecycle_money_text($candidate_quote, $currency)) . '</td>';
+            $reference_rows .= '<td>' . esc_html((string) count($candidate_docs)) . '</td>';
+            $reference_rows .= '</tr>';
+        }
+
+        if ($reference_rows !== '') {
+            $body .= '<h3>' . esc_html__('Other contractor response references', 'upkeepify') . '</h3>';
+            $body .= '<table cellpadding="6" cellspacing="0" border="1" style="border-collapse:collapse;border-color:#ddd;">';
+            $body .= '<thead><tr><th align="left">' . esc_html__('Contractor', 'upkeepify') . '</th><th align="left">' . esc_html__('Decision', 'upkeepify') . '</th><th align="left">' . esc_html__('Estimate', 'upkeepify') . '</th><th align="left">' . esc_html__('Formal quote', 'upkeepify') . '</th><th align="left">' . esc_html__('Quote docs', 'upkeepify') . '</th></tr></thead><tbody>';
+            $body .= $reference_rows;
+            $body .= '</tbody></table>';
+        }
+    }
+
+    $body .= '<p>' . esc_html__('WordPress task record:', 'upkeepify') . '<br><a href="' . esc_url($admin_url) . '">' . esc_url($admin_url) . '</a></p>';
+    $body .= '</div>';
+
+    $attachments = upkeepify_get_quote_attachment_file_paths($quote_documents);
+    return wp_mail($recipient, $subject, $body, array('Content-Type: text/html; charset=UTF-8'), $attachments);
+}
+
+/**
  * Handle trustee estimate/quote approvals from the lifecycle panel.
  *
  * @since 1.1
@@ -585,6 +769,7 @@ function upkeepify_admin_post_trustee_lifecycle_approval() {
         update_post_meta($task_id, UPKEEPIFY_META_KEY_ASSIGNED_SERVICE_PROVIDER, intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true)));
         upkeepify_set_task_status_by_name($task_id, 'In Progress');
         upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id, 'quote');
+        upkeepify_send_quote_audit_email($task_id, $response_id);
         $redirect_status = 'quote_approved';
     } else {
         wp_die(esc_html__('Unknown lifecycle approval type.', 'upkeepify'));

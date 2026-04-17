@@ -164,6 +164,18 @@ add_settings_field(
         ]
     );
 
+    add_settings_field(
+        UPKEEPIFY_SETTING_AUDIT_EMAIL,
+        __('Audit Email Address', 'upkeepify'),
+        'upkeepify_text_field_callback',
+        UPKEEPIFY_OPTION_SETTINGS,
+        'upkeepify_general_settings',
+        [
+            'label_for'   => UPKEEPIFY_SETTING_AUDIT_EMAIL,
+            'description' => __('Approved quote audit packs are emailed here. Leave blank to use the notification override email or site admin email.', 'upkeepify'),
+        ]
+    );
+
     // Enable Token-based Status Update
     add_settings_field(
         UPKEEPIFY_SETTING_ENABLE_TOKEN_UPDATE,
