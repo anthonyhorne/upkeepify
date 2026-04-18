@@ -639,6 +639,10 @@ function wp_verify_nonce( $nonce, $action = -1 ) {
     return 1;
 }
 
+function check_admin_referer( $action = -1, $query_arg = '_wpnonce' ) {
+    return 1;
+}
+
 function wp_die( $message = '', $title = '', $args = [] ) {
     throw new \RuntimeException( is_string( $message ) ? $message : 'wp_die called' );
 }

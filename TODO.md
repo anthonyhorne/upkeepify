@@ -12,4 +12,4 @@
 - [x] Sync visible task status terms with lifecycle state, especially quote approved, completed, resident confirmed, and resident issue reported.
 - [x] Add token revoke/regenerate controls for contractor response links.
 - [x] Add a manual resident-confirmation or manual-close path for tasks submitted without resident email.
-- [ ] Add end-to-end tests covering two contractors, trustee approval selection, quote approval, completion, resident dissatisfaction, contractor follow-up, and trustee resolution.
+- [x] Add end-to-end tests covering two contractors, trustee approval selection, quote approval, completion, resident dissatisfaction, contractor follow-up, and trustee resolution.
