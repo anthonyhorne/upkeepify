@@ -432,6 +432,162 @@ function upkeepify_render_lifecycle_approval_button($task_id, $response_id, $app
 }
 
 /**
+ * Format a lifecycle timestamp for admin display.
+ *
+ * @since 1.1
+ * @param mixed $timestamp Unix timestamp.
+ * @return string Human-readable timestamp or dash.
+ */
+function upkeepify_format_lifecycle_timestamp($timestamp) {
+    if (!$timestamp) {
+        return '&mdash;';
+    }
+
+    $format = get_option('date_format') . ' ' . get_option('time_format');
+    $label  = function_exists('date_i18n') ? date_i18n($format, intval($timestamp)) : date($format, intval($timestamp));
+
+    return esc_html($label);
+}
+
+/**
+ * Resolve a resident-reported issue after contractor follow-up.
+ *
+ * @since 1.1
+ * @param int    $task_id Maintenance task post ID.
+ * @param string $note    Optional trustee resolution note.
+ * @return void
+ */
+function upkeepify_resolve_resident_issue($task_id, $note = '') {
+    update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_AT, time());
+    update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_BY, get_current_user_id());
+
+    $note = sanitize_textarea_field($note);
+    if ($note !== '') {
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLUTION_NOTE, substr($note, 0, 500));
+    }
+
+    upkeepify_clear_resident_issue_followup($task_id);
+    upkeepify_set_task_status_by_name($task_id, 'Completed');
+}
+
+/**
+ * Re-open resident confirmation after contractor follow-up.
+ *
+ * @since 1.1
+ * @param int     $task_id   Maintenance task post ID.
+ * @param WP_Post $task_post Maintenance task post object.
+ * @return bool True when the resident email was sent.
+ */
+function upkeepify_rerequest_resident_confirmation($task_id, $task_post) {
+    $meta_keys = array(
+        UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED,
+        UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT,
+        UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRM_NOTE,
+        UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS,
+        UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID,
+        UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_AT,
+        UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_BY,
+        UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLUTION_NOTE,
+    );
+    $previous_meta = array();
+    foreach ($meta_keys as $meta_key) {
+        $previous_meta[$meta_key] = get_post_meta($task_id, $meta_key, true);
+    }
+
+    delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED);
+    delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT);
+    delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRM_NOTE);
+    delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_AT);
+    delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_BY);
+    delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLUTION_NOTE);
+    upkeepify_clear_resident_issue_followup($task_id);
+
+    $sent = function_exists('upkeepify_send_resident_confirmation_email')
+        ? (bool) upkeepify_send_resident_confirmation_email($task_id, $task_post)
+        : false;
+
+    if (!$sent) {
+        foreach ($previous_meta as $meta_key => $meta_value) {
+            if ($meta_value !== '') {
+                update_post_meta($task_id, $meta_key, $meta_value);
+            }
+        }
+    }
+
+    return $sent;
+}
+
+/**
+ * Render trustee controls for resident issue follow-up review.
+ *
+ * @since 1.1
+ * @param int $task_id Maintenance task post ID.
+ * @return void
+ */
+function upkeepify_render_resident_issue_review_panel($task_id) {
+    $followup_status      = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, true);
+    $followup_response_id = intval(get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID, true));
+
+    if ($followup_status !== UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE && $followup_status !== UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_SUBMITTED) {
+        return;
+    }
+
+    $resident_note = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRM_NOTE, true);
+    $reported_at   = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_REPORTED_AT, true);
+
+    echo '<div class="notice notice-warning inline"><p><strong>' . esc_html__('Resident issue under review', 'upkeepify') . '</strong></p>';
+    echo '<p>' . esc_html__('The resident was not satisfied after completion. Review the resident issue and contractor follow-up before closing the lifecycle or asking the resident to confirm again.', 'upkeepify') . '</p>';
+    echo '<p><strong>' . esc_html__('Reported:', 'upkeepify') . '</strong> ' . wp_kses_post(upkeepify_format_lifecycle_timestamp($reported_at)) . '</p>';
+
+    if ($resident_note) {
+        echo '<p><strong>' . esc_html__('Resident comment:', 'upkeepify') . '</strong><br>' . nl2br(esc_html($resident_note)) . '</p>';
+    }
+
+    if ($followup_response_id) {
+        $followup_note = get_post_meta($followup_response_id, UPKEEPIFY_META_KEY_RESPONSE_FOLLOWUP_NOTE, true);
+        $followup_at   = get_post_meta($followup_response_id, UPKEEPIFY_META_KEY_RESPONSE_FOLLOWUP_COMPLETED_AT, true);
+        $followup_photos = get_post_meta($followup_response_id, UPKEEPIFY_META_KEY_RESPONSE_FOLLOWUP_PHOTOS, true);
+        $followup_photos = is_array($followup_photos) ? $followup_photos : array();
+
+        echo '<p><strong>' . esc_html__('Contractor:', 'upkeepify') . '</strong> ' . esc_html(upkeepify_get_response_provider_name($followup_response_id)) . '</p>';
+        if ($followup_at) {
+            echo '<p><strong>' . esc_html__('Follow-up submitted:', 'upkeepify') . '</strong> ' . wp_kses_post(upkeepify_format_lifecycle_timestamp($followup_at)) . '</p>';
+        }
+        if ($followup_note) {
+            echo '<p><strong>' . esc_html__('Contractor follow-up:', 'upkeepify') . '</strong><br>' . nl2br(esc_html($followup_note)) . '</p>';
+        }
+        if (!empty($followup_photos)) {
+            echo '<p>' . esc_html(sprintf(__('%d follow-up photo(s) uploaded.', 'upkeepify'), count($followup_photos))) . '</p>';
+        }
+    }
+
+    if ($followup_status === UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE) {
+        echo '<p><em>' . esc_html__('Waiting for the contractor to submit their follow-up.', 'upkeepify') . '</em></p>';
+        echo '</div>';
+        return;
+    }
+
+    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+    echo '<input type="hidden" name="action" value="' . esc_attr(UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_FOLLOWUP) . '">';
+    echo '<input type="hidden" name="task_id" value="' . esc_attr($task_id) . '">';
+    wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+    echo '<p><label for="upkeepify_resident_issue_resolution_note"><strong>' . esc_html__('Trustee note (optional)', 'upkeepify') . '</strong></label><br>';
+    echo '<textarea id="upkeepify_resident_issue_resolution_note" name="resolution_note" rows="3" maxlength="500" style="width:100%;max-width:720px;"></textarea></p>';
+    echo '<p>';
+    echo '<button type="submit" name="followup_action" value="resolve" class="button button-primary">' . esc_html__('Resolve issue and close', 'upkeepify') . '</button> ';
+    $resident_email = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_SUBMITTER_EMAIL, true);
+    $can_rerequest  = is_email($resident_email) && function_exists('upkeepify_get_resident_confirmation_url') && upkeepify_get_resident_confirmation_url($task_id);
+    if ($can_rerequest) {
+        echo '<button type="submit" name="followup_action" value="rerequest" class="button button-secondary">' . esc_html__('Re-request resident confirmation', 'upkeepify') . '</button>';
+    } else {
+        echo '<span style="margin-left:8px;color:#646970;">' . esc_html__('No resident email/confirmation link is available for re-request.', 'upkeepify') . '</span>';
+    }
+    echo '</p>';
+    echo '</form>';
+    echo '</div>';
+}
+
+/**
  * Render the trustee-facing response lifecycle panel.
  *
  * @since 1.1
@@ -454,10 +610,16 @@ function upkeepify_trustee_lifecycle_meta_box_callback($post) {
             echo '<div class="notice notice-success inline"><p>' . esc_html__('Estimate approved. The contractor can now submit a formal quote.', 'upkeepify') . '</p></div>';
         } elseif ($notice === 'quote_approved') {
             echo '<div class="notice notice-success inline"><p>' . esc_html__('Quote approved. The contractor can now complete the work and upload proof.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'resident_issue_resolved') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Resident issue resolved and lifecycle closed.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'resident_confirmation_requested') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Resident confirmation requested again.', 'upkeepify') . '</p></div>';
         }
     }
 
     echo '<p>' . esc_html__('Approve an estimate before asking for a formal quote, then approve the formal quote before the contractor can mark the job complete.', 'upkeepify') . '</p>';
+
+    upkeepify_render_resident_issue_review_panel($post->ID);
 
     if (empty($responses)) {
         echo '<p>' . esc_html__('No contractor responses have been created yet. They are generated when this task is published and matching service providers exist.', 'upkeepify') . '</p>';
@@ -512,7 +674,7 @@ function upkeepify_trustee_lifecycle_meta_box_callback($post) {
         echo '</td>';
         echo '<td>';
         if ($completed_at) {
-            echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), intval($completed_at)));
+            echo wp_kses_post(upkeepify_format_lifecycle_timestamp($completed_at));
         } else {
             echo '&mdash;';
         }
@@ -788,6 +950,66 @@ function upkeepify_admin_post_trustee_lifecycle_approval() {
     exit;
 }
 add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_APPROVAL, 'upkeepify_admin_post_trustee_lifecycle_approval');
+
+/**
+ * Handle trustee review actions after contractor resident-issue follow-up.
+ *
+ * @since 1.1
+ * @hook admin_post_{UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_FOLLOWUP}
+ */
+function upkeepify_admin_post_trustee_lifecycle_followup() {
+    $task_id         = isset($_POST['task_id']) ? absint(wp_unslash($_POST['task_id'])) : 0;
+    $followup_action = isset($_POST['followup_action']) ? sanitize_key(wp_unslash($_POST['followup_action'])) : '';
+    $resolution_note = isset($_POST['resolution_note']) ? sanitize_textarea_field(wp_unslash($_POST['resolution_note'])) : '';
+
+    if (!$task_id || !current_user_can('edit_post', $task_id)) {
+        wp_die(esc_html__('Insufficient permissions.', 'upkeepify'));
+    }
+
+    check_admin_referer(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+
+    $task = get_post($task_id);
+    if (!$task || $task->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS) {
+        wp_die(esc_html__('Invalid lifecycle follow-up request.', 'upkeepify'));
+    }
+
+    $followup_status      = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, true);
+    $followup_response_id = intval(get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID, true));
+    if ($followup_status !== UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_SUBMITTED || !$followup_response_id) {
+        wp_die(esc_html__('Contractor follow-up must be submitted before this action is available.', 'upkeepify'));
+    }
+
+    $redirect_status = '';
+    if ($followup_action === 'resolve') {
+        upkeepify_resolve_resident_issue($task_id, $resolution_note);
+        $redirect_status = 'resident_issue_resolved';
+    } elseif ($followup_action === 'rerequest') {
+        $resident_email = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_SUBMITTER_EMAIL, true);
+        if (!is_email($resident_email) || !function_exists('upkeepify_get_resident_confirmation_url') || !upkeepify_get_resident_confirmation_url($task_id)) {
+            wp_die(esc_html__('This task does not have a resident email and confirmation link available.', 'upkeepify'));
+        }
+
+        if (!upkeepify_rerequest_resident_confirmation($task_id, $task)) {
+            wp_die(esc_html__('Resident confirmation email could not be sent.', 'upkeepify'));
+        }
+        $redirect_status = 'resident_confirmation_requested';
+    } else {
+        wp_die(esc_html__('Unknown lifecycle follow-up action.', 'upkeepify'));
+    }
+
+    $redirect = add_query_arg(
+        array(
+            'post'                => $task_id,
+            'action'              => 'edit',
+            'upkeepify_lifecycle' => $redirect_status,
+        ),
+        admin_url('post.php')
+    );
+
+    wp_safe_redirect($redirect);
+    exit;
+}
+add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_FOLLOWUP, 'upkeepify_admin_post_trustee_lifecycle_followup');
 
 /**
  * Register the Responses custom post type.

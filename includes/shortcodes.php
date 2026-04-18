@@ -1879,17 +1879,18 @@ function upkeepify_clear_resident_issue_followup( $task_id ) {
  *
  * @param int     $task_id   Maintenance task post ID.
  * @param WP_Post $task_post The task post object.
+ * @return bool True when email was sent.
  */
 function upkeepify_send_resident_confirmation_email( $task_id, $task_post ) {
     $resident_email = get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_SUBMITTER_EMAIL, true );
     if ( ! is_email( $resident_email ) ) {
-        return;
+        return false;
     }
 
     // Don't resend if already confirmed.
     $confirmed_at = get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT, true );
     if ( $confirmed_at ) {
-        return;
+        return false;
     }
 
     $confirmation_url = upkeepify_get_resident_confirmation_url( $task_id );
@@ -1897,7 +1898,7 @@ function upkeepify_send_resident_confirmation_email( $task_id, $task_post ) {
         if ( WP_DEBUG ) {
             error_log( 'Upkeepify Step 4: Resident confirmation page not configured — email not sent for task ID ' . $task_id );
         }
-        return;
+        return false;
     }
 
     $site_name = get_bloginfo( 'name' );
@@ -1925,6 +1926,8 @@ function upkeepify_send_resident_confirmation_email( $task_id, $task_post ) {
     if ( WP_DEBUG ) {
         error_log( 'Upkeepify Step 4: Resident confirmation email ' . ( $sent ? 'sent' : 'FAILED' ) . ' to ' . $resident_email . ' for task ID ' . $task_id );
     }
+
+    return (bool) $sent;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1985,14 +1988,19 @@ function upkeepify_resident_confirmation_form_shortcode() {
     $confirmed_at = get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT, true );
     if ( $confirmed_at ) {
         $was_satisfied = get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED, true );
+        $resolved_at   = get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_AT, true );
         echo '<div class="upkeepify-notice upkeepify-notice-success">';
         echo '<p>' . sprintf(
             esc_html__( 'You already submitted your feedback for "%s". Thank you.', 'upkeepify' ),
             esc_html( $task->post_title )
         ) . '</p>';
-        echo '<p>' . ( $was_satisfied === '1'
-            ? esc_html__( 'You marked this job as: Satisfied.', 'upkeepify' )
-            : esc_html__( 'You marked this job as: Not satisfied. The property manager has been asked to review it.', 'upkeepify' ) ) . '</p>';
+        if ( $resolved_at && $was_satisfied === '0' ) {
+            echo '<p>' . esc_html__( 'The property manager has reviewed and closed the issue you reported.', 'upkeepify' ) . '</p>';
+        } else {
+            echo '<p>' . ( $was_satisfied === '1'
+                ? esc_html__( 'You marked this job as: Satisfied.', 'upkeepify' )
+                : esc_html__( 'You marked this job as: Not satisfied. The property manager has been asked to review it.', 'upkeepify' ) ) . '</p>';
+        }
         echo '</div>';
         return ob_get_clean();
     }

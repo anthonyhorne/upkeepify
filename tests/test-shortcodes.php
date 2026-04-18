@@ -226,6 +226,30 @@ class ShortcodesTest extends TestCase {
 		$this->assertStringContainsString( 'already submitted', $output );
 	}
 
+	public function test_resident_confirmation_form_shows_trustee_resolved_message() {
+		$token   = 'validtoken12345678ab';
+		$task_id = 99;
+
+		$_GET[ UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN ] = $token;
+
+		$task             = new stdClass();
+		$task->ID         = $task_id;
+		$task->post_title = 'Leaking tap';
+		$task->post_type  = UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS;
+		$GLOBALS['_upkeepify_test_posts'][ UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS ] = [ $task ];
+
+		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_TOKEN ] = $token;
+		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT ] = time();
+		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED ] = '0';
+		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_AT ] = time();
+
+		$output = upkeepify_resident_confirmation_form_shortcode();
+
+		$this->assertStringContainsString( 'already submitted', $output );
+		$this->assertStringContainsString( 'reviewed and closed', $output );
+		$this->assertStringNotContainsString( 'property manager has been asked to review it', $output );
+	}
+
 	// ─── upkeepify_get_resident_confirmation_url ─────────────────────────────────
 
 	public function test_get_resident_confirmation_url_returns_null_without_token() {

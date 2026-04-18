@@ -108,6 +108,9 @@ define('UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS', '_upkeepify_resident_
 define('UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID', '_upkeepify_resident_followup_response_id'); // provider response handling the follow-up
 define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_REPORTED_AT', '_upkeepify_resident_issue_reported_at'); // Unix timestamp of resident issue report
 define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_CONTRACTOR_NOTIFIED_AT', '_upkeepify_resident_issue_contractor_notified_at'); // Unix timestamp of contractor notice
+define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_AT', '_upkeepify_resident_issue_resolved_at'); // Unix timestamp of trustee issue resolution
+define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_BY', '_upkeepify_resident_issue_resolved_by'); // WP user ID that resolved the resident issue
+define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLUTION_NOTE', '_upkeepify_resident_issue_resolution_note'); // optional trustee resolution note (≤500 chars)
 define('UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_RESPONSE_ID', '_upkeepify_approved_estimate_response_id'); // provider response approved for formal quote
 define('UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_AT', '_upkeepify_approved_estimate_at'); // Unix timestamp of estimate approval
 define('UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_BY', '_upkeepify_approved_estimate_by'); // WP user ID that approved estimate
@@ -209,6 +212,7 @@ define('UPKEEPIFY_MAX_QUOTE_UPLOAD_SIZE', 5 * 1024 * 1024); // 5MB
 // Admin Actions
 define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT', 'upkeepify_provider_response_submit');
 define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_APPROVAL', 'upkeepify_trustee_lifecycle_approval');
+define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_FOLLOWUP', 'upkeepify_trustee_lifecycle_followup');
 define('UPKEEPIFY_ADMIN_ACTION_RUN_MIGRATIONS', 'upkeepify_run_migrations');
 define('UPKEEPIFY_ADMIN_ACTION_REPAIR_SCHEMA', 'upkeepify_repair_schema');
 define('UPKEEPIFY_ADMIN_ACTION_RESET_DATABASE', 'upkeepify_reset_database');

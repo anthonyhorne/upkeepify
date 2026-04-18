@@ -6,8 +6,8 @@
 - [x] Require trustee estimate approval before a contractor can submit a formal quote.
 - [x] Require trustee quote approval before a contractor can mark work complete.
 - [x] Notify contractors when trustee approval unlocks their next step.
-- [ ] Add a trustee action to resolve a resident-reported issue after contractor follow-up.
-- [ ] Add a trustee action to re-request resident confirmation after contractor follow-up.
+- [x] Add a trustee action to resolve a resident-reported issue after contractor follow-up.
+- [x] Add a trustee action to re-request resident confirmation after contractor follow-up.
 - [ ] Add lifecycle status columns/filters for pending estimate approval, pending quote approval, awaiting completion, awaiting resident confirmation, and needs review.
 - [ ] Sync visible task status terms with lifecycle state, especially quote approved, completed, resident confirmed, and resident issue reported.
 - [ ] Add token revoke/regenerate controls for contractor response links.
