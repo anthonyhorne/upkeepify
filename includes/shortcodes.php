@@ -661,6 +661,12 @@ function upkeepify_provider_response_form_shortcode($atts) {
         $query->the_post();
         $response_id = get_the_ID();
 
+        if (function_exists('upkeepify_is_provider_response_token_revoked') && upkeepify_is_provider_response_token_revoked($response_id)) {
+            wp_reset_postdata();
+            echo '<p>' . esc_html__('This response link has been revoked. Please contact the property manager for a new link.', 'upkeepify') . '</p>';
+            return ob_get_clean();
+        }
+
         $task_id  = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true ) );
         $task_post = $task_id ? get_post( $task_id ) : null;
 
@@ -1191,7 +1197,10 @@ function upkeepify_admin_post_provider_response_submit() {
     // Verify the token matches (prevents response_id tampering).
     $stored_token = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN, true );
     $posted_token = isset( $_POST[ UPKEEPIFY_QUERY_VAR_TOKEN ] ) ? sanitize_text_field( wp_unslash( $_POST[ UPKEEPIFY_QUERY_VAR_TOKEN ] ) ) : '';
-    if ( empty( $stored_token ) || ! hash_equals( $stored_token, $posted_token ) ) {
+    $token_matches = function_exists( 'upkeepify_provider_response_token_matches' )
+        ? upkeepify_provider_response_token_matches( $response_id, $posted_token )
+        : ( ! empty( $stored_token ) && hash_equals( $stored_token, $posted_token ) );
+    if ( ! $token_matches ) {
         wp_die( esc_html__( 'Token mismatch. Please use the original invitation link.', 'upkeepify' ) );
     }
 
@@ -1406,7 +1415,10 @@ function upkeepify_admin_post_provider_quote_submit() {
     // Token verification.
     $stored_token = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN, true );
     $posted_token = isset( $_POST[ UPKEEPIFY_QUERY_VAR_TOKEN ] ) ? sanitize_text_field( wp_unslash( $_POST[ UPKEEPIFY_QUERY_VAR_TOKEN ] ) ) : '';
-    if ( empty( $stored_token ) || ! hash_equals( $stored_token, $posted_token ) ) {
+    $token_matches = function_exists( 'upkeepify_provider_response_token_matches' )
+        ? upkeepify_provider_response_token_matches( $response_id, $posted_token )
+        : ( ! empty( $stored_token ) && hash_equals( $stored_token, $posted_token ) );
+    if ( ! $token_matches ) {
         wp_die( esc_html__( 'Token mismatch.', 'upkeepify' ) );
     }
 
@@ -1521,7 +1533,10 @@ function upkeepify_admin_post_provider_completion_submit() {
     // Token verification.
     $stored_token = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN, true );
     $posted_token = isset( $_POST[ UPKEEPIFY_QUERY_VAR_TOKEN ] ) ? sanitize_text_field( wp_unslash( $_POST[ UPKEEPIFY_QUERY_VAR_TOKEN ] ) ) : '';
-    if ( empty( $stored_token ) || ! hash_equals( $stored_token, $posted_token ) ) {
+    $token_matches = function_exists( 'upkeepify_provider_response_token_matches' )
+        ? upkeepify_provider_response_token_matches( $response_id, $posted_token )
+        : ( ! empty( $stored_token ) && hash_equals( $stored_token, $posted_token ) );
+    if ( ! $token_matches ) {
         wp_die( esc_html__( 'Token mismatch.', 'upkeepify' ) );
     }
 

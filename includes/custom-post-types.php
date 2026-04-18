@@ -432,6 +432,172 @@ function upkeepify_render_lifecycle_approval_button($task_id, $response_id, $app
 }
 
 /**
+ * Return whether a provider response token was revoked.
+ *
+ * @since 1.1
+ * @param int $response_id Provider response post ID.
+ * @return bool True when revoked.
+ */
+function upkeepify_is_provider_response_token_revoked($response_id) {
+    return (bool) get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REVOKED_AT, true);
+}
+
+/**
+ * Validate that a posted contractor token matches and has not been revoked.
+ *
+ * @since 1.1
+ * @param int    $response_id Provider response post ID.
+ * @param string $token       Contractor response token.
+ * @return bool True when token can be used.
+ */
+function upkeepify_provider_response_token_matches($response_id, $token) {
+    $stored_token = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN, true);
+    if (empty($stored_token) || upkeepify_is_provider_response_token_revoked($response_id)) {
+        return false;
+    }
+
+    return hash_equals((string) $stored_token, (string) $token);
+}
+
+/**
+ * Return the admin-visible token state for a provider response.
+ *
+ * @since 1.1
+ * @param int $response_id Provider response post ID.
+ * @return string active|expired|revoked|missing
+ */
+function upkeepify_get_provider_response_token_state($response_id) {
+    $token = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN, true);
+    if (empty($token)) {
+        return 'missing';
+    }
+
+    if (upkeepify_is_provider_response_token_revoked($response_id)) {
+        return 'revoked';
+    }
+
+    $expires = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN_EXPIRES, true);
+    if ($expires && time() > intval($expires)) {
+        return 'expired';
+    }
+
+    return 'active';
+}
+
+/**
+ * Revoke a contractor response token.
+ *
+ * @since 1.1
+ * @param int $response_id Provider response post ID.
+ * @return void
+ */
+function upkeepify_revoke_provider_response_token($response_id) {
+    update_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REVOKED_AT, time());
+}
+
+/**
+ * Regenerate a contractor response token and reset its expiry.
+ *
+ * @since 1.1
+ * @param int $response_id Provider response post ID.
+ * @return string New token.
+ */
+function upkeepify_regenerate_provider_response_token($response_id) {
+    $token = wp_generate_password(20, false);
+
+    update_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN, $token);
+    update_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN_EXPIRES, time() + (UPKEEPIFY_TOKEN_EXPIRY_DAYS * DAY_IN_SECONDS));
+    update_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REGENERATED_AT, time());
+    update_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REGENERATED_BY, get_current_user_id());
+    delete_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REVOKED_AT);
+
+    return $token;
+}
+
+/**
+ * Email a regenerated contractor response link.
+ *
+ * @since 1.1
+ * @param int    $task_id     Maintenance task post ID.
+ * @param int    $response_id Provider response post ID.
+ * @param string $token       New contractor token.
+ * @return bool True when sent.
+ */
+function upkeepify_send_regenerated_provider_token_email($task_id, $response_id, $token) {
+    $provider_id    = intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true));
+    $provider_email = $provider_id ? get_term_meta($provider_id, UPKEEPIFY_TERM_META_PROVIDER_EMAIL, true) : '';
+    if (!is_email($provider_email)) {
+        return false;
+    }
+
+    $response_url = function_exists('upkeepify_get_provider_response_url') ? upkeepify_get_provider_response_url($response_id) : null;
+    if (!$response_url) {
+        return false;
+    }
+
+    $task          = get_post($task_id);
+    $provider_name = upkeepify_get_response_provider_name($response_id);
+    $subject       = sprintf(__('[%s] Updated job response link: %s', 'upkeepify'), get_bloginfo('name'), $task ? $task->post_title : __('Maintenance job', 'upkeepify'));
+
+    $body  = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
+    $body .= '<h2>' . esc_html__('Updated Job Link', 'upkeepify') . '</h2>';
+    $body .= '<p>' . sprintf(esc_html__('Hi %s,', 'upkeepify'), esc_html($provider_name)) . '</p>';
+    $body .= '<p>' . esc_html__('The property manager has updated your secure job response link. Please use the new link below; older links will no longer work.', 'upkeepify') . '</p>';
+    $body .= '<p style="margin:24px 0;"><a href="' . esc_url($response_url) . '" style="background:#0073aa;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;display:inline-block;">' . esc_html__('Open job response', 'upkeepify') . '</a></p>';
+    $body .= '<p style="color:#999;font-size:12px;">' . esc_html__('Or copy this link:', 'upkeepify') . '<br><code style="word-break:break-all;">' . esc_url($response_url) . '</code></p>';
+    $body .= '</div>';
+
+    return wp_mail($provider_email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
+}
+
+/**
+ * Render contractor token controls for a provider response row.
+ *
+ * @since 1.1
+ * @param int $task_id     Maintenance task post ID.
+ * @param int $response_id Provider response post ID.
+ * @return void
+ */
+function upkeepify_render_provider_token_controls($task_id, $response_id) {
+    $state = upkeepify_get_provider_response_token_state($response_id);
+    $labels = array(
+        'active'  => __('Active', 'upkeepify'),
+        'expired' => __('Expired', 'upkeepify'),
+        'revoked' => __('Revoked', 'upkeepify'),
+        'missing' => __('Missing', 'upkeepify'),
+    );
+    $expires = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TOKEN_EXPIRES, true);
+
+    echo '<div style="margin-top:8px;">';
+    echo '<small><strong>' . esc_html__('Link:', 'upkeepify') . '</strong> ' . esc_html($labels[$state] ?? $state) . '</small>';
+    if ($expires) {
+        echo '<br><small>' . esc_html__('Expires:', 'upkeepify') . ' ' . wp_kses_post(upkeepify_format_lifecycle_timestamp($expires)) . '</small>';
+    }
+
+    echo '<div style="margin-top:4px;">';
+    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block;margin:0 4px 0 0;">';
+    echo '<input type="hidden" name="action" value="' . esc_attr(UPKEEPIFY_ADMIN_ACTION_PROVIDER_TOKEN_MANAGE) . '">';
+    echo '<input type="hidden" name="task_id" value="' . esc_attr($task_id) . '">';
+    echo '<input type="hidden" name="response_id" value="' . esc_attr($response_id) . '">';
+    echo '<input type="hidden" name="token_action" value="regenerate">';
+    wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+    echo '<button type="submit" class="button button-small">' . esc_html__('Regenerate link', 'upkeepify') . '</button>';
+    echo '</form>';
+
+    if ($state !== 'revoked' && $state !== 'missing') {
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block;margin:0;">';
+        echo '<input type="hidden" name="action" value="' . esc_attr(UPKEEPIFY_ADMIN_ACTION_PROVIDER_TOKEN_MANAGE) . '">';
+        echo '<input type="hidden" name="task_id" value="' . esc_attr($task_id) . '">';
+        echo '<input type="hidden" name="response_id" value="' . esc_attr($response_id) . '">';
+        echo '<input type="hidden" name="token_action" value="revoke">';
+        wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+        echo '<button type="submit" class="button button-small">' . esc_html__('Revoke link', 'upkeepify') . '</button>';
+        echo '</form>';
+    }
+    echo '</div></div>';
+}
+
+/**
  * Format a lifecycle timestamp for admin display.
  *
  * @since 1.1
@@ -616,6 +782,10 @@ function upkeepify_trustee_lifecycle_meta_box_callback($post) {
             echo '<div class="notice notice-success inline"><p>' . esc_html__('Resident issue resolved and lifecycle closed.', 'upkeepify') . '</p></div>';
         } elseif ($notice === 'resident_confirmation_requested') {
             echo '<div class="notice notice-success inline"><p>' . esc_html__('Resident confirmation requested again.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'token_revoked') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Contractor response link revoked.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'token_regenerated') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Contractor response link regenerated and emailed when a provider email was available.', 'upkeepify') . '</p></div>';
         }
     }
 
@@ -702,6 +872,7 @@ function upkeepify_trustee_lifecycle_meta_box_callback($post) {
         } elseif ($completed_at) {
             echo '<small>' . esc_html__('Completion submitted.', 'upkeepify') . '</small>';
         }
+        upkeepify_render_provider_token_controls($post->ID, $response_id);
         echo '</td>';
         echo '</tr>';
     }
@@ -1095,6 +1266,59 @@ function upkeepify_admin_post_trustee_lifecycle_followup() {
     exit;
 }
 add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_FOLLOWUP, 'upkeepify_admin_post_trustee_lifecycle_followup');
+
+/**
+ * Handle contractor response token revoke/regenerate actions.
+ *
+ * @since 1.1
+ * @hook admin_post_{UPKEEPIFY_ADMIN_ACTION_PROVIDER_TOKEN_MANAGE}
+ */
+function upkeepify_admin_post_provider_token_manage() {
+    $task_id      = isset($_POST['task_id']) ? absint(wp_unslash($_POST['task_id'])) : 0;
+    $response_id  = isset($_POST['response_id']) ? absint(wp_unslash($_POST['response_id'])) : 0;
+    $token_action = isset($_POST['token_action']) ? sanitize_key(wp_unslash($_POST['token_action'])) : '';
+
+    if (!$task_id || !current_user_can('edit_post', $task_id)) {
+        wp_die(esc_html__('Insufficient permissions.', 'upkeepify'));
+    }
+
+    check_admin_referer(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+
+    $task     = get_post($task_id);
+    $response = get_post($response_id);
+    if (!$task || $task->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS || !$response || $response->post_type !== UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES) {
+        wp_die(esc_html__('Invalid contractor link request.', 'upkeepify'));
+    }
+
+    $response_task_id = intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true));
+    if ($response_task_id !== intval($task_id)) {
+        wp_die(esc_html__('This provider response does not belong to this task.', 'upkeepify'));
+    }
+
+    if ($token_action === 'revoke') {
+        upkeepify_revoke_provider_response_token($response_id);
+        $redirect_status = 'token_revoked';
+    } elseif ($token_action === 'regenerate') {
+        $token = upkeepify_regenerate_provider_response_token($response_id);
+        upkeepify_send_regenerated_provider_token_email($task_id, $response_id, $token);
+        $redirect_status = 'token_regenerated';
+    } else {
+        wp_die(esc_html__('Unknown contractor link action.', 'upkeepify'));
+    }
+
+    $redirect = add_query_arg(
+        array(
+            'post'                => $task_id,
+            'action'              => 'edit',
+            'upkeepify_lifecycle' => $redirect_status,
+        ),
+        admin_url('post.php')
+    );
+
+    wp_safe_redirect($redirect);
+    exit;
+}
+add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_PROVIDER_TOKEN_MANAGE, 'upkeepify_admin_post_provider_token_manage');
 
 /**
  * Register the Responses custom post type.

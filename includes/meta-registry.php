@@ -236,8 +236,40 @@ function upkeepify_get_meta_field_registry() {
             'used_by' => array(
                 'upkeepify_generate_provider_tokens()',
                 'upkeepify_provider_response_form_shortcode()',
+                'upkeepify_admin_post_provider_token_manage()',
             ),
             'validation' => 'Non-empty string (recommended length 20)',
+        ),
+        UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REVOKED_AT => array(
+            'constant' => 'UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REVOKED_AT',
+            'type' => 'integer',
+            'default' => 0,
+            'description' => 'Unix timestamp when a trustee revoked a contractor response link.',
+            'examples' => array(1760000000),
+            'used_by' => array(
+                'upkeepify_is_provider_response_token_revoked()',
+                'upkeepify_revoke_provider_response_token()',
+                'upkeepify_admin_post_provider_token_manage()',
+            ),
+            'validation' => 'Unix timestamp',
+        ),
+        UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REGENERATED_AT => array(
+            'constant' => 'UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REGENERATED_AT',
+            'type' => 'integer',
+            'default' => 0,
+            'description' => 'Unix timestamp when a trustee regenerated a contractor response link.',
+            'examples' => array(1760000000),
+            'used_by' => array('upkeepify_regenerate_provider_response_token()'),
+            'validation' => 'Unix timestamp',
+        ),
+        UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REGENERATED_BY => array(
+            'constant' => 'UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REGENERATED_BY',
+            'type' => 'integer',
+            'default' => 0,
+            'description' => 'WordPress user ID that regenerated a contractor response link.',
+            'examples' => array(1),
+            'used_by' => array('upkeepify_regenerate_provider_response_token()'),
+            'validation' => 'Positive WordPress user ID',
         ),
     );
 }

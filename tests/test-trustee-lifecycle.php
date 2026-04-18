@@ -64,6 +64,8 @@ class TrusteeLifecycleTest extends TestCase {
 		$GLOBALS['_upkeepify_test_posts'][ UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES ] = [ $response ];
 		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TASK_ID ]  = $task_id;
 		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_PROVIDER_ID ]       = $provider_id;
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TOKEN ]     = 'providertoken123';
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TOKEN_EXPIRES ] = time() + DAY_IN_SECONDS;
 		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_DECISION ]  = 'accept';
 		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE ]  = '250';
 		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ] = [
@@ -81,7 +83,74 @@ class TrusteeLifecycleTest extends TestCase {
 
 		$this->assertStringContainsString( 'Fix It Fast', $output );
 		$this->assertStringContainsString( 'Approve estimate', $output );
+		$this->assertStringContainsString( 'Link:', $output );
+		$this->assertStringContainsString( 'Regenerate link', $output );
+		$this->assertStringContainsString( 'Revoke link', $output );
+		$this->assertStringContainsString( UPKEEPIFY_ADMIN_ACTION_PROVIDER_TOKEN_MANAGE, $output );
 		$this->assertStringContainsString( UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_APPROVAL, $output );
+	}
+
+	public function test_revoke_provider_response_token_blocks_token_matching() {
+		$response_id = 123;
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TOKEN ] = 'providertoken123';
+
+		$this->assertTrue( upkeepify_provider_response_token_matches( $response_id, 'providertoken123' ) );
+
+		upkeepify_revoke_provider_response_token( $response_id );
+
+		$this->assertSame( 'revoked', upkeepify_get_provider_response_token_state( $response_id ) );
+		$this->assertNotEmpty( $GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REVOKED_AT ] );
+		$this->assertFalse( upkeepify_provider_response_token_matches( $response_id, 'providertoken123' ) );
+	}
+
+	public function test_regenerate_provider_response_token_replaces_token_and_clears_revocation() {
+		$response_id = 123;
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TOKEN ] = 'oldprovidertoken';
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REVOKED_AT ] = time();
+
+		$new_token = upkeepify_regenerate_provider_response_token( $response_id );
+
+		$this->assertSame( str_repeat( 'a', 20 ), $new_token );
+		$this->assertFalse( upkeepify_provider_response_token_matches( $response_id, 'oldprovidertoken' ) );
+		$this->assertTrue( upkeepify_provider_response_token_matches( $response_id, $new_token ) );
+		$this->assertArrayNotHasKey( UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REVOKED_AT, $GLOBALS['_upkeepify_test_post_meta'][ $response_id ] );
+		$this->assertNotEmpty( $GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TOKEN_EXPIRES ] );
+		$this->assertSame( 'active', upkeepify_get_provider_response_token_state( $response_id ) );
+	}
+
+	public function test_send_regenerated_provider_token_email_notifies_provider() {
+		$task_id     = 42;
+		$response_id = 123;
+		$provider_id = 77;
+
+		$GLOBALS['_upkeepify_test_posts'][ UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS ] = [
+			new WP_Post(
+				[
+					'ID'         => $task_id,
+					'post_type'  => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
+					'post_title' => 'Leaking roof',
+				]
+			),
+		];
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_PROVIDER_ID ] = $provider_id;
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TOKEN ] = 'newprovidertoken123';
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ] = [
+			new WP_Term(
+				[
+					'term_id' => $provider_id,
+					'name'    => 'Fix It Fast',
+				]
+			),
+		];
+		$GLOBALS['_upkeepify_test_term_meta'][ $provider_id ][ UPKEEPIFY_TERM_META_PROVIDER_EMAIL ] = 'contractor@example.com';
+
+		$sent = upkeepify_send_regenerated_provider_token_email( $task_id, $response_id, 'newprovidertoken123' );
+
+		$this->assertTrue( $sent );
+		$this->assertCount( 1, $GLOBALS['_upkeepify_test_mail'] );
+		$this->assertSame( 'contractor@example.com', $GLOBALS['_upkeepify_test_mail'][0]['to'] );
+		$this->assertStringContainsString( 'Updated job response link', $GLOBALS['_upkeepify_test_mail'][0]['subject'] );
+		$this->assertStringContainsString( 'Open job response', $GLOBALS['_upkeepify_test_mail'][0]['message'] );
 	}
 
 	public function test_lifecycle_panel_shows_resident_issue_actions_after_contractor_followup() {

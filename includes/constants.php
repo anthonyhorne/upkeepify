@@ -65,6 +65,9 @@ define('UPKEEPIFY_META_KEY_RESPONSE_TASK_ID', 'response_task_id');
 define('UPKEEPIFY_META_KEY_PROVIDER_ID', 'provider_id');
 define('UPKEEPIFY_META_KEY_RESPONSE_TOKEN', 'response_token');
 define('UPKEEPIFY_META_KEY_RESPONSE_TOKEN_EXPIRES', 'response_token_expires');
+define('UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REVOKED_AT', 'response_token_revoked_at');
+define('UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REGENERATED_AT', 'response_token_regenerated_at');
+define('UPKEEPIFY_META_KEY_RESPONSE_TOKEN_REGENERATED_BY', 'response_token_regenerated_by');
 
 // Structured estimate meta keys (set when contractor submits Step 2 form)
 define('UPKEEPIFY_META_KEY_RESPONSE_DECISION',            'response_decision');            // 'accept' | 'decline'
@@ -228,6 +231,7 @@ define('UPKEEPIFY_MAX_QUOTE_UPLOAD_SIZE', 5 * 1024 * 1024); // 5MB
 define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT', 'upkeepify_provider_response_submit');
 define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_APPROVAL', 'upkeepify_trustee_lifecycle_approval');
 define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_FOLLOWUP', 'upkeepify_trustee_lifecycle_followup');
+define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_TOKEN_MANAGE', 'upkeepify_provider_token_manage');
 define('UPKEEPIFY_ADMIN_ACTION_RUN_MIGRATIONS', 'upkeepify_run_migrations');
 define('UPKEEPIFY_ADMIN_ACTION_REPAIR_SCHEMA', 'upkeepify_repair_schema');
 define('UPKEEPIFY_ADMIN_ACTION_RESET_DATABASE', 'upkeepify_reset_database');
