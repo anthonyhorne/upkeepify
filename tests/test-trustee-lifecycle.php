@@ -162,6 +162,96 @@ class TrusteeLifecycleTest extends TestCase {
 		$this->assertSame( [ 31 ], $GLOBALS['_upkeepify_test_object_terms'][ $task_id ][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] );
 	}
 
+	public function test_sync_task_lifecycle_status_marks_pending_estimate_approval() {
+		$task_id     = 42;
+		$response_id = 123;
+
+		$GLOBALS['_upkeepify_test_posts'][ UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES ] = [
+			new WP_Post(
+				[
+					'ID'        => $response_id,
+					'post_type' => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES,
+				]
+			),
+		];
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TASK_ID ] = $task_id;
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_DECISION ] = 'accept';
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE ] = '250';
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] = [
+			new WP_Term(
+				[
+					'term_id' => 41,
+					'name'    => UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL,
+				]
+			),
+		];
+
+		$status = upkeepify_sync_task_lifecycle_status( $task_id );
+
+		$this->assertSame( UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL, $status );
+		$this->assertSame( [ 41 ], $GLOBALS['_upkeepify_test_object_terms'][ $task_id ][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] );
+	}
+
+	public function test_sync_task_lifecycle_status_marks_awaiting_completion_after_quote_approval() {
+		$task_id     = 42;
+		$response_id = 123;
+
+		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_RESPONSE_ID ] = $response_id;
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] = [
+			new WP_Term(
+				[
+					'term_id' => 42,
+					'name'    => UPKEEPIFY_TASK_STATUS_AWAITING_COMPLETION,
+				]
+			),
+		];
+
+		$status = upkeepify_sync_task_lifecycle_status( $task_id );
+
+		$this->assertSame( UPKEEPIFY_TASK_STATUS_AWAITING_COMPLETION, $status );
+		$this->assertSame( [ 42 ], $GLOBALS['_upkeepify_test_object_terms'][ $task_id ][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] );
+	}
+
+	public function test_sync_task_lifecycle_status_marks_awaiting_resident_confirmation_after_completion() {
+		$task_id     = 42;
+		$response_id = 123;
+
+		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_RESPONSE_ID ] = $response_id;
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT ] = time();
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] = [
+			new WP_Term(
+				[
+					'term_id' => 43,
+					'name'    => UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION,
+				]
+			),
+		];
+
+		$status = upkeepify_sync_task_lifecycle_status( $task_id );
+
+		$this->assertSame( UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION, $status );
+		$this->assertSame( [ 43 ], $GLOBALS['_upkeepify_test_object_terms'][ $task_id ][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] );
+	}
+
+	public function test_sync_task_lifecycle_status_marks_needs_review_for_resident_issue() {
+		$task_id = 42;
+
+		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS ] = UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE;
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] = [
+			new WP_Term(
+				[
+					'term_id' => 44,
+					'name'    => UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW,
+				]
+			),
+		];
+
+		$status = upkeepify_sync_task_lifecycle_status( $task_id );
+
+		$this->assertSame( UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW, $status );
+		$this->assertSame( [ 44 ], $GLOBALS['_upkeepify_test_object_terms'][ $task_id ][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] );
+	}
+
 	public function test_rerequest_resident_confirmation_reopens_feedback_and_sends_email() {
 		$task_id = 42;
 		$task    = new WP_Post(

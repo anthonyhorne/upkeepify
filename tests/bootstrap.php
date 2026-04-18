@@ -272,6 +272,10 @@ function sanitize_text_field( $str ) {
 	return preg_replace( '/[\r\n\t]/', '', strip_tags( (string) $str ) );
 }
 
+function sanitize_key( $key ) {
+	return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) );
+}
+
 function sanitize_textarea_field( $str ) {
 	return (string) $str;
 }

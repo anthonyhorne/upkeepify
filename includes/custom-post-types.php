@@ -467,7 +467,7 @@ function upkeepify_resolve_resident_issue($task_id, $note = '') {
     }
 
     upkeepify_clear_resident_issue_followup($task_id);
-    upkeepify_set_task_status_by_name($task_id, 'Completed');
+    upkeepify_set_task_status_by_name($task_id, UPKEEPIFY_TASK_STATUS_COMPLETED);
 }
 
 /**
@@ -512,6 +512,8 @@ function upkeepify_rerequest_resident_confirmation($task_id, $task_post) {
                 update_post_meta($task_id, $meta_key, $meta_value);
             }
         }
+    } else {
+        upkeepify_sync_task_lifecycle_status($task_id);
     }
 
     return $sent;
@@ -723,6 +725,88 @@ function upkeepify_set_task_status_by_name($task_id, $status_name) {
 }
 
 /**
+ * Return the lifecycle status filter/status options.
+ *
+ * @since 1.1
+ * @return array<string,string> Slug to label map.
+ */
+function upkeepify_get_lifecycle_status_options() {
+    return array(
+        UPKEEPIFY_TASK_STATUS_SLUG_PENDING_ESTIMATE_APPROVAL       => UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL,
+        UPKEEPIFY_TASK_STATUS_SLUG_PENDING_QUOTE_APPROVAL          => UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL,
+        UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_COMPLETION             => UPKEEPIFY_TASK_STATUS_AWAITING_COMPLETION,
+        UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_RESIDENT_CONFIRMATION  => UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION,
+        UPKEEPIFY_TASK_STATUS_SLUG_NEEDS_REVIEW                    => UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW,
+    );
+}
+
+/**
+ * Determine the visible task status that matches lifecycle meta.
+ *
+ * @since 1.1
+ * @param int $task_id Maintenance task post ID.
+ * @return string Task status term name.
+ */
+function upkeepify_get_task_lifecycle_status_name($task_id) {
+    $followup_status = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, true);
+    if ($followup_status === UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE || $followup_status === UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_SUBMITTED) {
+        return UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW;
+    }
+
+    $resident_confirmed = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED, true);
+    $resolved_at        = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_AT, true);
+    if ($resident_confirmed === '1' || $resolved_at) {
+        return UPKEEPIFY_TASK_STATUS_COMPLETED;
+    }
+
+    $approved_estimate_id = intval(get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_RESPONSE_ID, true));
+    $approved_quote_id    = intval(get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_RESPONSE_ID, true));
+
+    if ($approved_quote_id) {
+        $completed_at = get_post_meta($approved_quote_id, UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT, true);
+        return $completed_at ? UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION : UPKEEPIFY_TASK_STATUS_AWAITING_COMPLETION;
+    }
+
+    if ($approved_estimate_id) {
+        return UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL;
+    }
+
+    $responses = upkeepify_get_provider_responses_for_task($task_id);
+    foreach ($responses as $response) {
+        $response_id = intval($response->ID);
+        $quote       = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true);
+        if ($quote !== '') {
+            return UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL;
+        }
+    }
+
+    foreach ($responses as $response) {
+        $response_id = intval($response->ID);
+        $decision    = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_DECISION, true);
+        $estimate    = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true);
+        if ($decision === 'accept' && $estimate !== '') {
+            return UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL;
+        }
+    }
+
+    return UPKEEPIFY_TASK_STATUS_OPEN;
+}
+
+/**
+ * Sync the public task status taxonomy term to lifecycle state.
+ *
+ * @since 1.1
+ * @param int $task_id Maintenance task post ID.
+ * @return string Status name selected for the task.
+ */
+function upkeepify_sync_task_lifecycle_status($task_id) {
+    $status_name = upkeepify_get_task_lifecycle_status_name($task_id);
+    upkeepify_set_task_status_by_name($task_id, $status_name);
+
+    return $status_name;
+}
+
+/**
  * Email the contractor when a trustee approval unlocks the next step.
  *
  * @since 1.1
@@ -912,6 +996,7 @@ function upkeepify_admin_post_trustee_lifecycle_approval() {
         update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_AT, time());
         update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_BY, get_current_user_id());
         update_post_meta($task_id, UPKEEPIFY_META_KEY_ASSIGNED_SERVICE_PROVIDER, intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true)));
+        upkeepify_sync_task_lifecycle_status($task_id);
         upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id, 'estimate');
         $redirect_status = 'estimate_approved';
     } elseif ($approval_type === 'quote') {
@@ -929,7 +1014,7 @@ function upkeepify_admin_post_trustee_lifecycle_approval() {
         update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_AT, time());
         update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_BY, get_current_user_id());
         update_post_meta($task_id, UPKEEPIFY_META_KEY_ASSIGNED_SERVICE_PROVIDER, intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true)));
-        upkeepify_set_task_status_by_name($task_id, 'In Progress');
+        upkeepify_sync_task_lifecycle_status($task_id);
         upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id, 'quote');
         upkeepify_send_quote_audit_email($task_id, $response_id);
         $redirect_status = 'quote_approved';

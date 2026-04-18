@@ -1267,6 +1267,10 @@ function upkeepify_admin_post_provider_response_submit() {
     $task_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_TASK_ID, true ) );
     $task_post = $task_id ? get_post( $task_id ) : null;
     if ( $task_post ) {
+        if ( function_exists( 'upkeepify_sync_task_lifecycle_status' ) ) {
+            upkeepify_sync_task_lifecycle_status( $task_id );
+        }
+
         $settings      = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
         $currency      = ! empty( $settings[ UPKEEPIFY_SETTING_CURRENCY ] ) ? $settings[ UPKEEPIFY_SETTING_CURRENCY ] : '$';
         $recipient     = ! empty( $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] ) ? $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] : get_option( 'admin_email' );
@@ -1445,6 +1449,10 @@ function upkeepify_admin_post_provider_quote_submit() {
     // Notify trustee of the formal quote.
     $task_post = $task_id ? get_post( $task_id ) : null;
     if ( $task_post ) {
+        if ( function_exists( 'upkeepify_sync_task_lifecycle_status' ) ) {
+            upkeepify_sync_task_lifecycle_status( $task_id );
+        }
+
         $settings  = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
         $currency  = ! empty( $settings[ UPKEEPIFY_SETTING_CURRENCY ] ) ? $settings[ UPKEEPIFY_SETTING_CURRENCY ] : '$';
         $recipient = ! empty( $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] ) ? $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] : get_option( 'admin_email' );
@@ -1617,6 +1625,9 @@ function upkeepify_admin_post_provider_completion_submit() {
     update_post_meta( $response_id, $completed_meta_key, time() );
     if ( $is_followup_completion ) {
         update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_SUBMITTED );
+    }
+    if ( $task_id && function_exists( 'upkeepify_sync_task_lifecycle_status' ) ) {
+        upkeepify_sync_task_lifecycle_status( $task_id );
     }
 
     // Notify trustee — resident confirmation (Step 4) will be triggered from admin.
@@ -1853,6 +1864,9 @@ function upkeepify_open_resident_issue_followup( $task_id, $task_post, $settings
     update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE );
     update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_RESPONSE_ID, intval( $completed_response->ID ) );
     update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_REPORTED_AT, time() );
+    if ( function_exists( 'upkeepify_sync_task_lifecycle_status' ) ) {
+        upkeepify_sync_task_lifecycle_status( $task_id );
+    }
 
     if ( upkeepify_should_notify_contractor_on_resident_issue( $settings ) ) {
         upkeepify_send_contractor_resident_issue_email( $task_id, $task_post, intval( $completed_response->ID ), $note );
@@ -2157,6 +2171,9 @@ function upkeepify_admin_post_resident_confirm_submit() {
         $completed_response = upkeepify_open_resident_issue_followup( $task_id, $task, $settings, $note );
     } elseif ( $satisfied === '1' ) {
         upkeepify_clear_resident_issue_followup( $task_id );
+    }
+    if ( function_exists( 'upkeepify_sync_task_lifecycle_status' ) ) {
+        upkeepify_sync_task_lifecycle_status( $task_id );
     }
 
     $subject = $satisfied === '1'

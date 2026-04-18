@@ -195,6 +195,21 @@ define('UPKEEPIFY_LABEL_TASK_TYPES', 'Task Types');
 define('UPKEEPIFY_LABEL_TASK_STATUSES', 'Task Statuses');
 define('UPKEEPIFY_LABEL_UNITS', 'Units');
 
+// Lifecycle task status labels/slugs.
+define('UPKEEPIFY_TASK_STATUS_OPEN', 'Open');
+define('UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL', 'Pending Estimate Approval');
+define('UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL', 'Pending Quote Approval');
+define('UPKEEPIFY_TASK_STATUS_AWAITING_COMPLETION', 'Awaiting Completion');
+define('UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION', 'Awaiting Resident Confirmation');
+define('UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW', 'Needs Review');
+define('UPKEEPIFY_TASK_STATUS_COMPLETED', 'Completed');
+define('UPKEEPIFY_TASK_STATUS_ON_HOLD', 'On Hold');
+define('UPKEEPIFY_TASK_STATUS_SLUG_PENDING_ESTIMATE_APPROVAL', 'pending-estimate-approval');
+define('UPKEEPIFY_TASK_STATUS_SLUG_PENDING_QUOTE_APPROVAL', 'pending-quote-approval');
+define('UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_COMPLETION', 'awaiting-completion');
+define('UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_RESIDENT_CONFIRMATION', 'awaiting-resident-confirmation');
+define('UPKEEPIFY_TASK_STATUS_SLUG_NEEDS_REVIEW', 'needs-review');
+
 // Form Field Names
 define('UPKEEPIFY_FORM_FIELD_TASK_SUBMIT', 'upkeepify_task_submit');
 define('UPKEEPIFY_FORM_FIELD_MATH', 'math');

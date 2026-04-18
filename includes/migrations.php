@@ -134,7 +134,16 @@ function upkeepify_ensure_default_terms() {
     $defaults = array(
         UPKEEPIFY_TAXONOMY_TASK_CATEGORY => array('General Maintenance', 'Electrical', 'Plumbing', 'Landscaping'),
         UPKEEPIFY_TAXONOMY_TASK_TYPE => array('Repair', 'Inspection', 'Installation'),
-        UPKEEPIFY_TAXONOMY_TASK_STATUS => array('Open', 'In Progress', 'Completed', 'On Hold'),
+        UPKEEPIFY_TAXONOMY_TASK_STATUS => array(
+            UPKEEPIFY_TASK_STATUS_OPEN,
+            UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL,
+            UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL,
+            UPKEEPIFY_TASK_STATUS_AWAITING_COMPLETION,
+            UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION,
+            UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW,
+            UPKEEPIFY_TASK_STATUS_COMPLETED,
+            UPKEEPIFY_TASK_STATUS_ON_HOLD,
+        ),
     );
 
     foreach ($defaults as $taxonomy => $terms) {

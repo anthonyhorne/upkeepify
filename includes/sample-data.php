@@ -55,7 +55,16 @@ function upkeepify_insert_sample_data() {
         }
 
         // Insert Sample Statuses
-        $statuses = ['Open', 'In Progress', 'Completed', 'On Hold'];
+        $statuses = array(
+            UPKEEPIFY_TASK_STATUS_OPEN,
+            UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL,
+            UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL,
+            UPKEEPIFY_TASK_STATUS_AWAITING_COMPLETION,
+            UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION,
+            UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW,
+            UPKEEPIFY_TASK_STATUS_COMPLETED,
+            UPKEEPIFY_TASK_STATUS_ON_HOLD,
+        );
         foreach ($statuses as $status) {
             if (!term_exists($status, UPKEEPIFY_TAXONOMY_TASK_STATUS)) {
                 $result = wp_insert_term($status, UPKEEPIFY_TAXONOMY_TASK_STATUS);
