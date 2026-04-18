@@ -637,6 +637,78 @@ function upkeepify_resolve_resident_issue($task_id, $note = '') {
 }
 
 /**
+ * Determine whether resident email confirmation can still be sent.
+ *
+ * @since 1.1
+ * @param int $task_id Maintenance task post ID.
+ * @return bool True when a resident email and confirmation URL are available.
+ */
+function upkeepify_task_has_resident_confirmation_route($task_id) {
+    $resident_email = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_SUBMITTER_EMAIL, true);
+    if (!is_email($resident_email)) {
+        return false;
+    }
+
+    return function_exists('upkeepify_get_resident_confirmation_url') && (bool) upkeepify_get_resident_confirmation_url($task_id);
+}
+
+/**
+ * Determine whether the trustee can manually close a task lifecycle.
+ *
+ * @since 1.1
+ * @param int $task_id Maintenance task post ID.
+ * @return bool True when manual close controls should be available.
+ */
+function upkeepify_can_manual_close_task_lifecycle($task_id) {
+    if (get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSED_AT, true)) {
+        return false;
+    }
+    if (get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT, true)) {
+        return false;
+    }
+    if (get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, true)) {
+        return false;
+    }
+    if (upkeepify_task_has_resident_confirmation_route($task_id)) {
+        return false;
+    }
+
+    return upkeepify_get_task_lifecycle_status_name($task_id) === UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION;
+}
+
+/**
+ * Manually close a completed task lifecycle when resident email confirmation is unavailable.
+ *
+ * @since 1.1
+ * @param int    $task_id Maintenance task post ID.
+ * @param string $mode    Manual close mode.
+ * @param string $note    Optional trustee note.
+ * @return void
+ */
+function upkeepify_manual_close_task_lifecycle($task_id, $mode, $note = '') {
+    if (!in_array($mode, array(UPKEEPIFY_MANUAL_CLOSE_MODE_RESIDENT_CONFIRMED, UPKEEPIFY_MANUAL_CLOSE_MODE_CLOSED_WITHOUT_CONFIRMATION), true)) {
+        $mode = UPKEEPIFY_MANUAL_CLOSE_MODE_CLOSED_WITHOUT_CONFIRMATION;
+    }
+
+    update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSED_AT, time());
+    update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSED_BY, get_current_user_id());
+    update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSE_MODE, $mode);
+
+    $note = sanitize_textarea_field($note);
+    if ($note !== '') {
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSE_NOTE, substr($note, 0, 500));
+    }
+
+    if ($mode === UPKEEPIFY_MANUAL_CLOSE_MODE_RESIDENT_CONFIRMED) {
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED, '1');
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT, time());
+    }
+
+    upkeepify_clear_resident_issue_followup($task_id);
+    upkeepify_sync_task_lifecycle_status($task_id);
+}
+
+/**
  * Re-open resident confirmation after contractor follow-up.
  *
  * @since 1.1
@@ -756,6 +828,53 @@ function upkeepify_render_resident_issue_review_panel($task_id) {
 }
 
 /**
+ * Render manual lifecycle close controls and audit details.
+ *
+ * @since 1.1
+ * @param int $task_id Maintenance task post ID.
+ * @return void
+ */
+function upkeepify_render_manual_close_panel($task_id) {
+    $manual_closed_at = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSED_AT, true);
+    $manual_mode      = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSE_MODE, true);
+    $manual_note      = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSE_NOTE, true);
+
+    if ($manual_closed_at) {
+        $mode_label = $manual_mode === UPKEEPIFY_MANUAL_CLOSE_MODE_RESIDENT_CONFIRMED
+            ? __('Resident confirmation recorded manually', 'upkeepify')
+            : __('Closed without resident confirmation', 'upkeepify');
+
+        echo '<div class="notice notice-success inline"><p><strong>' . esc_html__('Lifecycle manually closed', 'upkeepify') . '</strong></p>';
+        echo '<p>' . esc_html($mode_label) . '</p>';
+        echo '<p><strong>' . esc_html__('Closed:', 'upkeepify') . '</strong> ' . wp_kses_post(upkeepify_format_lifecycle_timestamp($manual_closed_at)) . '</p>';
+        if ($manual_note) {
+            echo '<p><strong>' . esc_html__('Trustee note:', 'upkeepify') . '</strong><br>' . nl2br(esc_html($manual_note)) . '</p>';
+        }
+        echo '</div>';
+        return;
+    }
+
+    if (!upkeepify_can_manual_close_task_lifecycle($task_id)) {
+        return;
+    }
+
+    echo '<div class="notice notice-info inline"><p><strong>' . esc_html__('Resident confirmation unavailable', 'upkeepify') . '</strong></p>';
+    echo '<p>' . esc_html__('This job is complete, but no resident email/confirmation link is available. Record how the lifecycle was closed.', 'upkeepify') . '</p>';
+    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+    echo '<input type="hidden" name="action" value="' . esc_attr(UPKEEPIFY_ADMIN_ACTION_TRUSTEE_MANUAL_CLOSE) . '">';
+    echo '<input type="hidden" name="task_id" value="' . esc_attr($task_id) . '">';
+    wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+    echo '<p><label for="upkeepify_manual_close_note"><strong>' . esc_html__('Trustee note (optional)', 'upkeepify') . '</strong></label><br>';
+    echo '<textarea id="upkeepify_manual_close_note" name="manual_close_note" rows="3" maxlength="500" style="width:100%;max-width:720px;"></textarea></p>';
+    echo '<p>';
+    echo '<button type="submit" name="manual_close_mode" value="' . esc_attr(UPKEEPIFY_MANUAL_CLOSE_MODE_RESIDENT_CONFIRMED) . '" class="button button-primary">' . esc_html__('Mark resident confirmed and close', 'upkeepify') . '</button> ';
+    echo '<button type="submit" name="manual_close_mode" value="' . esc_attr(UPKEEPIFY_MANUAL_CLOSE_MODE_CLOSED_WITHOUT_CONFIRMATION) . '" class="button button-secondary">' . esc_html__('Close without resident confirmation', 'upkeepify') . '</button>';
+    echo '</p>';
+    echo '</form>';
+    echo '</div>';
+}
+
+/**
  * Render the trustee-facing response lifecycle panel.
  *
  * @since 1.1
@@ -786,12 +905,15 @@ function upkeepify_trustee_lifecycle_meta_box_callback($post) {
             echo '<div class="notice notice-success inline"><p>' . esc_html__('Contractor response link revoked.', 'upkeepify') . '</p></div>';
         } elseif ($notice === 'token_regenerated') {
             echo '<div class="notice notice-success inline"><p>' . esc_html__('Contractor response link regenerated and emailed when a provider email was available.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'manual_closed') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Lifecycle closed manually.', 'upkeepify') . '</p></div>';
         }
     }
 
     echo '<p>' . esc_html__('Approve an estimate before asking for a formal quote, then approve the formal quote before the contractor can mark the job complete.', 'upkeepify') . '</p>';
 
     upkeepify_render_resident_issue_review_panel($post->ID);
+    upkeepify_render_manual_close_panel($post->ID);
 
     if (empty($responses)) {
         echo '<p>' . esc_html__('No contractor responses have been created yet. They are generated when this task is published and matching service providers exist.', 'upkeepify') . '</p>';
@@ -926,7 +1048,8 @@ function upkeepify_get_task_lifecycle_status_name($task_id) {
 
     $resident_confirmed = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED, true);
     $resolved_at        = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_AT, true);
-    if ($resident_confirmed === '1' || $resolved_at) {
+    $manual_closed_at   = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSED_AT, true);
+    if ($resident_confirmed === '1' || $resolved_at || $manual_closed_at) {
         return UPKEEPIFY_TASK_STATUS_COMPLETED;
     }
 
@@ -1266,6 +1389,48 @@ function upkeepify_admin_post_trustee_lifecycle_followup() {
     exit;
 }
 add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_FOLLOWUP, 'upkeepify_admin_post_trustee_lifecycle_followup');
+
+/**
+ * Handle trustee manual lifecycle close actions.
+ *
+ * @since 1.1
+ * @hook admin_post_{UPKEEPIFY_ADMIN_ACTION_TRUSTEE_MANUAL_CLOSE}
+ */
+function upkeepify_admin_post_trustee_manual_close() {
+    $task_id = isset($_POST['task_id']) ? absint(wp_unslash($_POST['task_id'])) : 0;
+    $mode    = isset($_POST['manual_close_mode']) ? sanitize_key(wp_unslash($_POST['manual_close_mode'])) : '';
+    $note    = isset($_POST['manual_close_note']) ? sanitize_textarea_field(wp_unslash($_POST['manual_close_note'])) : '';
+
+    if (!$task_id || !current_user_can('edit_post', $task_id)) {
+        wp_die(esc_html__('Insufficient permissions.', 'upkeepify'));
+    }
+
+    check_admin_referer(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+
+    $task = get_post($task_id);
+    if (!$task || $task->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS) {
+        wp_die(esc_html__('Invalid lifecycle manual close request.', 'upkeepify'));
+    }
+
+    if (!upkeepify_can_manual_close_task_lifecycle($task_id)) {
+        wp_die(esc_html__('This task cannot be manually closed from its current lifecycle state.', 'upkeepify'));
+    }
+
+    upkeepify_manual_close_task_lifecycle($task_id, $mode, $note);
+
+    $redirect = add_query_arg(
+        array(
+            'post'                => $task_id,
+            'action'              => 'edit',
+            'upkeepify_lifecycle' => 'manual_closed',
+        ),
+        admin_url('post.php')
+    );
+
+    wp_safe_redirect($redirect);
+    exit;
+}
+add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_TRUSTEE_MANUAL_CLOSE, 'upkeepify_admin_post_trustee_manual_close');
 
 /**
  * Handle contractor response token revoke/regenerate actions.

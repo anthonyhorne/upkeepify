@@ -11,5 +11,5 @@
 - [x] Add lifecycle status columns/filters for pending estimate approval, pending quote approval, awaiting completion, awaiting resident confirmation, and needs review.
 - [x] Sync visible task status terms with lifecycle state, especially quote approved, completed, resident confirmed, and resident issue reported.
 - [x] Add token revoke/regenerate controls for contractor response links.
-- [ ] Add a manual resident-confirmation or manual-close path for tasks submitted without resident email.
+- [x] Add a manual resident-confirmation or manual-close path for tasks submitted without resident email.
 - [ ] Add end-to-end tests covering two contractors, trustee approval selection, quote approval, completion, resident dissatisfaction, contractor follow-up, and trustee resolution.

@@ -302,6 +302,88 @@ class TrusteeLifecycleTest extends TestCase {
 		$this->assertSame( [ 43 ], $GLOBALS['_upkeepify_test_object_terms'][ $task_id ][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] );
 	}
 
+	public function test_lifecycle_panel_shows_manual_close_actions_without_resident_email() {
+		$task_id     = 42;
+		$response_id = 123;
+
+		$task = new WP_Post(
+			[
+				'ID'        => $task_id,
+				'post_type' => UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
+			]
+		);
+
+		$GLOBALS['_upkeepify_test_posts'][ UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES ] = [
+			new WP_Post(
+				[
+					'ID'        => $response_id,
+					'post_type' => UPKEEPIFY_POST_TYPE_PROVIDER_RESPONSES,
+				]
+			),
+		];
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_TASK_ID ] = $task_id;
+		$GLOBALS['_upkeepify_test_post_meta'][ $response_id ][ UPKEEPIFY_META_KEY_RESPONSE_COMPLETED_AT ] = time();
+		$GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_RESPONSE_ID ] = $response_id;
+
+		ob_start();
+		upkeepify_trustee_lifecycle_meta_box_callback( $task );
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'Resident confirmation unavailable', $output );
+		$this->assertStringContainsString( 'Mark resident confirmed and close', $output );
+		$this->assertStringContainsString( 'Close without resident confirmation', $output );
+		$this->assertStringContainsString( UPKEEPIFY_ADMIN_ACTION_TRUSTEE_MANUAL_CLOSE, $output );
+	}
+
+	public function test_manual_close_records_resident_confirmed_mode_and_sets_completed_status() {
+		$task_id = 42;
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] = [
+			new WP_Term(
+				[
+					'term_id' => 31,
+					'name'    => UPKEEPIFY_TASK_STATUS_COMPLETED,
+				]
+			),
+		];
+
+		upkeepify_manual_close_task_lifecycle(
+			$task_id,
+			UPKEEPIFY_MANUAL_CLOSE_MODE_RESIDENT_CONFIRMED,
+			'Confirmed by phone.'
+		);
+
+		$this->assertNotEmpty( $GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSED_AT ] );
+		$this->assertSame( UPKEEPIFY_MANUAL_CLOSE_MODE_RESIDENT_CONFIRMED, $GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSE_MODE ] );
+		$this->assertSame( 'Confirmed by phone.', $GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSE_NOTE ] );
+		$this->assertSame( '1', $GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED ] );
+		$this->assertNotEmpty( $GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT ] );
+		$this->assertSame( [ 31 ], $GLOBALS['_upkeepify_test_object_terms'][ $task_id ][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] );
+		$this->assertSame( UPKEEPIFY_TASK_STATUS_COMPLETED, upkeepify_get_task_lifecycle_status_name( $task_id ) );
+	}
+
+	public function test_manual_close_without_confirmation_does_not_mark_resident_confirmed() {
+		$task_id = 42;
+		$GLOBALS['_upkeepify_test_taxonomy_terms'][ UPKEEPIFY_TAXONOMY_TASK_STATUS ] = [
+			new WP_Term(
+				[
+					'term_id' => 31,
+					'name'    => UPKEEPIFY_TASK_STATUS_COMPLETED,
+				]
+			),
+		];
+
+		upkeepify_manual_close_task_lifecycle(
+			$task_id,
+			UPKEEPIFY_MANUAL_CLOSE_MODE_CLOSED_WITHOUT_CONFIRMATION,
+			'No resident email supplied.'
+		);
+
+		$this->assertSame( UPKEEPIFY_MANUAL_CLOSE_MODE_CLOSED_WITHOUT_CONFIRMATION, $GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSE_MODE ] );
+		$this->assertSame( 'No resident email supplied.', $GLOBALS['_upkeepify_test_post_meta'][ $task_id ][ UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSE_NOTE ] );
+		$this->assertArrayNotHasKey( UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED, $GLOBALS['_upkeepify_test_post_meta'][ $task_id ] );
+		$this->assertSame( UPKEEPIFY_TASK_STATUS_COMPLETED, upkeepify_get_task_lifecycle_status_name( $task_id ) );
+	}
+
 	public function test_sync_task_lifecycle_status_marks_needs_review_for_resident_issue() {
 		$task_id = 42;
 

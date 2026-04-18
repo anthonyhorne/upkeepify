@@ -114,6 +114,10 @@ define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_CONTRACTOR_NOTIFIED_AT', '_upkeep
 define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_AT', '_upkeepify_resident_issue_resolved_at'); // Unix timestamp of trustee issue resolution
 define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLVED_BY', '_upkeepify_resident_issue_resolved_by'); // WP user ID that resolved the resident issue
 define('UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_RESOLUTION_NOTE', '_upkeepify_resident_issue_resolution_note'); // optional trustee resolution note (≤500 chars)
+define('UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSED_AT', '_upkeepify_manual_closed_at'); // Unix timestamp of trustee manual lifecycle close
+define('UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSED_BY', '_upkeepify_manual_closed_by'); // WP user ID that manually closed the lifecycle
+define('UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSE_MODE', '_upkeepify_manual_close_mode'); // resident_confirmed|closed_without_confirmation
+define('UPKEEPIFY_META_KEY_TASK_MANUAL_CLOSE_NOTE', '_upkeepify_manual_close_note'); // optional trustee manual close note (≤500 chars)
 define('UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_RESPONSE_ID', '_upkeepify_approved_estimate_response_id'); // provider response approved for formal quote
 define('UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_AT', '_upkeepify_approved_estimate_at'); // Unix timestamp of estimate approval
 define('UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_BY', '_upkeepify_approved_estimate_by'); // WP user ID that approved estimate
@@ -128,6 +132,8 @@ define('UPKEEPIFY_NONCE_RESIDENT_CONFIRM',               'upkeepify_resident_con
 define('UPKEEPIFY_NONCE_ACTION_RESIDENT_CONFIRM',        'upkeepify_resident_confirm_action');
 define('UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE',       'resident_issue');
 define('UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_SUBMITTED',   'contractor_followup_submitted');
+define('UPKEEPIFY_MANUAL_CLOSE_MODE_RESIDENT_CONFIRMED', 'resident_confirmed');
+define('UPKEEPIFY_MANUAL_CLOSE_MODE_CLOSED_WITHOUT_CONFIRMATION', 'closed_without_confirmation');
 
 // Contractor follow-up after resident dissatisfaction.
 define('UPKEEPIFY_META_KEY_RESPONSE_FOLLOWUP_COMPLETED_AT', 'response_followup_completed_at');
@@ -232,6 +238,7 @@ define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_RESPONSE_SUBMIT', 'upkeepify_provider_re
 define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_APPROVAL', 'upkeepify_trustee_lifecycle_approval');
 define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_FOLLOWUP', 'upkeepify_trustee_lifecycle_followup');
 define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_TOKEN_MANAGE', 'upkeepify_provider_token_manage');
+define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_MANUAL_CLOSE', 'upkeepify_trustee_manual_close');
 define('UPKEEPIFY_ADMIN_ACTION_RUN_MIGRATIONS', 'upkeepify_run_migrations');
 define('UPKEEPIFY_ADMIN_ACTION_REPAIR_SCHEMA', 'upkeepify_repair_schema');
 define('UPKEEPIFY_ADMIN_ACTION_RESET_DATABASE', 'upkeepify_reset_database');
