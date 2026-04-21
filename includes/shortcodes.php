@@ -357,6 +357,72 @@ function upkeepify_summarize_task_description($description) {
  * @since 1.0
  * @return string
  */
+function upkeepify_get_task_form_redirect_url() {
+    $redirect = wp_get_referer();
+    if ( ! $redirect ) {
+        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '/';
+        $redirect    = home_url( $request_uri );
+    }
+
+    return remove_query_arg( array( 'upkeepify_task_status', 'upkeepify_task_error' ), $redirect );
+}
+
+/**
+ * Redirect back to the public task form with a visible status message.
+ *
+ * @since 1.1
+ * @param string $status Submission outcome.
+ * @param string $error  Optional error code.
+ * @return void
+ */
+function upkeepify_redirect_task_form_status( $status, $error = '' ) {
+    $args = array(
+        'upkeepify_task_status' => sanitize_key( $status ),
+    );
+
+    if ( '' !== $error ) {
+        $args['upkeepify_task_error'] = sanitize_key( $error );
+    }
+
+    wp_safe_redirect( add_query_arg( $args, upkeepify_get_task_form_redirect_url() ) );
+    exit;
+}
+
+/**
+ * Render the public task form submission notice when redirected back.
+ *
+ * @since 1.1
+ * @return void
+ */
+function upkeepify_render_task_form_notice() {
+    $status = isset( $_GET['upkeepify_task_status'] ) ? sanitize_key( wp_unslash( $_GET['upkeepify_task_status'] ) ) : '';
+    $error  = isset( $_GET['upkeepify_task_error'] ) ? sanitize_key( wp_unslash( $_GET['upkeepify_task_error'] ) ) : '';
+
+    if ( 'success' === $status ) {
+        echo '<p class="upkeepify-notice upkeepify-notice--success">' . esc_html__( 'Thanks, your request was received and is awaiting trustee review.', 'upkeepify' ) . '</p>';
+        return;
+    }
+
+    if ( 'error' !== $status ) {
+        return;
+    }
+
+    $messages = array(
+        'public_disabled'   => __( 'Public task submission is not available at this time.', 'upkeepify' ),
+        'security_failed'   => __( 'We could not verify your submission. Please refresh the page and try again.', 'upkeepify' ),
+        'captcha_failed'    => __( 'The security answer was incorrect or expired. Please try again.', 'upkeepify' ),
+        'upload_invalid'    => __( 'The photo could not be uploaded. Please check the file and try again.', 'upkeepify' ),
+        'validation_failed' => __( 'Please complete the required task details and try again.', 'upkeepify' ),
+        'save_failed'       => __( 'We could not save your request just now. Please try again.', 'upkeepify' ),
+    );
+
+    $message = isset( $messages[ $error ] )
+        ? $messages[ $error ]
+        : __( 'We could not submit your request. Please try again.', 'upkeepify' );
+
+    echo '<p class="upkeepify-notice upkeepify-notice--error">' . esc_html( $message ) . '</p>';
+}
+
 function upkeepify_task_form_shortcode() {
     $settings = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
 
@@ -379,6 +445,7 @@ function upkeepify_task_form_shortcode() {
     ob_start();
 
     $form_action = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+    upkeepify_render_task_form_notice();
     echo '<form id="upkeepify-task-form" class="upkeepify-form upkeepify-request-form" action="' . esc_url($form_action) . '" method="post" enctype="multipart/form-data">';
     wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT, UPKEEPIFY_NONCE_TASK_SUBMIT);
     echo '<input type="hidden" name="upkeepify_upload" value="1">';
@@ -447,12 +514,12 @@ function upkeepify_handle_task_form_submission() {
     // Enforce the Allow Public Task Logging setting.
     $settings = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
     if ( empty( $settings[ UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING ] ) ) {
-        return;
+        upkeepify_redirect_task_form_status( 'error', 'public_disabled' );
     }
 
     $task_submit_nonce = isset($_POST[UPKEEPIFY_NONCE_TASK_SUBMIT]) ? sanitize_text_field( wp_unslash( $_POST[UPKEEPIFY_NONCE_TASK_SUBMIT] ) ) : '';
     if ( ! $task_submit_nonce || ! wp_verify_nonce($task_submit_nonce, UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT)) {
-        return;
+        upkeepify_redirect_task_form_status( 'error', 'security_failed' );
     }
 
     if (session_status() === PHP_SESSION_NONE) {
@@ -461,7 +528,7 @@ function upkeepify_handle_task_form_submission() {
 
     $user_answer = isset($_POST['math']) ? sanitize_text_field( wp_unslash( $_POST['math'] ) ) : '';
     if (!isset($_SESSION[UPKEEPIFY_SESSION_MATH_RESULT]) || intval($user_answer) !== intval($_SESSION[UPKEEPIFY_SESSION_MATH_RESULT])) {
-        return;
+        upkeepify_redirect_task_form_status( 'error', 'captcha_failed' );
     }
 
     $task_description = isset($_POST['task_description']) ? sanitize_textarea_field( wp_unslash( $_POST['task_description'] ) ) : '';
@@ -514,7 +581,7 @@ function upkeepify_handle_task_form_submission() {
             if (WP_DEBUG) {
                 error_log('Upkeepify Upload Validation Error: ' . $validation->get_error_message());
             }
-            return;
+            upkeepify_redirect_task_form_status( 'error', 'upload_invalid' );
         }
 
         // Handle the upload
@@ -523,7 +590,7 @@ function upkeepify_handle_task_form_submission() {
             if (WP_DEBUG) {
                 error_log('Upkeepify Upload Error: ' . $upload_result['error']);
             }
-            return;
+            upkeepify_redirect_task_form_status( 'error', 'upload_invalid' );
         }
 
         // Prepare file data for media handling
@@ -542,7 +609,7 @@ function upkeepify_handle_task_form_submission() {
             if (WP_DEBUG) {
                 error_log('Upkeepify Media Sideload Error: ' . $attachment_id->get_error_message());
             }
-            return;
+            upkeepify_redirect_task_form_status( 'error', 'upload_invalid' );
         }
 
         $photo_attachment_id = $attachment_id;
@@ -564,7 +631,7 @@ function upkeepify_handle_task_form_submission() {
         if (WP_DEBUG) {
             error_log('Upkeepify Task Validation: ' . $validation->get_error_message());
         }
-        return;
+        upkeepify_redirect_task_form_status( 'error', 'validation_failed' );
     }
 
     // Create as pending so an admin must review before provider invites fire.
@@ -583,7 +650,7 @@ function upkeepify_handle_task_form_submission() {
         if (WP_DEBUG) {
             error_log('Upkeepify Task Submission Error: ' . $task_id->get_error_message());
         }
-        return;
+        upkeepify_redirect_task_form_status( 'error', 'save_failed' );
     }
 
     // Set the photo as the featured image if uploaded
@@ -612,6 +679,8 @@ function upkeepify_handle_task_form_submission() {
         $resident_token = wp_generate_password( 20, false );
         update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_TOKEN, $resident_token );
     }
+
+    upkeepify_redirect_task_form_status( 'success' );
 }
 add_action('init', 'upkeepify_handle_task_form_submission');
 
