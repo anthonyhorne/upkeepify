@@ -128,6 +128,14 @@ After activation, complete these steps:
    - Upload an image to verify file handling
    - Check that GPS coordinates are captured
 
+## Release Packaging
+
+Release plugin archives must stay lean and include only the files required for WordPress to run Upkeepify.
+
+- Production zips should exclude repository-only material such as `.github/`, `.codex/`, local archives, test fixtures, and other development-only files.
+- Distributed plugin packages should stay aligned with WordPress plugin directory expectations so manual installs and eventual WordPress.org submissions ship a clean runtime-only plugin.
+- The source repository can keep its documentation, tooling, and developer workflow files, but the generated plugin zip should be a slim release artifact rather than a full source snapshot.
+
 ## Usage
 
 ### For Administrators

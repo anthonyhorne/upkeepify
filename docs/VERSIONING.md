@@ -30,9 +30,11 @@ Run one of the following commands from the repo root:
 npm run version:patch
 npm run version:minor
 npm run version:major
+npm run package:release
 ```
 
-These commands update the plugin metadata files automatically.
+The `version:*` commands update plugin metadata files automatically. The `package:release`
+command builds a slim WordPress-ready plugin archive from the runtime file list.
 
 ## Release Checklist
 
@@ -41,5 +43,8 @@ These commands update the plugin metadata files automatically.
 3. Update `docs/changelog.md`.
 4. Update the changelog and upgrade notice blocks in `readme.txt` when the release is user-facing.
 5. Update the short changelog summary in `README.md` when needed.
-6. Commit the version bump and release notes together.
-7. Build and verify the plugin zip before sharing it.
+6. Build a slim release zip with `npm run package:release`.
+7. Exclude repository-only content such as `.github/`, `.codex/`, local archives, tests, and other development-only files from distributed plugin archives.
+8. Keep release packaging aligned with WordPress plugin directory expectations for eventual WordPress.org distribution.
+9. Commit the version bump and release notes together.
+10. Verify the final plugin zip before sharing it.

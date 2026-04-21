@@ -5,7 +5,7 @@
 - [x] Adopt semantic versioning rules for `major`, `minor`, and `patch` releases.
 - [x] Add a repo script to auto-bump plugin metadata files together.
 - [ ] Automate changelog/release note scaffolding as part of the release workflow.
-- [ ] Automate production zip creation from a release-oriented file list.
+- [x] Automate production zip creation from a release-oriented file list that stays lightweight and WordPress.org-ready.
 
 ## End-to-End Lifecycle Gaps
 
