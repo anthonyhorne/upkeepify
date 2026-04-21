@@ -8,6 +8,7 @@ Thank you for your interest in contributing to Upkeepify! This document provides
 - [Function Naming Conventions](#function-naming-conventions)
 - [Development Setup](#development-setup)
 - [Testing](#testing)
+- [Versioning](#versioning)
 - [Pull Request Process](#pull-request-process)
 - [Coding Style Guidelines](#coding-style-guidelines)
 
@@ -117,6 +118,30 @@ The `includes/constants.php` file must be included first in `upkeepify.php` befo
 - PHP 7.2 or higher
 - MySQL 5.6 or higher
 - Git
+
+## Versioning
+
+Upkeepify uses semantic versioning for releases:
+
+- `major` for breaking changes
+- `minor` for new features and meaningful user-facing improvements
+- `patch` for bug fixes and non-breaking cleanups
+
+Use the repo scripts to keep plugin metadata aligned:
+
+```bash
+npm run version:patch
+npm run version:minor
+npm run version:major
+```
+
+These commands update the version in `upkeepify.php`, `readme.txt`, `package.json`, and `package-lock.json`.
+
+After bumping, update:
+
+- `docs/changelog.md`
+- `readme.txt` changelog and upgrade notice entries
+- `README.md` release summary when relevant
 
 ### Setting Up Your Development Environment
 

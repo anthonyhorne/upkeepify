@@ -444,6 +444,11 @@ If you encounter issues not covered here:
 
 ## Changelog
 
+### Version 1.2.0
+- Added a visible version label on the public request form
+- Added clear success/error feedback for public task submissions
+- Added semantic versioning guidance and version bump tooling for releases
+
 ### Version 1.1.0
 - Added one-click default page setup
 - Redesigned the resident request form for mobile tap-first submissions

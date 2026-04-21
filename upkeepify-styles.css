@@ -280,6 +280,14 @@
     color: #52606d;
 }
 
+.upkeepify-form-intro .upkeepify-form-version {
+    margin-top: 8px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #7b8794;
+}
+
 .upkeepify-choice-group {
     margin: 0 0 22px;
     padding: 0;

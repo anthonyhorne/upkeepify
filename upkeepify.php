@@ -3,7 +3,7 @@
  * Plugin Name: Upkeepify
  * Plugin URI: https://github.com/anthonyhorne/upkeepify
  * Description: A comprehensive plugin to manage maintenance tasks within a complex. It supports task submissions with categorization, service provider management, and customizable settings.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Anthony Horne
  * Text Domain: upkeepify
  * License: GPL v2 or later
@@ -31,7 +31,7 @@ if (!defined('WPINC')) {
 
 define('UPKEEPIFY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('UPKEEPIFY_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('UPKEEPIFY_VERSION', '1.1.0');
+define('UPKEEPIFY_VERSION', '1.2.0');
 
 // Include constants first
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/constants.php';

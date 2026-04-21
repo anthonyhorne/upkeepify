@@ -4,7 +4,7 @@ Tags: maintenance, task-management, facility-management, HOA, property-managemen
 Requires at least: 5.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -104,6 +104,11 @@ Yes. Administrators can export all data via **Maintenance Tasks → Database Hea
 
 == Changelog ==
 
+= 1.2.0 - April 2026 =
+* Added a visible plugin version label on the public task logging form
+* Added clear success and error feedback after public task submissions
+* Adopted semantic versioning for future Upkeepify releases
+
 = 1.1.0 - April 2026 =
 * Added one-click default page setup for resident, contractor, and confirmation flows
 * Redesigned the public request form around mobile-friendly tap controls
@@ -124,6 +129,9 @@ Yes. Administrators can export all data via **Maintenance Tasks → Database Hea
 * Security audit completion (nonce verification, input sanitization, output escaping)
 
 == Upgrade Notice ==
+
+= 1.2.0 =
+Adds visible form versioning and clearer public submission feedback.
 
 = 1.1.0 =
 Adds default setup pages and a faster resident request flow.

@@ -17,6 +17,7 @@ Upkeepify is a WordPress plugin for managing maintenance operations in residenti
 | [Migrations](MIGRATIONS.md) | Database migration system and version history |
 | [Database Optimization](DATABASE_OPTIMIZATION.md) | Index creation and performance tuning |
 | [Performance Optimization](PERFORMANCE_OPTIMIZATION.md) | Caching strategy and benchmarks |
+| [Versioning](VERSIONING.md) | Semantic versioning policy and release bump workflow |
 | [Contributing](contributing.md) | How to contribute to the project |
 | [Changelog](changelog.md) | Version history |
 

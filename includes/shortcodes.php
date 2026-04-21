@@ -454,6 +454,7 @@ function upkeepify_task_form_shortcode() {
     echo '<div class="upkeepify-form-intro">';
     echo '<h2>' . esc_html__('Report an issue', 'upkeepify') . '</h2>';
     echo '<p>' . esc_html__('Tap what fits, add the details, and send it through.', 'upkeepify') . '</p>';
+    echo '<p class="upkeepify-form-version">' . sprintf( esc_html__( 'Version %s', 'upkeepify' ), esc_html( UPKEEPIFY_VERSION ) ) . '</p>';
     echo '</div>';
 
     upkeepify_render_taxonomy_choice_chips(UPKEEPIFY_TAXONOMY_TASK_CATEGORY, __('What needs attention?', 'upkeepify'));

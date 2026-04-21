@@ -4,6 +4,17 @@ All notable changes to Upkeepify are documented here.
 
 ---
 
+## 1.2.0 — 2026-04-21
+
+### Added
+- Visible plugin version label on the public request form to make live build verification easier during testing
+- Public submission success/error feedback with redirect-back notices instead of silent failures
+- Repo bump script for synchronized `major`, `minor`, and `patch` version updates across plugin metadata files
+- Semantic versioning policy and release-planning notes in the project documentation
+
+### Changed
+- Adopted semantic versioning as the default release policy for future plugin updates
+
 ## 1.0.0 — 2026-03-30
 
 Initial release.

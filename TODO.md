@@ -1,5 +1,12 @@
 # Upkeepify TODO
 
+## Release Planning
+
+- [x] Adopt semantic versioning rules for `major`, `minor`, and `patch` releases.
+- [x] Add a repo script to auto-bump plugin metadata files together.
+- [ ] Automate changelog/release note scaffolding as part of the release workflow.
+- [ ] Automate production zip creation from a release-oriented file list.
+
 ## End-to-End Lifecycle Gaps
 
 - [x] Add a trustee lifecycle panel on maintenance task edit screens.

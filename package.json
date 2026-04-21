@@ -1,11 +1,14 @@
 {
   "name": "upkeepify",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Build tooling for Upkeepify WordPress plugin",
   "private": true,
   "scripts": {
     "build": "node build.js",
-    "watch": "node build.js --watch"
+    "watch": "node build.js --watch",
+    "version:patch": "node scripts/bump-version.js patch",
+    "version:minor": "node scripts/bump-version.js minor",
+    "version:major": "node scripts/bump-version.js major"
   },
   "engines": {
     "node": ">=18"
