@@ -61,6 +61,257 @@
         },
 
         /**
+         * Check whether the browser can optimize an image before upload.
+         * @param {File} file - File object to inspect
+         * @return {boolean} True if client-side optimization is supported
+         */
+        canOptimizeImage: function(file) {
+            return !!(
+                file &&
+                file.type &&
+                file.type.indexOf('image/') === 0 &&
+                file.type !== 'image/gif' &&
+                typeof Promise !== 'undefined' &&
+                typeof FileReader !== 'undefined' &&
+                typeof document !== 'undefined' &&
+                typeof document.createElement === 'function' &&
+                typeof DataTransfer !== 'undefined'
+            );
+        },
+
+        /**
+         * Replace the contents of a file input with a new file list.
+         * @param {HTMLInputElement} input - File input element
+         * @param {File[]} files - Files to assign
+         * @return {boolean} True if the replacement succeeded
+         */
+        setInputFiles: function(input, files) {
+            if (!input || typeof DataTransfer === 'undefined') {
+                return false;
+            }
+
+            var transfer = new DataTransfer();
+
+            files.forEach(function(file) {
+                transfer.items.add(file);
+            });
+
+            input.files = transfer.files;
+            return true;
+        },
+
+        /**
+         * Resize/compress an image file to fit within a target size.
+         * @param {File} file - Original image file
+         * @param {Object} options - Optimization options
+         * @return {Promise<File>} Promise resolving to the optimized file
+         */
+        optimizeImageFile: function(file, options) {
+            var self = this;
+            var settings = $.extend({
+                maxBytes: 2 * 1024 * 1024,
+                maxDimension: 1600,
+                quality: 0.82,
+                minQuality: 0.55,
+                qualityStep: 0.07
+            }, options || {});
+
+            if (!self.canOptimizeImage(file) || file.size <= settings.maxBytes) {
+                return Promise.resolve(file);
+            }
+
+            return self.readFileAsDataUrl(file).then(function(dataUrl) {
+                return self.loadImageElement(dataUrl).then(function(image) {
+                    var dimensions = self.getScaledDimensions(
+                        image.naturalWidth || image.width,
+                        image.naturalHeight || image.height,
+                        settings.maxDimension
+                    );
+
+                    var canvas = document.createElement('canvas');
+                    var context = canvas.getContext('2d');
+
+                    if (!context) {
+                        return file;
+                    }
+
+                    canvas.width = dimensions.width;
+                    canvas.height = dimensions.height;
+                    context.drawImage(image, 0, 0, dimensions.width, dimensions.height);
+
+                    return self.canvasToSizedFile(canvas, file, settings);
+                });
+            }).catch(function() {
+                return file;
+            });
+        },
+
+        /**
+         * Read a file as a data URL.
+         * @param {File} file - File to read
+         * @return {Promise<string>} Promise resolving to the data URL
+         */
+        readFileAsDataUrl: function(file) {
+            return new Promise(function(resolve, reject) {
+                var reader = new FileReader();
+
+                reader.onload = function(event) {
+                    resolve(event.target.result);
+                };
+
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        },
+
+        /**
+         * Load an image element from a URL.
+         * @param {string} src - Image source
+         * @return {Promise<HTMLImageElement>} Promise resolving to an image
+         */
+        loadImageElement: function(src) {
+            return new Promise(function(resolve, reject) {
+                var image = new Image();
+
+                image.onload = function() {
+                    resolve(image);
+                };
+
+                image.onerror = reject;
+                image.src = src;
+            });
+        },
+
+        /**
+         * Scale dimensions to fit within a bounding box.
+         * @param {number} width - Original width
+         * @param {number} height - Original height
+         * @param {number} maxDimension - Maximum width/height
+         * @return {Object} Scaled width/height pair
+         */
+        getScaledDimensions: function(width, height, maxDimension) {
+            var longestSide = Math.max(width, height);
+            var scale = longestSide > maxDimension ? maxDimension / longestSide : 1;
+
+            return {
+                width: Math.max(1, Math.round(width * scale)),
+                height: Math.max(1, Math.round(height * scale))
+            };
+        },
+
+        /**
+         * Convert a canvas to a blob.
+         * @param {HTMLCanvasElement} canvas - Canvas element
+         * @param {string} mimeType - Output mime type
+         * @param {number} quality - Output quality
+         * @return {Promise<Blob|null>} Promise resolving to the blob
+         */
+        canvasToBlob: function(canvas, mimeType, quality) {
+            return new Promise(function(resolve) {
+                canvas.toBlob(function(blob) {
+                    resolve(blob);
+                }, mimeType, quality);
+            });
+        },
+
+        /**
+         * Convert a blob into a File object with a matching extension.
+         * @param {Blob} blob - Blob to wrap
+         * @param {File} originalFile - Source file metadata
+         * @param {string} mimeType - Output mime type
+         * @return {File} File object ready for upload
+         */
+        blobToFile: function(blob, originalFile, mimeType) {
+            var extensionMap = {
+                'image/jpeg': '.jpg',
+                'image/png': '.png',
+                'image/webp': '.webp'
+            };
+            var targetExtension = extensionMap[mimeType] || '.jpg';
+            var nextName = originalFile.name.replace(/\.[^.]+$/, '') + targetExtension;
+
+            if (nextName === originalFile.name && !/\.[^.]+$/.test(originalFile.name)) {
+                nextName = originalFile.name + targetExtension;
+            }
+
+            var optimizedFile = new File([blob], nextName, {
+                type: mimeType,
+                lastModified: originalFile.lastModified
+            });
+
+            optimizedFile.upkeepifyOptimized = true;
+            optimizedFile.upkeepifyOriginalSize = originalFile.size;
+
+            return optimizedFile;
+        },
+
+        /**
+         * Pick output mime types to try while compressing.
+         * @param {File} file - Source image file
+         * @return {string[]} Ordered list of mime types
+         */
+        getOptimizationMimeTypes: function(file) {
+            if (file.type === 'image/png') {
+                return ['image/png', 'image/jpeg'];
+            }
+
+            if (file.type === 'image/webp') {
+                return ['image/webp', 'image/jpeg'];
+            }
+
+            return ['image/jpeg'];
+        },
+
+        /**
+         * Encode a canvas to a size-limited File, reducing quality as needed.
+         * @param {HTMLCanvasElement} canvas - Canvas with image content
+         * @param {File} originalFile - Original file metadata
+         * @param {Object} settings - Optimization settings
+         * @return {Promise<File>} Promise resolving to the best file candidate
+         */
+        canvasToSizedFile: function(canvas, originalFile, settings) {
+            var self = this;
+            var mimeTypes = self.getOptimizationMimeTypes(originalFile);
+
+            function attemptMimeType(index) {
+                var mimeType = mimeTypes[index];
+                var quality = settings.quality;
+
+                function attemptQuality() {
+                    return self.canvasToBlob(canvas, mimeType, quality).then(function(blob) {
+                        if (!blob) {
+                            return originalFile;
+                        }
+
+                        var isLosslessType = mimeType === 'image/png';
+                        var canLowerQuality = !isLosslessType && (quality - settings.qualityStep) >= settings.minQuality;
+
+                        if (blob.size <= settings.maxBytes) {
+                            return self.blobToFile(blob, originalFile, mimeType);
+                        }
+
+                        if (canLowerQuality) {
+                            quality -= settings.qualityStep;
+                            return attemptQuality();
+                        }
+
+                        if (index + 1 < mimeTypes.length) {
+                            return attemptMimeType(index + 1);
+                        }
+
+                        return self.blobToFile(blob, originalFile, mimeType);
+                    });
+                }
+
+                return attemptQuality();
+            }
+
+            return attemptMimeType(0).then(function(candidateFile) {
+                return candidateFile.size < originalFile.size ? candidateFile : originalFile;
+            });
+        },
+
+        /**
          * Format file size for display
          * @param {number} bytes - File size in bytes
          * @return {string} Formatted file size string

@@ -308,6 +308,10 @@
             
             this.clearFieldError($field);
 
+            if ($field.data('upkeepify-processing')) {
+                return false;
+            }
+
             if (!files || files.length === 0) {
                 // No file selected, check if required
                 var rules = this.getValidationRules($form, $field.attr('name'));

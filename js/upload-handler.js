@@ -9,6 +9,7 @@
     var UpkeepifyUpload = {
         
         maxFileSize: 2 * 1024 * 1024, // 2MB
+        maxImageDimension: 1600,
         validTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
         
         /**
@@ -121,7 +122,9 @@
          * @param {jQuery} $container - Preview container element
          */
         handleFileSelect: function($input, $container) {
+            var self = this;
             var files = $input[0].files;
+            var selectedFiles = Array.prototype.slice.call(files || []);
             
             // Clear previous state
             this.clearPreview($container);
@@ -129,31 +132,105 @@
             if (!files || files.length === 0) {
                 return;
             }
-            
-            var file = files[0];
-            
-            // Validate file
-            var validation = this.validateFile(file);
-            
-            if (!validation.valid) {
-                this.showError($container, validation.message);
-                $input.val(''); // Clear invalid file
-                return;
+
+            $input.data('upkeepify-processing', true);
+            this.showProcessingState($container, files);
+
+            this.prepareFiles(files).then(function(preparedFiles) {
+                var validation;
+                var filesChanged = self.filesChanged(selectedFiles, preparedFiles);
+
+                $input.removeData('upkeepify-processing');
+
+                if (!preparedFiles.length) {
+                    self.showError($container, 'We could not prepare that photo on this device. Please try again.');
+                    $input.val('');
+                    self.notifyValidation($input);
+                    return;
+                }
+
+                if (filesChanged && !UpkeepifyUtils.setInputFiles($input[0], preparedFiles)) {
+                    self.showError($container, 'We could not prepare that photo on this device. Please try again.');
+                    $input.val('');
+                    self.notifyValidation($input);
+                    return;
+                }
+
+                validation = self.validateFiles(preparedFiles);
+
+                if (!validation.valid) {
+                    self.showError($container, validation.message);
+                    $input.val('');
+                    self.notifyValidation($input);
+                    return;
+                }
+
+                self.showFileInfo($container, preparedFiles);
+
+                if (preparedFiles[0].type.indexOf('image/') === 0) {
+                    self.showImagePreview($container, preparedFiles[0]);
+                }
+
+                self.addRemoveButton($container, $input);
+                self.notifyValidation($input);
+            }).catch(function() {
+                $input.removeData('upkeepify-processing');
+                self.showError($container, 'We could not prepare that photo on this device. Please try again.');
+                $input.val('');
+                self.notifyValidation($input);
+            });
+        },
+
+        /**
+         * Prepare selected files for upload.
+         * @param {FileList} files - Selected files
+         * @return {Promise<File[]>} Promise resolving to prepared files
+         */
+        prepareFiles: function(files) {
+            var self = this;
+            var selectedFiles = Array.prototype.slice.call(files || []);
+
+            return Promise.all(selectedFiles.map(function(file) {
+                return self.prepareFile(file);
+            }));
+        },
+
+        /**
+         * Prepare a single file for upload, optimizing images when needed.
+         * @param {File} file - Selected file
+         * @return {Promise<File>} Promise resolving to the prepared file
+         */
+        prepareFile: function(file) {
+            if (!file || !UpkeepifyUtils.canOptimizeImage(file) || file.size <= this.maxFileSize) {
+                return Promise.resolve(file);
             }
-            
-            // Show file info
-            this.showFileInfo($container, file);
-            
-            // Show preview if it's an image
-            if (file.type.startsWith('image/')) {
-                this.showImagePreview($container, file);
+
+            return UpkeepifyUtils.optimizeImageFile(file, {
+                maxBytes: this.maxFileSize,
+                maxDimension: this.maxImageDimension
+            });
+        },
+
+        /**
+         * Determine whether prepared files differ from the original selection.
+         * @param {File[]} originalFiles - Files from the initial input event
+         * @param {File[]} preparedFiles - Files after preprocessing
+         * @return {boolean} True if the input needs to be replaced
+         */
+        filesChanged: function(originalFiles, preparedFiles) {
+            var index;
+
+            if (originalFiles.length !== preparedFiles.length) {
+                return true;
             }
-            
-            // Add remove button
-            this.addRemoveButton($container, $input);
-            
-            // Trigger validation update
-            $input.trigger('validate');
+
+            for (index = 0; index < originalFiles.length; index++) {
+                if (originalFiles[index] !== preparedFiles[index]) {
+                    return true;
+                }
+            }
+
+            return false;
         },
 
         /**
@@ -182,13 +259,43 @@
         },
 
         /**
+         * Validate all selected files.
+         * @param {File[]} files - Files to validate
+         * @return {Object} Validation result
+         */
+        validateFiles: function(files) {
+            var index;
+            var result;
+
+            for (index = 0; index < files.length; index++) {
+                result = this.validateFile(files[index]);
+
+                if (!result.valid) {
+                    return result;
+                }
+            }
+
+            return { valid: true };
+        },
+
+        /**
          * Show file information
          * @param {jQuery} $container - Preview container
-         * @param {File} file - File object
+         * @param {File[]} files - File objects
          */
-        showFileInfo: function($container, file) {
+        showFileInfo: function($container, files) {
             var $fileInfo = $container.find('.upkeepify-file-info');
             var $dropZone = $container.find('.upkeepify-drop-zone');
+            var file = files[0];
+            var totalSize = files.reduce(function(sum, currentFile) {
+                return sum + currentFile.size;
+            }, 0);
+            var fileLabel = files.length === 1
+                ? UpkeepifyUtils.escapeHtml(file.name)
+                : files.length + ' files selected';
+            var statusLabel = file.upkeepifyOptimized
+                ? '✓ Reduced for upload'
+                : '✓ Valid file';
             
             // Hide drop zone
             $dropZone.hide();
@@ -196,9 +303,29 @@
             // Show file info
             $fileInfo.html(
                 '<div class="file-details">' +
-                    '<span class="file-name">' + UpkeepifyUtils.escapeHtml(file.name) + '</span>' +
-                    '<span class="file-size">' + UpkeepifyUtils.formatFileSize(file.size) + '</span>' +
-                    '<span class="file-status success">✓ Valid file</span>' +
+                    '<span class="file-name">' + fileLabel + '</span>' +
+                    '<span class="file-size">' + UpkeepifyUtils.formatFileSize(totalSize) + '</span>' +
+                    '<span class="file-status success">' + statusLabel + '</span>' +
+                '</div>'
+            ).show();
+        },
+
+        /**
+         * Show processing state while an image is resized/compressed.
+         * @param {jQuery} $container - Preview container
+         * @param {FileList} files - Selected files
+         */
+        showProcessingState: function($container, files) {
+            var $fileInfo = $container.find('.upkeepify-file-info');
+            var $dropZone = $container.find('.upkeepify-drop-zone');
+            var fileCount = files && files.length ? files.length : 1;
+            var label = fileCount === 1 ? 'Preparing photo...' : 'Preparing ' + fileCount + ' photos...';
+
+            $dropZone.hide();
+            $fileInfo.html(
+                '<div class="file-details">' +
+                    '<span class="file-name">' + label + '</span>' +
+                    '<span class="file-status">Reducing image size for upload</span>' +
                 '</div>'
             ).show();
         },
@@ -259,6 +386,7 @@
          * @param {jQuery} $input - File input element
          */
         addRemoveButton: function($container, $input) {
+            var self = this;
             var $fileInfo = $container.find('.upkeepify-file-info');
             var $removeBtn = $('<button type="button" class="upkeepify-remove-file" aria-label="Remove file">' +
                 '<svg viewBox="0 0 24 24" width="16" height="16">' +
@@ -274,6 +402,7 @@
                 e.preventDefault();
                 $input.val('');
                 self.clearPreview($container);
+                self.notifyValidation($input);
             });
         },
 
@@ -289,6 +418,7 @@
                 var $input = $container.prev('input[type="file"]');
                 $input.val('');
                 self.clearPreview($container);
+                self.notifyValidation($input);
             });
         },
 
@@ -301,6 +431,18 @@
             $container.find('.upkeepify-file-info').hide();
             $container.find('.upkeepify-image-preview').hide().empty();
             $container.find('.upkeepify-upload-error').hide();
+        },
+
+        /**
+         * Re-run validation after the file list changes asynchronously.
+         * @param {jQuery} $input - File input element
+         */
+        notifyValidation: function($input) {
+            var $form = $input.closest('form');
+
+            if (window.UpkeepifyValidation && typeof window.UpkeepifyValidation.validateFileField === 'function') {
+                window.UpkeepifyValidation.validateFileField($input, $form);
+            }
         },
 
         /**
