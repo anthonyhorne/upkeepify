@@ -468,7 +468,7 @@ function upkeepify_task_form_shortcode() {
 
     echo '<div class="upkeepify-field upkeepify-photo-field">';
     echo '<label for="task_photo">' . esc_html__('Add a photo', 'upkeepify') . '</label>';
-    echo '<input type="file" id="task_photo" name="task_photo" accept="image/*" capture="environment" class="upkeepify-file-input">';
+    echo '<input type="file" id="task_photo" name="task_photo" accept="image/jpeg,image/png,image/gif,image/webp" capture="environment" class="upkeepify-file-input">';
     echo '</div>';
 
     echo '<div class="upkeepify-field upkeepify-geo-field">';
@@ -508,7 +508,7 @@ function upkeepify_handle_task_form_submission() {
         return;
     }
 
-    if (!isset($_POST['upkeepify_task_submit'], $_POST['math'], $_POST['upkeepify_upload'])) {
+    if (!isset($_POST['math'], $_POST['upkeepify_upload'])) {
         return;
     }
 
@@ -586,7 +586,7 @@ function upkeepify_handle_task_form_submission() {
         }
 
         // Handle the upload
-        $upload_result = wp_handle_upload($task_photo, array('test_form' => true));
+        $upload_result = wp_handle_upload($task_photo, array('test_form' => false));
         if (isset($upload_result['error'])) {
             if (WP_DEBUG) {
                 error_log('Upkeepify Upload Error: ' . $upload_result['error']);

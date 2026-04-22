@@ -84,6 +84,20 @@ function upkeepify_load_textdomain() {
 add_action( 'plugins_loaded', 'upkeepify_load_textdomain' );
 
 /**
+ * Start PHP session early so the Set-Cookie header can be sent before output begins.
+ * The shortcode-level session_start() calls are no-ops once this runs.
+ *
+ * @since 1.2.1
+ * @hook init
+ */
+function upkeepify_session_start() {
+    if ( session_status() === PHP_SESSION_NONE && ! headers_sent() ) {
+        session_start();
+    }
+}
+add_action( 'init', 'upkeepify_session_start', 1 );
+
+/**
  * Plugin activation callback.
  *
  * Fires when the plugin is activated. Handles initialization tasks

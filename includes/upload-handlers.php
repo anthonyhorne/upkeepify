@@ -48,9 +48,9 @@ function upkeepify_validate_upload($file) {
 
     // Validate file type by checking the actual file extension
     $file_type = wp_check_filetype($file['name']);
-    $allowed_types = array('image/jpeg', 'image/png', 'image/gif');
+    $allowed_types = array('image/jpeg', 'image/png', 'image/gif', 'image/webp');
     if (!in_array($file_type['type'], $allowed_types, true)) {
-        return new WP_Error('invalid_file_type', __('Invalid file type. Only JPG, PNG, and GIF files are allowed.', 'upkeepify'));
+        return new WP_Error('invalid_file_type', __('Invalid file type. Only JPG, PNG, GIF, and WebP files are allowed.', 'upkeepify'));
     }
 
     // Additional MIME validation using fileinfo if available
@@ -60,7 +60,7 @@ function upkeepify_validate_upload($file) {
             $detected_mime = finfo_file($finfo, $file['tmp_name']);
             finfo_close($finfo);
             if (!in_array($detected_mime, $allowed_types, true)) {
-                return new WP_Error('invalid_mime_type', __('Invalid file type detected. Only JPG, PNG, and GIF files are allowed.', 'upkeepify'));
+                return new WP_Error('invalid_mime_type', __('Invalid file type detected. Only JPG, PNG, GIF, and WebP files are allowed.', 'upkeepify'));
             }
         }
     }
