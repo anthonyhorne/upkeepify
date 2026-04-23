@@ -385,6 +385,11 @@ function upkeepify_redirect_task_form_status( $status, $error = '' ) {
     }
 
     wp_safe_redirect( add_query_arg( $args, upkeepify_get_task_form_redirect_url() ) );
+
+    if ( defined( 'UPKEEPIFY_TESTING' ) && UPKEEPIFY_TESTING ) {
+        return;
+    }
+
     exit;
 }
 

@@ -10,6 +10,8 @@
 define( 'WPINC', 'wp-includes' );
 define( 'WP_DEBUG', false );
 define( 'ABSPATH', '/tmp/' );
+if ( ! defined( 'UPKEEPIFY_TESTING' ) ) define( 'UPKEEPIFY_TESTING', true );
+if ( ! defined( 'UPKEEPIFY_VERSION' ) ) define( 'UPKEEPIFY_VERSION', '1.2.0' );
 
 // PHP upload error constants
 if ( ! defined( 'UPLOAD_ERR_OK' ) )        define( 'UPLOAD_ERR_OK', 0 );
@@ -609,6 +611,57 @@ function add_query_arg( ...$args ) {
         return $url . '&' . $query;
     }
     return $url . '?' . $query;
+}
+
+function remove_query_arg( $key, $url = '' ) {
+    $keys = is_array( $key ) ? $key : array( $key );
+    $url  = (string) $url;
+
+    $parts = wp_parse_url( $url );
+    if ( false === $parts ) {
+        return $url;
+    }
+
+    $query_args = array();
+    if ( ! empty( $parts['query'] ) ) {
+        parse_str( $parts['query'], $query_args );
+    }
+
+    foreach ( $keys as $query_key ) {
+        unset( $query_args[ $query_key ] );
+    }
+
+    $rebuilt = '';
+
+    if ( isset( $parts['scheme'] ) ) {
+        $rebuilt .= $parts['scheme'] . '://';
+    }
+
+    if ( isset( $parts['host'] ) ) {
+        $rebuilt .= $parts['host'];
+    }
+
+    if ( isset( $parts['port'] ) ) {
+        $rebuilt .= ':' . $parts['port'];
+    }
+
+    if ( isset( $parts['path'] ) ) {
+        $rebuilt .= $parts['path'];
+    }
+
+    if ( ! empty( $query_args ) ) {
+        $rebuilt .= '?' . http_build_query( $query_args );
+    }
+
+    if ( isset( $parts['fragment'] ) ) {
+        $rebuilt .= '#' . $parts['fragment'];
+    }
+
+    return $rebuilt;
+}
+
+function wp_parse_url( $url, $component = -1 ) {
+    return parse_url( $url, $component );
 }
 
 function trailingslashit( $string ) {
