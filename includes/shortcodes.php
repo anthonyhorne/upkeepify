@@ -566,7 +566,7 @@ function upkeepify_handle_task_form_submission() {
     }
 
     // Handle file upload with scoped validation
-    $photo_attachment_id = 0;
+    $file_data_to_sideload = null;
     if (isset($_FILES['task_photo']) && !empty($_FILES['task_photo']['name'])) {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
         require_once(ABSPATH . 'wp-admin/includes/media.php');
@@ -599,26 +599,14 @@ function upkeepify_handle_task_form_submission() {
             upkeepify_redirect_task_form_status( 'error', 'upload_invalid' );
         }
 
-        // Prepare file data for media handling
-        $file_data = array(
+        // Prepare file data for media handling, but delay sideloading until we have a task ID.
+        $file_data_to_sideload = array(
             'name'     => $task_photo['name'],
             'type'     => $upload_result['type'],
             'tmp_name' => $upload_result['file'],
             'error'    => $task_photo['error'],
             'size'     => $task_photo['size'],
         );
-
-        // Sideload the file into the media library
-        $attachment_id = media_handle_sideload($file_data, 0);
-
-        if (is_wp_error($attachment_id)) {
-            if (WP_DEBUG) {
-                error_log('Upkeepify Media Sideload Error: ' . $attachment_id->get_error_message());
-            }
-            upkeepify_redirect_task_form_status( 'error', 'upload_invalid' );
-        }
-
-        $photo_attachment_id = $attachment_id;
     }
 
     $meta = array(
@@ -659,9 +647,15 @@ function upkeepify_handle_task_form_submission() {
         upkeepify_redirect_task_form_status( 'error', 'save_failed' );
     }
 
-    // Set the photo as the featured image if uploaded
-    if ($photo_attachment_id > 0) {
-        set_post_thumbnail($task_id, $photo_attachment_id);
+    // Sideload the file into the media library if uploaded
+    if ($file_data_to_sideload) {
+        $attachment_id = media_handle_sideload($file_data_to_sideload, $task_id);
+
+        if (!is_wp_error($attachment_id)) {
+            set_post_thumbnail($task_id, $attachment_id);
+        } elseif (WP_DEBUG) {
+            error_log('Upkeepify Media Sideload Error: ' . $attachment_id->get_error_message());
+        }
     }
 
     // Only accept resident-facing taxonomies; never allow status or provider from public input.
@@ -672,10 +666,12 @@ function upkeepify_handle_task_form_submission() {
         }
     }
 
-    // Automatically assign the "Open" task status for all public submissions.
-    $open_term = get_term_by( 'name', 'Open', UPKEEPIFY_TAXONOMY_TASK_STATUS );
-    if ( $open_term && ! is_wp_error( $open_term ) ) {
-        wp_set_object_terms( $task_id, array( $open_term->term_id ), UPKEEPIFY_TAXONOMY_TASK_STATUS );
+    // Automatically assign the "Open" task status for all public submissions, unless trustee approval is enabled.
+    if ( ! upkeepify_trustee_approval_enabled() ) {
+        $open_term = get_term_by( 'name', 'Open', UPKEEPIFY_TAXONOMY_TASK_STATUS );
+        if ( $open_term && ! is_wp_error( $open_term ) ) {
+            wp_set_object_terms( $task_id, array( $open_term->term_id ), UPKEEPIFY_TAXONOMY_TASK_STATUS );
+        }
     }
 
     // Save submitter email and generate resident confirmation token.
@@ -684,6 +680,14 @@ function upkeepify_handle_task_form_submission() {
         update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_SUBMITTER_EMAIL, $submitter_email );
         $resident_token = wp_generate_password( 20, false );
         update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_TOKEN, $resident_token );
+    }
+
+    // If trustee approval is enabled, publish the task to trigger the approval flow.
+    if ( upkeepify_trustee_approval_enabled() ) {
+        wp_update_post( array(
+            'ID'          => $task_id,
+            'post_status' => 'publish',
+        ) );
     }
 
     upkeepify_redirect_task_form_status( 'success' );
