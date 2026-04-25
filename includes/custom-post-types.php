@@ -1025,11 +1025,13 @@ function upkeepify_set_task_status_by_name($task_id, $status_name) {
  */
 function upkeepify_get_lifecycle_status_options() {
     return array(
+        UPKEEPIFY_TASK_STATUS_SLUG_PENDING_TASK_APPROVAL           => UPKEEPIFY_TASK_STATUS_PENDING_TASK_APPROVAL,
         UPKEEPIFY_TASK_STATUS_SLUG_PENDING_ESTIMATE_APPROVAL       => UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL,
         UPKEEPIFY_TASK_STATUS_SLUG_PENDING_QUOTE_APPROVAL          => UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL,
         UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_COMPLETION             => UPKEEPIFY_TASK_STATUS_AWAITING_COMPLETION,
         UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_RESIDENT_CONFIRMATION  => UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION,
         UPKEEPIFY_TASK_STATUS_SLUG_NEEDS_REVIEW                    => UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW,
+        UPKEEPIFY_TASK_STATUS_SLUG_REJECTED                        => UPKEEPIFY_TASK_STATUS_REJECTED,
     );
 }
 
@@ -1041,6 +1043,14 @@ function upkeepify_get_lifecycle_status_options() {
  * @return string Task status term name.
  */
 function upkeepify_get_task_lifecycle_status_name($task_id) {
+    // Earliest gate: task awaiting trustee sign-off before contractors are invited.
+    if ( function_exists( 'upkeepify_get_pending_task_approval_status' ) ) {
+        $pending = upkeepify_get_pending_task_approval_status( $task_id );
+        if ( $pending ) {
+            return $pending;
+        }
+    }
+
     $followup_status = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, true);
     if ($followup_status === UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_ISSUE || $followup_status === UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_SUBMITTED) {
         return UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW;

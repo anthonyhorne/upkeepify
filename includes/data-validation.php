@@ -227,6 +227,7 @@ function upkeepify_validate_settings($settings) {
             case UPKEEPIFY_SETTING_ENABLE_TOKEN_UPDATE:
             case UPKEEPIFY_SETTING_ENABLE_THANK_YOU_PAGE:
             case UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE:
+            case UPKEEPIFY_SETTING_TRUSTEE_REJECT_KILLS:
                 $sanitized[$key] = !empty($value) ? 1 : 0;
                 break;
 
@@ -234,7 +235,25 @@ function upkeepify_validate_settings($settings) {
             case UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL:
             case UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE:
             case UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE:
+            case UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE:
                 $sanitized[$key] = sanitize_text_field((string) $value);
+                break;
+
+            case UPKEEPIFY_SETTING_TRUSTEE_EMAILS:
+                $sanitized[$key] = sanitize_textarea_field((string) $value);
+                break;
+
+            case UPKEEPIFY_SETTING_TRUSTEE_REQUIRED_APPROVALS:
+                $count = intval($value);
+                $sanitized[$key] = max(1, $count);
+                break;
+
+            case UPKEEPIFY_SETTING_TRUSTEE_REMINDER_COUNT:
+                $sanitized[$key] = max(0, intval($value));
+                break;
+
+            case UPKEEPIFY_SETTING_TRUSTEE_REMINDER_INTERVAL:
+                $sanitized[$key] = max(1, intval($value));
                 break;
 
             case UPKEEPIFY_SETTING_OVERRIDE_EMAIL:

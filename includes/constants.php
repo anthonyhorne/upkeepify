@@ -205,6 +205,7 @@ define('UPKEEPIFY_LABEL_TASK_STATUSES', 'Task Statuses');
 define('UPKEEPIFY_LABEL_UNITS', 'Units');
 
 // Lifecycle task status labels/slugs.
+define('UPKEEPIFY_TASK_STATUS_PENDING_TASK_APPROVAL', 'Pending Task Approval');
 define('UPKEEPIFY_TASK_STATUS_OPEN', 'Open');
 define('UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL', 'Pending Estimate Approval');
 define('UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL', 'Pending Quote Approval');
@@ -213,11 +214,14 @@ define('UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION', 'Awaiting Residen
 define('UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW', 'Needs Review');
 define('UPKEEPIFY_TASK_STATUS_COMPLETED', 'Completed');
 define('UPKEEPIFY_TASK_STATUS_ON_HOLD', 'On Hold');
+define('UPKEEPIFY_TASK_STATUS_REJECTED', 'Rejected');
+define('UPKEEPIFY_TASK_STATUS_SLUG_PENDING_TASK_APPROVAL', 'pending-task-approval');
 define('UPKEEPIFY_TASK_STATUS_SLUG_PENDING_ESTIMATE_APPROVAL', 'pending-estimate-approval');
 define('UPKEEPIFY_TASK_STATUS_SLUG_PENDING_QUOTE_APPROVAL', 'pending-quote-approval');
 define('UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_COMPLETION', 'awaiting-completion');
 define('UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_RESIDENT_CONFIRMATION', 'awaiting-resident-confirmation');
 define('UPKEEPIFY_TASK_STATUS_SLUG_NEEDS_REVIEW', 'needs-review');
+define('UPKEEPIFY_TASK_STATUS_SLUG_REJECTED', 'rejected');
 
 // Form Field Names
 define('UPKEEPIFY_FORM_FIELD_TASK_SUBMIT', 'upkeepify_task_submit');
@@ -266,3 +270,39 @@ define('UPKEEPIFY_CACHE_EXPIRE_SHORT', 1800); // 30 minutes
 define('UPKEEPIFY_CACHE_EXPIRE_MEDIUM', 3600); // 1 hour
 define('UPKEEPIFY_CACHE_EXPIRE_LONG', 7200); // 2 hours
 define('UPKEEPIFY_CACHE_EXPIRE_VERY_LONG', 21600); // 6 hours
+
+// Trustee approval steps
+define('UPKEEPIFY_TRUSTEE_STEP_TASK',     'task_approval');
+define('UPKEEPIFY_TRUSTEE_STEP_ESTIMATE', 'estimate_approval');
+define('UPKEEPIFY_TRUSTEE_STEP_QUOTE',    'quote_approval');
+
+// Trustee token expiry
+define('UPKEEPIFY_TRUSTEE_TOKEN_EXPIRY_DAYS', 30);
+
+// Trustee approval meta keys (all stored as serialized arrays keyed by step)
+define('UPKEEPIFY_META_KEY_TRUSTEE_TOKENS',               '_upkeepify_trustee_tokens');               // [step][email] => token
+define('UPKEEPIFY_META_KEY_TRUSTEE_APPROVALS',            '_upkeepify_trustee_approvals');            // [step][email] => timestamp
+define('UPKEEPIFY_META_KEY_TRUSTEE_REJECTIONS',           '_upkeepify_trustee_rejections');           // [step][email] => timestamp
+define('UPKEEPIFY_META_KEY_TRUSTEE_APPROVAL_REQUESTED_AT','_upkeepify_trustee_approval_requested_at');// [step] => timestamp
+define('UPKEEPIFY_META_KEY_TRUSTEE_REMINDER_COUNTS',      '_upkeepify_trustee_reminder_counts');      // [step] => int
+define('UPKEEPIFY_META_KEY_TRUSTEE_REJECTION_INFO',       '_upkeepify_trustee_rejection_info');       // serialized: step/email/at
+define('UPKEEPIFY_META_KEY_TASK_APPROVED_TASK_AT',        '_upkeepify_approved_task_at');             // Unix timestamp
+define('UPKEEPIFY_META_KEY_TASK_APPROVED_TASK_BY',        '_upkeepify_approved_task_by');             // serialized array of emails
+
+// Trustee approval query var / action / shortcode / nonce
+define('UPKEEPIFY_QUERY_VAR_TRUSTEE_TOKEN',          'upkeepify_trustee_token');
+define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_APPROVAL_SUBMIT', 'upkeepify_trustee_approval_submit');
+define('UPKEEPIFY_SHORTCODE_TRUSTEE_APPROVAL_FORM',  'upkeepify_trustee_approval');
+define('UPKEEPIFY_NONCE_TRUSTEE_APPROVAL',           'upkeepify_trustee_approval_nonce');
+define('UPKEEPIFY_NONCE_ACTION_TRUSTEE_APPROVAL',    'upkeepify_trustee_approval_action');
+
+// Trustee approval cron hook
+define('UPKEEPIFY_CRON_TRUSTEE_REMINDERS', 'upkeepify_trustee_approval_reminders');
+
+// Trustee approval settings keys
+define('UPKEEPIFY_SETTING_TRUSTEE_EMAILS',             'upkeepify_trustee_emails');
+define('UPKEEPIFY_SETTING_TRUSTEE_REQUIRED_APPROVALS', 'upkeepify_trustee_required_approvals');
+define('UPKEEPIFY_SETTING_TRUSTEE_REJECT_KILLS',       'upkeepify_trustee_reject_kills');
+define('UPKEEPIFY_SETTING_TRUSTEE_REMINDER_COUNT',     'upkeepify_trustee_reminder_count');
+define('UPKEEPIFY_SETTING_TRUSTEE_REMINDER_INTERVAL',  'upkeepify_trustee_reminder_interval');
+define('UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE',      'upkeepify_trustee_approval_page');

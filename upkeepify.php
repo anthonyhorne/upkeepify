@@ -3,7 +3,7 @@
  * Plugin Name: Upkeepify
  * Plugin URI: https://github.com/anthonyhorne/upkeepify
  * Description: A comprehensive plugin to manage maintenance tasks within a complex. It supports task submissions with categorization, service provider management, and customizable settings.
- * Version: 1.2.0
+ * Version: 1.3.0
  * Author: Anthony Horne
  * Text Domain: upkeepify
  * License: GPL v2 or later
@@ -31,7 +31,7 @@ if (!defined('WPINC')) {
 
 define('UPKEEPIFY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('UPKEEPIFY_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('UPKEEPIFY_VERSION', '1.2.0');
+define('UPKEEPIFY_VERSION', '1.3.0');
 
 // Include constants first
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/constants.php';
@@ -60,6 +60,9 @@ require_once plugin_dir_path(__FILE__) . 'includes/notification-system.php';
 
 // Include database optimization helpers
 require_once plugin_dir_path(__FILE__) . 'includes/database-optimization.php';
+
+// Trustee approval flows (token-based, login-free)
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/trustee-approval.php';
 
 // Progressive Web App support
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/pwa.php';
@@ -117,6 +120,9 @@ function upkeepify_activate() {
     // Optionally insert sample data
     upkeepify_maybe_insert_sample_data();
 
+    // Schedule daily trustee reminder cron
+    upkeepify_schedule_trustee_reminders();
+
     // Register PWA rewrite rules then flush so they take effect immediately.
     upkeepify_pwa_add_rewrite_rules();
     flush_rewrite_rules();
@@ -131,8 +137,12 @@ function upkeepify_activate() {
  * @hook register_deactivation_hook
  */
 function upkeepify_deactivate() {
+    upkeepify_unschedule_trustee_reminders();
     flush_rewrite_rules();
 }
+
+// Ensure cron is scheduled on every load (in case it was cleared externally).
+add_action( 'wp', 'upkeepify_schedule_trustee_reminders' );
 
 /**
  * Add favicon to the site.

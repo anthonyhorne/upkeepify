@@ -309,3 +309,181 @@ function upkeepify_send_contractor_invite( $provider_email, $provider_name, $tas
 
     return $sent;
 }
+
+/**
+ * Send a trustee approval request email for a given step.
+ *
+ * Includes task details, submitted photos, and — for estimate/quote steps —
+ * the contractor name, amounts, and any attachments. The approval link is
+ * unique per trustee; clicking it opens the trustee approval page where they
+ * can approve or reject without logging in.
+ *
+ * @since 1.3.0
+ * @param string       $trustee_email Recipient trustee email.
+ * @param WP_Post      $task          Maintenance task post.
+ * @param string       $step          UPKEEPIFY_TRUSTEE_STEP_* constant.
+ * @param string       $approval_url  Unique token URL for this trustee.
+ * @param int          $response_id   Provider response post ID (0 for task step).
+ * @param bool         $is_reminder   True when this is a follow-up reminder.
+ * @return bool
+ */
+function upkeepify_send_trustee_approval_request( $trustee_email, $task, $step, $approval_url, $response_id = 0, $is_reminder = false ) {
+    if ( ! is_email( $trustee_email ) || ! $task ) {
+        return false;
+    }
+
+    $site_name = get_bloginfo( 'name' );
+    $settings  = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+    $currency  = isset( $settings[ UPKEEPIFY_SETTING_CURRENCY ] ) ? $settings[ UPKEEPIFY_SETTING_CURRENCY ] : '$';
+
+    $step_labels = array(
+        UPKEEPIFY_TRUSTEE_STEP_TASK     => __( 'New Task — Approval Required', 'upkeepify' ),
+        UPKEEPIFY_TRUSTEE_STEP_ESTIMATE => __( 'Estimate — Approval Required', 'upkeepify' ),
+        UPKEEPIFY_TRUSTEE_STEP_QUOTE    => __( 'Formal Quote — Approval Required', 'upkeepify' ),
+    );
+    $heading = isset( $step_labels[ $step ] ) ? $step_labels[ $step ] : __( 'Approval Required', 'upkeepify' );
+
+    if ( $is_reminder ) {
+        $subject = sprintf( __( '[%s] REMINDER: %s — %s', 'upkeepify' ), $site_name, $heading, $task->post_title );
+    } else {
+        $subject = sprintf( __( '[%s] %s — %s', 'upkeepify' ), $site_name, $heading, $task->post_title );
+    }
+
+    $body  = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">';
+
+    if ( $is_reminder ) {
+        $body .= '<div style="background:#fff3cd;border-left:4px solid #ffc107;padding:10px 15px;margin-bottom:16px;">';
+        $body .= '<strong>' . esc_html__( 'Reminder:', 'upkeepify' ) . '</strong> '
+              . esc_html__( 'This task is still awaiting your response.', 'upkeepify' );
+        $body .= '</div>';
+    }
+
+    $body .= '<h2 style="color:#333;">' . esc_html( $heading ) . '</h2>';
+    $body .= '<h3 style="color:#555;">' . esc_html( $task->post_title ) . '</h3>';
+
+    $unit = get_post_meta( $task->ID, UPKEEPIFY_META_KEY_NEAREST_UNIT, true );
+    if ( $unit ) {
+        $body .= '<p><strong>' . esc_html__( 'Unit/Location:', 'upkeepify' ) . '</strong> ' . esc_html( $unit ) . '</p>';
+    }
+
+    $excerpt = wp_trim_words( wp_strip_all_tags( $task->post_content ), 60, '…' );
+    if ( $excerpt ) {
+        $body .= '<p style="color:#444;">' . esc_html( $excerpt ) . '</p>';
+    }
+
+    // Task images
+    $task_images = get_attached_media( 'image', $task->ID );
+    if ( ! empty( $task_images ) ) {
+        $body .= '<h4>' . esc_html__( 'Submitted Photos', 'upkeepify' ) . '</h4>';
+        $body .= '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+        foreach ( array_slice( $task_images, 0, 6 ) as $img ) {
+            $thumb = wp_get_attachment_image_src( $img->ID, 'medium' );
+            $full  = wp_get_attachment_url( $img->ID );
+            if ( $thumb && $full ) {
+                $body .= '<a href="' . esc_url( $full ) . '" style="display:inline-block;">'
+                      . '<img src="' . esc_url( $thumb[0] ) . '" width="160" style="border-radius:4px;" alt="">'
+                      . '</a>';
+            }
+        }
+        $body .= '</div>';
+    }
+
+    // Estimate / quote details
+    if ( $response_id ) {
+        $provider_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true ) );
+        $provider_term = $provider_id ? get_term( $provider_id, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ) : null;
+        $provider_name = ( $provider_term && ! is_wp_error( $provider_term ) ) ? $provider_term->name : '';
+
+        if ( $provider_name ) {
+            $body .= '<p><strong>' . esc_html__( 'Contractor:', 'upkeepify' ) . '</strong> ' . esc_html( $provider_name ) . '</p>';
+        }
+
+        $availability = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_AVAILABILITY, true );
+        if ( $availability ) {
+            $body .= '<p><strong>' . esc_html__( 'Earliest Availability:', 'upkeepify' ) . '</strong> ' . esc_html( $availability ) . '</p>';
+        }
+
+        if ( $step === UPKEEPIFY_TRUSTEE_STEP_ESTIMATE ) {
+            $body .= '<hr style="border:none;border-top:1px solid #ddd;margin:16px 0;">';
+            $body .= '<h4>' . esc_html__( 'Estimate', 'upkeepify' ) . '</h4>';
+
+            $estimate   = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true );
+            $est_low    = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_LOW, true );
+            $est_high   = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_HIGH, true );
+            $confidence = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_CONFIDENCE, true );
+            $note       = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_NOTE, true );
+
+            if ( $estimate !== '' ) {
+                $body .= '<p style="font-size:18px;"><strong>' . esc_html__( 'Amount:', 'upkeepify' ) . '</strong> '
+                      . esc_html( $currency ) . esc_html( number_format( (float) $estimate, 2 ) ) . '</p>';
+            }
+            if ( $est_low !== '' && $est_high !== '' ) {
+                $body .= '<p><strong>' . esc_html__( 'Range:', 'upkeepify' ) . '</strong> '
+                      . esc_html( $currency ) . esc_html( number_format( (float) $est_low, 2 ) )
+                      . ' – '
+                      . esc_html( $currency ) . esc_html( number_format( (float) $est_high, 2 ) ) . '</p>';
+            }
+            if ( $confidence ) {
+                $body .= '<p><strong>' . esc_html__( 'Confidence:', 'upkeepify' ) . '</strong> ' . esc_html( ucfirst( $confidence ) ) . '</p>';
+            }
+            if ( $note ) {
+                $body .= '<p><strong>' . esc_html__( 'Note:', 'upkeepify' ) . '</strong> ' . esc_html( $note ) . '</p>';
+            }
+        }
+
+        if ( $step === UPKEEPIFY_TRUSTEE_STEP_QUOTE ) {
+            $body .= '<hr style="border:none;border-top:1px solid #ddd;margin:16px 0;">';
+            $body .= '<h4>' . esc_html__( 'Formal Quote', 'upkeepify' ) . '</h4>';
+
+            $formal_quote  = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true );
+            $orig_estimate = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true );
+            $quote_note    = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_QUOTE_NOTE, true );
+            $attachments   = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_QUOTE_ATTACHMENTS, true );
+
+            if ( $formal_quote !== '' ) {
+                $body .= '<p style="font-size:18px;"><strong>' . esc_html__( 'Amount:', 'upkeepify' ) . '</strong> '
+                      . esc_html( $currency ) . esc_html( number_format( (float) $formal_quote, 2 ) ) . '</p>';
+            }
+            if ( $orig_estimate !== '' ) {
+                $body .= '<p><strong>' . esc_html__( 'Original Estimate:', 'upkeepify' ) . '</strong> '
+                      . esc_html( $currency ) . esc_html( number_format( (float) $orig_estimate, 2 ) ) . '</p>';
+            }
+            if ( $quote_note ) {
+                $body .= '<p><strong>' . esc_html__( 'Conditions:', 'upkeepify' ) . '</strong> ' . esc_html( $quote_note ) . '</p>';
+            }
+            if ( ! empty( $attachments ) && is_array( $attachments ) ) {
+                $body .= '<p><strong>' . esc_html__( 'Quote Documents:', 'upkeepify' ) . '</strong> ';
+                $links = array();
+                foreach ( $attachments as $att_id ) {
+                    $att_url = wp_get_attachment_url( intval( $att_id ) );
+                    if ( $att_url ) {
+                        $links[] = '<a href="' . esc_url( $att_url ) . '">' . esc_html( get_the_title( intval( $att_id ) ) ?: basename( $att_url ) ) . '</a>';
+                    }
+                }
+                $body .= implode( ', ', $links ) . '</p>';
+            }
+        }
+    }
+
+    // CTA button
+    $body .= '<div style="margin:24px 0;">';
+    $body .= '<a href="' . esc_url( $approval_url ) . '" style="background:#0073aa;color:#fff;padding:14px 28px;text-decoration:none;border-radius:4px;display:inline-block;font-size:16px;">';
+    $body .= esc_html__( 'Review &amp; Approve / Reject', 'upkeepify' );
+    $body .= '</a>';
+    $body .= '</div>';
+
+    $body .= '<p style="color:#999;font-size:12px;">' . esc_html__( 'Or copy this link:', 'upkeepify' ) . '<br>';
+    $body .= '<code style="word-break:break-all;">' . esc_url( $approval_url ) . '</code></p>';
+    $body .= '<p style="color:#999;font-size:12px;">'
+          . esc_html__( 'This link is unique to you. Do not forward it.', 'upkeepify' )
+          . '</p>';
+    $body .= '</div>';
+
+    $sent = wp_mail( $trustee_email, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+
+    if ( ! $sent ) {
+        error_log( 'Upkeepify Trustee: wp_mail() failed to ' . $trustee_email . ' for task ID ' . $task->ID . ' step ' . $step );
+    }
+
+    return $sent;
+}

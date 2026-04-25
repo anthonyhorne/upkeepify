@@ -59,6 +59,20 @@ function upkeepify_generate_provider_tokens($post_id, $post, $update) {
             return;
         }
 
+        // When trustee approval is configured, open the task-approval gate
+        // instead of inviting contractors immediately. Contractors are invited
+        // by upkeepify_trigger_step_completion() once the threshold is met.
+        if ( function_exists( 'upkeepify_trustee_approval_enabled' ) && upkeepify_trustee_approval_enabled() ) {
+            $already_approved = get_post_meta( $post_id, UPKEEPIFY_META_KEY_TASK_APPROVED_TASK_AT, true );
+            if ( ! $already_approved ) {
+                upkeepify_initiate_trustee_task_approval( $post_id );
+                if ( WP_DEBUG ) {
+                    error_log( 'Upkeepify Task Response: Task ID ' . $post_id . ' sent to trustee approval gate.' );
+                }
+                return;
+            }
+        }
+
         if (WP_DEBUG) {
             error_log('Upkeepify Task Response: Generating provider tokens for task ID ' . $post_id);
         }

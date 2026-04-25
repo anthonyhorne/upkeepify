@@ -264,6 +264,89 @@ add_settings_field(
         )
     );
 
+    // ── Trustee Approval Settings ─────────────────────────────────────────────
+    add_settings_section(
+        'upkeepify_trustee_approval_settings',
+        __( 'Trustee Approval Settings', 'upkeepify' ),
+        'upkeepify_trustee_approval_settings_section_callback',
+        UPKEEPIFY_OPTION_SETTINGS
+    );
+
+    add_settings_field(
+        UPKEEPIFY_SETTING_TRUSTEE_EMAILS,
+        __( 'Trustee Email Addresses', 'upkeepify' ),
+        'upkeepify_textarea_field_callback',
+        UPKEEPIFY_OPTION_SETTINGS,
+        'upkeepify_trustee_approval_settings',
+        array(
+            'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_EMAILS,
+            'description' => __( 'One email address per line (or comma-separated). These trustees will receive approval request emails for each gate.', 'upkeepify' ),
+        )
+    );
+
+    add_settings_field(
+        UPKEEPIFY_SETTING_TRUSTEE_REQUIRED_APPROVALS,
+        __( 'Required Approvals', 'upkeepify' ),
+        'upkeepify_number_field_callback',
+        UPKEEPIFY_OPTION_SETTINGS,
+        'upkeepify_trustee_approval_settings',
+        array(
+            'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_REQUIRED_APPROVALS,
+            'min'         => 1,
+            'description' => __( 'Number of trustees that must approve before the task moves forward. Applies to all approval gates.', 'upkeepify' ),
+        )
+    );
+
+    add_settings_field(
+        UPKEEPIFY_SETTING_TRUSTEE_REJECT_KILLS,
+        __( 'Single Rejection Kills Task', 'upkeepify' ),
+        'upkeepify_checkbox_field_callback',
+        UPKEEPIFY_OPTION_SETTINGS,
+        'upkeepify_trustee_approval_settings',
+        array(
+            'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_REJECT_KILLS,
+            'description' => __( 'When enabled, a single rejection immediately places the task on hold. When disabled, the same threshold as required approvals applies to rejections.', 'upkeepify' ),
+        )
+    );
+
+    add_settings_field(
+        UPKEEPIFY_SETTING_TRUSTEE_REMINDER_COUNT,
+        __( 'Reminder Emails (count)', 'upkeepify' ),
+        'upkeepify_number_field_callback',
+        UPKEEPIFY_OPTION_SETTINGS,
+        'upkeepify_trustee_approval_settings',
+        array(
+            'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_REMINDER_COUNT,
+            'min'         => 0,
+            'description' => __( 'Maximum number of reminder emails to send to trustees who have not yet responded. Set to 0 to disable reminders.', 'upkeepify' ),
+        )
+    );
+
+    add_settings_field(
+        UPKEEPIFY_SETTING_TRUSTEE_REMINDER_INTERVAL,
+        __( 'Reminder Interval (days)', 'upkeepify' ),
+        'upkeepify_number_field_callback',
+        UPKEEPIFY_OPTION_SETTINGS,
+        'upkeepify_trustee_approval_settings',
+        array(
+            'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_REMINDER_INTERVAL,
+            'min'         => 1,
+            'description' => __( 'Days between reminder emails.', 'upkeepify' ),
+        )
+    );
+
+    add_settings_field(
+        UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE,
+        __( 'Trustee Approval Page URL', 'upkeepify' ),
+        'upkeepify_text_field_callback',
+        UPKEEPIFY_OPTION_SETTINGS,
+        'upkeepify_trustee_approval_settings',
+        array(
+            'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE,
+            'description' => __( 'Full URL of the page containing the [upkeepify_trustee_approval] shortcode. Approval links in trustee emails will point here.', 'upkeepify' ),
+        )
+    );
+
     // Thank You Page Setting
     add_settings_section(
         'upkeepify_provider_thank_you_settings',
@@ -312,6 +395,29 @@ add_action('admin_init', 'upkeepify_init_plugin_settings');
  */
 function upkeepify_contractor_invite_settings_section_callback() {
     echo '<p>' . esc_html__('Configure how contractors receive job invitation emails when a matching task is published.', 'upkeepify') . '</p>';
+}
+
+function upkeepify_trustee_approval_settings_section_callback() {
+    echo '<p>' . esc_html__( 'Configure token-based trustee approvals. When trustee emails are set, tasks must be approved before contractors are invited, and each estimate and quote gate also requires trustee sign-off via email link — no login needed.', 'upkeepify' ) . '</p>';
+}
+
+function upkeepify_textarea_field_callback( $args ) {
+    $options = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+    $value   = isset( $options[ $args['label_for'] ] ) ? $options[ $args['label_for'] ] : '';
+    echo '<textarea id="' . esc_attr( $args['label_for'] ) . '" name="upkeepify_settings[' . esc_attr( $args['label_for'] ) . ']" rows="4" cols="50">' . esc_textarea( $value ) . '</textarea>';
+    if ( ! empty( $args['description'] ) ) {
+        echo '<p class="description">' . esc_html( $args['description'] ) . '</p>';
+    }
+}
+
+function upkeepify_number_field_callback( $args ) {
+    $options = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+    $value   = isset( $options[ $args['label_for'] ] ) ? $options[ $args['label_for'] ] : '';
+    $min     = isset( $args['min'] ) ? ' min="' . intval( $args['min'] ) . '"' : '';
+    echo '<input id="' . esc_attr( $args['label_for'] ) . '" name="upkeepify_settings[' . esc_attr( $args['label_for'] ) . ']" type="number" value="' . esc_attr( $value ) . '"' . $min . ' style="width:80px;">';
+    if ( ! empty( $args['description'] ) ) {
+        echo '<p class="description">' . esc_html( $args['description'] ) . '</p>';
+    }
 }
 
 function upkeepify_provider_thank_you_settings_section_callback() {

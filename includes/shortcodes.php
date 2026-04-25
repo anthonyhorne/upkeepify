@@ -1355,27 +1355,34 @@ function upkeepify_admin_post_provider_response_submit() {
             upkeepify_sync_task_lifecycle_status( $task_id );
         }
 
-        $settings      = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
-        $currency      = ! empty( $settings[ UPKEEPIFY_SETTING_CURRENCY ] ) ? $settings[ UPKEEPIFY_SETTING_CURRENCY ] : '$';
-        $recipient     = ! empty( $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] ) ? $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] : get_option( 'admin_email' );
-        $provider_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true ) );
-        $provider_term = $provider_id ? get_term( $provider_id, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ) : null;
-        $provider_name = ( $provider_term && ! is_wp_error( $provider_term ) ) ? $provider_term->name : __( 'A contractor', 'upkeepify' );
-        $review_url    = admin_url( 'post.php?post=' . intval( $task_id ) . '&action=edit' );
+        // When trustee approval is configured, open the estimate-approval gate
+        // (emails each trustee with the estimate + approve/reject link).
+        // Otherwise fall back to the generic admin notification.
+        if ( function_exists( 'upkeepify_trustee_approval_enabled' ) && upkeepify_trustee_approval_enabled() ) {
+            upkeepify_initiate_trustee_estimate_approval( $task_id, $response_id );
+        } else {
+            $settings      = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+            $currency      = ! empty( $settings[ UPKEEPIFY_SETTING_CURRENCY ] ) ? $settings[ UPKEEPIFY_SETTING_CURRENCY ] : '$';
+            $recipient     = ! empty( $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] ) ? $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] : get_option( 'admin_email' );
+            $provider_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true ) );
+            $provider_term = $provider_id ? get_term( $provider_id, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ) : null;
+            $provider_name = ( $provider_term && ! is_wp_error( $provider_term ) ) ? $provider_term->name : __( 'A contractor', 'upkeepify' );
+            $review_url    = admin_url( 'post.php?post=' . intval( $task_id ) . '&action=edit' );
 
-        $subject = sprintf( __( '[%s] Estimate received — %s', 'upkeepify' ), get_bloginfo( 'name' ), $task_post->post_title );
-        $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
-        $body   .= '<h2>' . esc_html__( 'Estimate Received', 'upkeepify' ) . '</h2>';
-        $body   .= '<p>' . sprintf( esc_html__( '%s has submitted an estimate for "%s".', 'upkeepify' ), esc_html( $provider_name ), esc_html( $task_post->post_title ) ) . '</p>';
-        $body   .= '<p><strong>' . sprintf( esc_html__( 'Ballpark estimate: %1$s%2$s', 'upkeepify' ), esc_html( $currency ), esc_html( number_format( (float) $estimate, 2 ) ) ) . '</strong></p>';
-        if ( $note !== '' ) {
-            $body .= '<p><strong>' . esc_html__( 'Contractor note:', 'upkeepify' ) . '</strong><br>' . nl2br( esc_html( $note ) ) . '</p>';
+            $subject = sprintf( __( '[%s] Estimate received — %s', 'upkeepify' ), get_bloginfo( 'name' ), $task_post->post_title );
+            $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
+            $body   .= '<h2>' . esc_html__( 'Estimate Received', 'upkeepify' ) . '</h2>';
+            $body   .= '<p>' . sprintf( esc_html__( '%s has submitted an estimate for "%s".', 'upkeepify' ), esc_html( $provider_name ), esc_html( $task_post->post_title ) ) . '</p>';
+            $body   .= '<p><strong>' . sprintf( esc_html__( 'Ballpark estimate: %1$s%2$s', 'upkeepify' ), esc_html( $currency ), esc_html( number_format( (float) $estimate, 2 ) ) ) . '</strong></p>';
+            if ( $note !== '' ) {
+                $body .= '<p><strong>' . esc_html__( 'Contractor note:', 'upkeepify' ) . '</strong><br>' . nl2br( esc_html( $note ) ) . '</p>';
+            }
+            $body .= '<p>' . esc_html__( 'Review the Trustee Lifecycle panel and approve the estimate before the contractor can submit a formal quote.', 'upkeepify' ) . '</p>';
+            $body .= '<p><a href="' . esc_url( $review_url ) . '">' . esc_html__( 'Review estimate', 'upkeepify' ) . '</a></p>';
+            $body .= '</div>';
+
+            wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
         }
-        $body .= '<p>' . esc_html__( 'Review the Trustee Lifecycle panel and approve the estimate before the contractor can submit a formal quote.', 'upkeepify' ) . '</p>';
-        $body .= '<p><a href="' . esc_url( $review_url ) . '">' . esc_html__( 'Review estimate', 'upkeepify' ) . '</a></p>';
-        $body .= '</div>';
-
-        wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
     }
 
     $redirect = add_query_arg(
@@ -1533,40 +1540,47 @@ function upkeepify_admin_post_provider_quote_submit() {
         update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_QUOTE_NOTE, substr( $quote_note, 0, 500 ) );
     }
 
-    // Notify trustee of the formal quote.
+    // Notify trustees of the formal quote.
     $task_post = $task_id ? get_post( $task_id ) : null;
     if ( $task_post ) {
         if ( function_exists( 'upkeepify_sync_task_lifecycle_status' ) ) {
             upkeepify_sync_task_lifecycle_status( $task_id );
         }
 
-        $settings  = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
-        $currency  = ! empty( $settings[ UPKEEPIFY_SETTING_CURRENCY ] ) ? $settings[ UPKEEPIFY_SETTING_CURRENCY ] : '$';
-        $recipient = ! empty( $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] ) ? $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] : get_option( 'admin_email' );
-        $provider_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true ) );
-        $provider_term = $provider_id ? get_term( $provider_id, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ) : null;
-        $provider_name = ( $provider_term && ! is_wp_error( $provider_term ) ) ? $provider_term->name : __( 'A contractor', 'upkeepify' );
+        // When trustee approval is configured, open the quote-approval gate
+        // (emails each trustee with the formal quote + approve/reject link).
+        // Otherwise fall back to the generic admin notification.
+        if ( function_exists( 'upkeepify_trustee_approval_enabled' ) && upkeepify_trustee_approval_enabled() ) {
+            upkeepify_initiate_trustee_quote_approval( $task_id, $response_id );
+        } else {
+            $settings  = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+            $currency  = ! empty( $settings[ UPKEEPIFY_SETTING_CURRENCY ] ) ? $settings[ UPKEEPIFY_SETTING_CURRENCY ] : '$';
+            $recipient = ! empty( $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] ) ? $settings[ UPKEEPIFY_SETTING_OVERRIDE_EMAIL ] : get_option( 'admin_email' );
+            $provider_id   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true ) );
+            $provider_term = $provider_id ? get_term( $provider_id, UPKEEPIFY_TAXONOMY_SERVICE_PROVIDER ) : null;
+            $provider_name = ( $provider_term && ! is_wp_error( $provider_term ) ) ? $provider_term->name : __( 'A contractor', 'upkeepify' );
 
-        $ballpark = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true );
+            $ballpark = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true );
 
-        $subject = sprintf( __( '[%s] Formal quote received — %s', 'upkeepify' ), get_bloginfo( 'name' ), $task_post->post_title );
-        $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
-        $body   .= '<h2>' . esc_html__( 'Formal Quote Received', 'upkeepify' ) . '</h2>';
-        $body   .= '<p>' . sprintf( esc_html__( '%s has submitted a formal quote for "%s".', 'upkeepify' ), esc_html( $provider_name ), esc_html( $task_post->post_title ) ) . '</p>';
-        if ( $ballpark !== '' ) {
-            $body .= '<p>' . sprintf( esc_html__( 'Ballpark estimate: %1$s%2$s', 'upkeepify' ), esc_html( $currency ), esc_html( number_format( (float) $ballpark, 2 ) ) ) . '</p>';
-        }
-        $body .= '<p><strong>' . sprintf( esc_html__( 'Formal quote: %1$s%2$s', 'upkeepify' ), esc_html( $currency ), esc_html( number_format( $quote, 2 ) ) ) . '</strong></p>';
-        if ( $quote_note ) {
-            $body .= '<p>' . esc_html__( 'Notes:', 'upkeepify' ) . ' ' . nl2br( esc_html( $quote_note ) ) . '</p>';
-        }
-        if ( ! empty( $quote_attachment_ids ) ) {
-            $body .= '<p>' . sprintf( esc_html__( '%d quote document(s) uploaded for audit.', 'upkeepify' ), count( $quote_attachment_ids ) ) . '</p>';
-        }
-        $body .= '<p>' . esc_html__( 'Review this quote in the WordPress admin.', 'upkeepify' ) . '</p>';
-        $body .= '</div>';
+            $subject = sprintf( __( '[%s] Formal quote received — %s', 'upkeepify' ), get_bloginfo( 'name' ), $task_post->post_title );
+            $body    = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
+            $body   .= '<h2>' . esc_html__( 'Formal Quote Received', 'upkeepify' ) . '</h2>';
+            $body   .= '<p>' . sprintf( esc_html__( '%s has submitted a formal quote for "%s".', 'upkeepify' ), esc_html( $provider_name ), esc_html( $task_post->post_title ) ) . '</p>';
+            if ( $ballpark !== '' ) {
+                $body .= '<p>' . sprintf( esc_html__( 'Ballpark estimate: %1$s%2$s', 'upkeepify' ), esc_html( $currency ), esc_html( number_format( (float) $ballpark, 2 ) ) ) . '</p>';
+            }
+            $body .= '<p><strong>' . sprintf( esc_html__( 'Formal quote: %1$s%2$s', 'upkeepify' ), esc_html( $currency ), esc_html( number_format( $quote, 2 ) ) ) . '</strong></p>';
+            if ( $quote_note ) {
+                $body .= '<p>' . esc_html__( 'Notes:', 'upkeepify' ) . ' ' . nl2br( esc_html( $quote_note ) ) . '</p>';
+            }
+            if ( ! empty( $quote_attachment_ids ) ) {
+                $body .= '<p>' . sprintf( esc_html__( '%d quote document(s) uploaded for audit.', 'upkeepify' ), count( $quote_attachment_ids ) ) . '</p>';
+            }
+            $body .= '<p>' . esc_html__( 'Review this quote in the WordPress admin.', 'upkeepify' ) . '</p>';
+            $body .= '</div>';
 
-        wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+            wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+        }
     }
 
     wp_safe_redirect( add_query_arg( 'upkeepify_response', 'quoted', wp_get_referer() ?: home_url() ) );
