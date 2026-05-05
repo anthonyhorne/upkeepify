@@ -105,12 +105,69 @@ add_settings_field(
     'upkeepify_general_settings',
     [
         'label_for' => UPKEEPIFY_SETTING_SMTP_HOST,
-        'class' => 'smtp_setting'
+        'class' => 'smtp_setting upkeepify_row'
     ]
 );
 
-// You can add more SMTP settings (e.g., Port, Username, Password) in a similar manner.
-// Ensure these also have 'smtp_setting' class for easy JavaScript targeting.
+// SMTP Port
+add_settings_field(
+    UPKEEPIFY_SETTING_SMTP_PORT,
+    __('SMTP Port', 'upkeepify'),
+    'upkeepify_number_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+        'label_for' => UPKEEPIFY_SETTING_SMTP_PORT,
+        'class' => 'smtp_setting upkeepify_row',
+        'min' => 1
+    ]
+);
+
+// SMTP User
+add_settings_field(
+    UPKEEPIFY_SETTING_SMTP_USER,
+    __('SMTP Username', 'upkeepify'),
+    'upkeepify_text_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+        'label_for' => UPKEEPIFY_SETTING_SMTP_USER,
+        'class' => 'smtp_setting upkeepify_row'
+    ]
+);
+
+// SMTP Pass
+add_settings_field(
+    UPKEEPIFY_SETTING_SMTP_PASS,
+    __('SMTP Password', 'upkeepify'),
+    'upkeepify_render_settings_field',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+        'name' => UPKEEPIFY_SETTING_SMTP_PASS,
+        'label_for' => UPKEEPIFY_SETTING_SMTP_PASS,
+        'type' => 'password',
+        'class' => 'smtp_setting upkeepify_row'
+    ]
+);
+
+// SMTP Encryption
+add_settings_field(
+    UPKEEPIFY_SETTING_SMTP_ENC,
+    __('SMTP Encryption', 'upkeepify'),
+    'upkeepify_select_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+        'label_for' => UPKEEPIFY_SETTING_SMTP_ENC,
+        'class' => 'smtp_setting upkeepify_row',
+        'options' => [
+            '' => __('None', 'upkeepify'),
+            'ssl' => __('SSL', 'upkeepify'),
+            'tls' => __('TLS', 'upkeepify'),
+        ]
+    ]
+);
 
 
     // Notify Option
@@ -672,6 +729,34 @@ function upkeepify_text_field_callback($args) {
 }
 
 /**
+ * Callback to render select settings fields.
+ *
+ * @since 1.2
+ * @param array $args Field arguments.
+ */
+function upkeepify_select_field_callback($args) {
+    $options = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
+    $value = isset($options[$args['label_for']]) ? $options[$args['label_for']] : '';
+    
+    echo '<select id="' . esc_attr($args['label_for']) . '" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']"';
+    
+    if (isset($args['class'])) {
+        echo ' class="' . esc_attr($args['class']) . '"';
+    }
+    
+    echo '>';
+    if (isset($args['options']) && is_array($args['options'])) {
+        foreach ($args['options'] as $opt_value => $opt_label) {
+            echo '<option value="' . esc_attr($opt_value) . '" ' . selected($value, $opt_value, false) . '>' . esc_html($opt_label) . '</option>';
+        }
+    }
+    echo '</select>';
+    if (!empty($args['description'])) {
+        echo '<p class="description">' . esc_html($args['description']) . '</p>';
+    }
+}
+
+/**
  * Sanitize plugin settings before saving.
  *
  * Validates and sanitizes all settings input before storing in the database.
@@ -736,11 +821,12 @@ function upkeepify_enqueue_admin_scripts($hook_suffix) {
     }
 
     $js_dir = plugin_dir_url(dirname(__FILE__)) . 'js/';
+    $suffix = (defined('SCRIPT_DEBUG') && SCRIPT_DEBUG) ? '' : '.min';
 
     // Enqueue utils.js first (required by other scripts)
     wp_enqueue_script(
         'upkeepify-utils-js',
-        $js_dir . 'utils.min.js',
+        $js_dir . 'utils' . $suffix . '.js',
         array('jquery'),
         UPKEEPIFY_VERSION,
         true
@@ -749,7 +835,7 @@ function upkeepify_enqueue_admin_scripts($hook_suffix) {
     // Enqueue notifications.js
     wp_enqueue_script(
         'upkeepify-notifications-js',
-        $js_dir . 'notifications.min.js',
+        $js_dir . 'notifications' . $suffix . '.js',
         array('jquery', 'upkeepify-utils-js'),
         UPKEEPIFY_VERSION,
         true
@@ -758,7 +844,7 @@ function upkeepify_enqueue_admin_scripts($hook_suffix) {
     // Enqueue admin-settings.js
     wp_enqueue_script(
         'upkeepify-admin-settings-js',
-        $js_dir . 'admin-settings.min.js',
+        $js_dir . 'admin-settings' . $suffix . '.js',
         array('jquery', 'upkeepify-utils-js', 'upkeepify-notifications-js'),
         UPKEEPIFY_VERSION,
         true
@@ -810,11 +896,12 @@ function upkeepify_enqueue_frontend_scripts() {
 
     $js_dir  = plugin_dir_url( dirname( __FILE__ ) ) . 'js/';
     $css_dir = plugin_dir_url( dirname( __FILE__ ) ) . '';
+    $suffix  = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
 
     // Enqueue utils.js
     wp_enqueue_script(
         'upkeepify-utils-js',
-        $js_dir . 'utils.min.js',
+        $js_dir . 'utils' . $suffix . '.js',
         array('jquery'),
         UPKEEPIFY_VERSION,
         true
@@ -823,7 +910,7 @@ function upkeepify_enqueue_frontend_scripts() {
     // Enqueue notifications.js
     wp_enqueue_script(
         'upkeepify-notifications-js',
-        $js_dir . 'notifications.min.js',
+        $js_dir . 'notifications' . $suffix . '.js',
         array('jquery', 'upkeepify-utils-js'),
         UPKEEPIFY_VERSION,
         true
@@ -832,7 +919,7 @@ function upkeepify_enqueue_frontend_scripts() {
     // Enqueue form-validation.js
     wp_enqueue_script(
         'upkeepify-form-validation-js',
-        $js_dir . 'form-validation.min.js',
+        $js_dir . 'form-validation' . $suffix . '.js',
         array('jquery', 'upkeepify-utils-js'),
         UPKEEPIFY_VERSION,
         true
@@ -841,7 +928,7 @@ function upkeepify_enqueue_frontend_scripts() {
     // Enqueue upload-handler.js
     wp_enqueue_script(
         'upkeepify-upload-handler-js',
-        $js_dir . 'upload-handler.min.js',
+        $js_dir . 'upload-handler' . $suffix . '.js',
         array('jquery', 'upkeepify-utils-js'),
         UPKEEPIFY_VERSION,
         true
@@ -850,7 +937,7 @@ function upkeepify_enqueue_frontend_scripts() {
     // Enqueue task-filters.js
     wp_enqueue_script(
         'upkeepify-task-filters-js',
-        $js_dir . 'task-filters.min.js',
+        $js_dir . 'task-filters' . $suffix . '.js',
         array('jquery', 'upkeepify-utils-js'),
         UPKEEPIFY_VERSION,
         true
@@ -859,7 +946,7 @@ function upkeepify_enqueue_frontend_scripts() {
     // Enqueue calendar-interactions.js
     wp_enqueue_script(
         'upkeepify-calendar-interactions-js',
-        $js_dir . 'calendar-interactions.min.js',
+        $js_dir . 'calendar-interactions' . $suffix . '.js',
         array('jquery', 'upkeepify-utils-js'),
         UPKEEPIFY_VERSION,
         true

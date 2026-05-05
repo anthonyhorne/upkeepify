@@ -55,7 +55,13 @@ function upkeepify_send_status_change_email($task_id, $new_status) {
         $subject = "Task Status Updated: {$safe_title}";
         $message = "The status of task '{$safe_title}' has been updated to '{$safe_status}'.";
         // Send the email
-        wp_mail($to, $subject, $message);
+        $sent = wp_mail($to, $subject, $message);
+        
+        if (!$sent) {
+            error_log('Upkeepify Status Change Error: wp_mail() failed to ' . $to . ' for task ID ' . $task_id . ' with subject: ' . $subject);
+        } elseif (WP_DEBUG) {
+            error_log('Upkeepify Status Change Success: Sent to ' . $to . ' for task ID ' . $task_id . ' with subject: ' . $subject);
+        }
     }
 }
 

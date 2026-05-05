@@ -148,6 +148,10 @@ define('UPKEEPIFY_OPTION_NOTIFICATIONS', 'upkeepify_notifications');
 // Settings Keys
 define('UPKEEPIFY_SETTING_SMTP_OPTION', 'upkeepify_smtp_option');
 define('UPKEEPIFY_SETTING_SMTP_HOST', 'upkeepify_smtp_host');
+define('UPKEEPIFY_SETTING_SMTP_PORT', 'upkeepify_smtp_port');
+define('UPKEEPIFY_SETTING_SMTP_USER', 'upkeepify_smtp_user');
+define('UPKEEPIFY_SETTING_SMTP_PASS', 'upkeepify_smtp_pass');
+define('UPKEEPIFY_SETTING_SMTP_ENC', 'upkeepify_smtp_enc');
 define('UPKEEPIFY_SETTING_NOTIFY_OPTION', 'upkeepify_notify_option');
 define('UPKEEPIFY_SETTING_PROVIDER_DELETE_TASK', 'upkeepify_provider_delete_task');
 define('UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING', 'upkeepify_public_task_logging');
