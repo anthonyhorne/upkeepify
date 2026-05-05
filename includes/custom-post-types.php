@@ -547,7 +547,15 @@ function upkeepify_send_regenerated_provider_token_email($task_id, $response_id,
     $body .= '<p style="color:#999;font-size:12px;">' . esc_html__('Or copy this link:', 'upkeepify') . '<br><code style="word-break:break-all;">' . esc_url($response_url) . '</code></p>';
     $body .= '</div>';
 
-    return wp_mail($provider_email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
+    $sent = wp_mail($provider_email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
+    
+    if (!$sent) {
+        error_log('Upkeepify Regenerated Token Error: wp_mail() failed to ' . $provider_email . ' with subject: ' . $subject);
+    } elseif (WP_DEBUG) {
+        error_log('Upkeepify Regenerated Token Success: Sent to ' . $provider_email . ' with subject: ' . $subject);
+    }
+
+    return $sent;
 }
 
 /**
@@ -1155,7 +1163,15 @@ function upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id,
     $body .= '<p style="color:#999;font-size:12px;">' . esc_html__('Or copy this link:', 'upkeepify') . '<br><code style="word-break:break-all;">' . esc_url($response_url) . '</code></p>';
     $body .= '</div>';
 
-    return wp_mail($provider_email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
+    $sent = wp_mail($provider_email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
+
+    if (!$sent) {
+        error_log('Upkeepify Lifecycle Approval Error: wp_mail() failed to ' . $provider_email . ' for response ID ' . $response_id . ' with subject: ' . $subject);
+    } elseif (WP_DEBUG) {
+        error_log('Upkeepify Lifecycle Approval Success: Sent to ' . $provider_email . ' for response ID ' . $response_id . ' with subject: ' . $subject);
+    }
+
+    return $sent;
 }
 
 /**
@@ -1253,7 +1269,15 @@ function upkeepify_send_quote_audit_email($task_id, $response_id, $recipient = n
     $body .= '</div>';
 
     $attachments = upkeepify_get_quote_attachment_file_paths($quote_documents);
-    return wp_mail($recipient, $subject, $body, array('Content-Type: text/html; charset=UTF-8'), $attachments);
+    $sent = wp_mail($recipient, $subject, $body, array('Content-Type: text/html; charset=UTF-8'), $attachments);
+
+    if (!$sent) {
+        error_log('Upkeepify Quote Audit Error: wp_mail() failed to ' . $recipient . ' for task ID ' . $task_id . ' with subject: ' . $subject);
+    } elseif (WP_DEBUG) {
+        error_log('Upkeepify Quote Audit Success: Sent to ' . $recipient . ' for task ID ' . $task_id . ' with subject: ' . $subject);
+    }
+
+    return $sent;
 }
 
 /**

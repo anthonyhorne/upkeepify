@@ -56,7 +56,7 @@
          * Toggle SMTP settings visibility
          */
         toggleSmtpSettings: function() {
-            var useBuiltInSmtp = !$('#upkeepify_smtp_option').is(':checked');
+            var useBuiltInSmtp = $('#upkeepify_smtp_option').is(':checked');
             $('.smtp_setting').closest('.upkeepify_row').toggle(useBuiltInSmtp);
             
             // Update connection status indicator

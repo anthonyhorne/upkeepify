@@ -232,11 +232,18 @@ function upkeepify_validate_settings($settings) {
                 break;
 
             case UPKEEPIFY_SETTING_SMTP_HOST:
+            case UPKEEPIFY_SETTING_SMTP_USER:
+            case UPKEEPIFY_SETTING_SMTP_PASS:
+            case UPKEEPIFY_SETTING_SMTP_ENC:
             case UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL:
             case UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE:
             case UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE:
             case UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE:
                 $sanitized[$key] = sanitize_text_field((string) $value);
+                break;
+
+            case UPKEEPIFY_SETTING_SMTP_PORT:
+                $sanitized[$key] = intval($value);
                 break;
 
             case UPKEEPIFY_SETTING_TRUSTEE_EMAILS:
