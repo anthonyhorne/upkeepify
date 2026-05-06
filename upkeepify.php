@@ -39,6 +39,9 @@ require_once UPKEEPIFY_PLUGIN_DIR . 'includes/constants.php';
 // Include caching system
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/caching.php';
 
+// Include logging system (before other components that may log events)
+require_once UPKEEPIFY_PLUGIN_DIR . 'includes/logging.php';
+
 // Meta registry + validation + migrations
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/meta-registry.php';
 require_once UPKEEPIFY_PLUGIN_DIR . 'includes/data-validation.php';
@@ -126,6 +129,15 @@ function upkeepify_activate() {
     // Register PWA rewrite rules then flush so they take effect immediately.
     upkeepify_pwa_add_rewrite_rules();
     flush_rewrite_rules();
+
+    // Log plugin activation
+    upkeepify_log(
+        'Plugin activated',
+        'info',
+        array(
+            'version' => UPKEEPIFY_VERSION,
+        )
+    );
 }
 
 /**
@@ -139,6 +151,15 @@ function upkeepify_activate() {
 function upkeepify_deactivate() {
     upkeepify_unschedule_trustee_reminders();
     flush_rewrite_rules();
+
+    // Log plugin deactivation
+    upkeepify_log(
+        'Plugin deactivated',
+        'info',
+        array(
+            'version' => UPKEEPIFY_VERSION,
+        )
+    );
 }
 
 // Ensure cron is scheduled on every load (in case it was cleared externally).

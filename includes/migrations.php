@@ -30,6 +30,8 @@ function upkeepify_get_default_settings() {
         UPKEEPIFY_SETTING_SMTP_USER => '',
         UPKEEPIFY_SETTING_SMTP_PASS => '',
         UPKEEPIFY_SETTING_SMTP_ENC => 'tls',
+        UPKEEPIFY_SETTING_SMTP_FROM_EMAIL => '',
+        UPKEEPIFY_SETTING_SMTP_FROM_NAME => '',
         UPKEEPIFY_SETTING_NOTIFY_OPTION => 1,
         UPKEEPIFY_SETTING_PROVIDER_DELETE_TASK => 0,
         UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING => 0,
@@ -404,6 +406,15 @@ function upkeepify_reset_database() {
     delete_option(UPKEEPIFY_OPTION_MIGRATION_LOG);
     delete_option(UPKEEPIFY_OPTION_BACKUP_HISTORY);
 
+    // Also clear the system log on database reset
+    delete_option(UPKEEPIFY_OPTION_SYSTEM_LOG);
+
+    upkeepify_log(
+        'Database reset completed',
+        'warning',
+        array()
+    );
+
     upkeepify_migration_log('Database reset completed');
 
     return true;
@@ -450,11 +461,14 @@ function upkeepify_run_migrations($target_version = null) {
                 'message' => $result->get_error_message(),
             ));
 
-            upkeepify_migration_log('Migration failed', array(
-                'from' => $from,
-                'to' => $to,
-                'error' => $result->get_error_message(),
-            ));
+            upkeepify_log(
+                'Migration failed: ' . $result->get_error_message(),
+                'error',
+                array(
+                    'from' => $from,
+                    'to' => $to,
+                )
+            );
 
             return $result;
         }
@@ -469,7 +483,14 @@ function upkeepify_run_migrations($target_version = null) {
             'message' => 'OK',
         ));
 
-        upkeepify_migration_log('Migration complete', array('from' => $from, 'to' => $to));
+        upkeepify_log(
+            'Migration completed successfully',
+            'success',
+            array(
+                'from' => $from,
+                'to' => $to,
+            )
+        );
     }
 
     return true;
@@ -501,11 +522,14 @@ function upkeepify_rollback_last_migration() {
     $result = call_user_func($fn);
 
     if (is_wp_error($result)) {
-        upkeepify_migration_log('Rollback failed', array(
-            'from' => $from,
-            'to' => $to,
-            'error' => $result->get_error_message(),
-        ));
+        upkeepify_log(
+            'Rollback failed: ' . $result->get_error_message(),
+            'error',
+            array(
+                'from' => $from,
+                'to' => $to,
+            )
+        );
 
         return $result;
     }
@@ -520,7 +544,14 @@ function upkeepify_rollback_last_migration() {
         'message' => 'OK',
     ));
 
-    upkeepify_migration_log('Rollback complete', array('from' => $from, 'to' => $to));
+    upkeepify_log(
+        'Migration rollback completed',
+        'info',
+        array(
+            'from' => $from,
+            'to' => $to,
+        )
+    );
 
     return true;
 }
@@ -847,6 +878,12 @@ function upkeepify_import_all_data($json) {
             }
         }
     }
+
+    upkeepify_log(
+        'Import completed successfully',
+        'success',
+        array()
+    );
 
     upkeepify_migration_log('Import completed');
 

@@ -688,6 +688,26 @@ function upkeepify_handle_task_form_submission() {
             'ID'          => $task_id,
             'post_status' => 'publish',
         ) );
+
+        upkeepify_log(
+            'Task submitted and published for trustee approval',
+            'info',
+            array(
+                'task_id' => $task_id,
+                'task_title' => $task_title,
+                'submitter_email' => $submitter_email,
+            )
+        );
+    } else {
+        upkeepify_log(
+            'Task submitted',
+            'info',
+            array(
+                'task_id' => $task_id,
+                'task_title' => $task_title,
+                'submitter_email' => $submitter_email,
+            )
+        );
     }
 
     upkeepify_redirect_task_form_status( 'success' );

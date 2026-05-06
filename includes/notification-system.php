@@ -222,10 +222,28 @@ function upkeepify_send_email_notification($message, $type, $data = array()) {
 
         // Log result
         if ($sent) {
+            upkeepify_log(
+                'Notification email sent',
+                'success',
+                array(
+                    'recipient' => $recipient,
+                    'subject' => $subject,
+                    'type' => $type,
+                )
+            );
             if (WP_DEBUG) {
                 error_log('Upkeepify Email Success: Sent to ' . $recipient . ' with subject: ' . $subject);
             }
         } else {
+            upkeepify_log(
+                'Notification email failed',
+                'error',
+                array(
+                    'recipient' => $recipient,
+                    'subject' => $subject,
+                    'type' => $type,
+                )
+            );
             error_log('Upkeepify Email Error: wp_mail() failed to send to ' . $recipient . ' with subject: ' . $subject);
         }
 
@@ -302,9 +320,32 @@ function upkeepify_send_contractor_invite( $provider_email, $provider_name, $tas
     $sent    = wp_mail( $provider_email, $subject, $body, $headers );
 
     if ( ! $sent ) {
+        upkeepify_log(
+            'Contractor invite email failed',
+            'error',
+            array(
+                'provider_email' => $provider_email,
+                'provider_name' => $provider_name,
+                'task_id' => $task->ID,
+                'response_id' => $response_id,
+                'subject' => $subject,
+            )
+        );
         error_log( 'Upkeepify Invite Error: wp_mail() failed for provider "' . $provider_name . '" (' . $provider_email . ') for response ID ' . $response_id . ' with subject: ' . $subject );
-    } elseif ( WP_DEBUG ) {
-        error_log( 'Upkeepify Invite Success: Sent to ' . $provider_email . ' for task "' . $task->post_title . '" with subject: ' . $subject );
+    } else {
+        upkeepify_log(
+            'Contractor invite email sent',
+            'success',
+            array(
+                'provider_email' => $provider_email,
+                'provider_name' => $provider_name,
+                'task_id' => $task->ID,
+                'response_id' => $response_id,
+            )
+        );
+        if ( WP_DEBUG ) {
+            error_log( 'Upkeepify Invite Success: Sent to ' . $provider_email . ' for task "' . $task->post_title . '" with subject: ' . $subject );
+        }
     }
 
     return $sent;
@@ -482,9 +523,32 @@ function upkeepify_send_trustee_approval_request( $trustee_email, $task, $step, 
     $sent = wp_mail( $trustee_email, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
 
     if ( ! $sent ) {
+        upkeepify_log(
+            'Trustee approval email failed',
+            'error',
+            array(
+                'trustee_email' => $trustee_email,
+                'task_id' => $task->ID,
+                'step' => $step,
+                'is_reminder' => $is_reminder,
+                'subject' => $subject,
+            )
+        );
         error_log( 'Upkeepify Trustee Error: wp_mail() failed to ' . $trustee_email . ' for task ID ' . $task->ID . ' step ' . $step . ' with subject: ' . $subject );
-    } elseif ( WP_DEBUG ) {
-        error_log( 'Upkeepify Trustee Success: Sent to ' . $trustee_email . ' for task ID ' . $task->ID . ' step ' . $step . ' with subject: ' . $subject );
+    } else {
+        upkeepify_log(
+            'Trustee approval email sent',
+            'success',
+            array(
+                'trustee_email' => $trustee_email,
+                'task_id' => $task->ID,
+                'step' => $step,
+                'is_reminder' => $is_reminder,
+            )
+        );
+        if ( WP_DEBUG ) {
+            error_log( 'Upkeepify Trustee Success: Sent to ' . $trustee_email . ' for task ID ' . $task->ID . ' step ' . $step . ' with subject: ' . $subject );
+        }
     }
 
     return $sent;
@@ -508,13 +572,46 @@ function upkeepify_phpmailer_init($phpmailer) {
         return;
     }
 
+    $smtp_host = isset($settings[UPKEEPIFY_SETTING_SMTP_HOST]) ? $settings[UPKEEPIFY_SETTING_SMTP_HOST] : '';
+    $smtp_user = isset($settings[UPKEEPIFY_SETTING_SMTP_USER]) ? $settings[UPKEEPIFY_SETTING_SMTP_USER] : '';
+    $smtp_pass = isset($settings[UPKEEPIFY_SETTING_SMTP_PASS]) ? $settings[UPKEEPIFY_SETTING_SMTP_PASS] : '';
+
+    // Validate SMTP configuration - log warning if incomplete
+    if (empty($smtp_host)) {
+        upkeepify_log(
+            'SMTP is enabled but Host is not configured. Emails may fail.',
+            'warning',
+            array('component' => 'smtp')
+        );
+        return;
+    }
+
+    if (empty($smtp_user) || empty($smtp_pass)) {
+        upkeepify_log(
+            'SMTP is enabled but Username or Password is not configured. Authentication may fail.',
+            'warning',
+            array('component' => 'smtp')
+        );
+    }
+
     $phpmailer->isSMTP();
-    $phpmailer->Host = isset($settings[UPKEEPIFY_SETTING_SMTP_HOST]) ? $settings[UPKEEPIFY_SETTING_SMTP_HOST] : '';
+    $phpmailer->Host = $smtp_host;
     $phpmailer->Port = isset($settings[UPKEEPIFY_SETTING_SMTP_PORT]) ? intval($settings[UPKEEPIFY_SETTING_SMTP_PORT]) : 587;
     $phpmailer->SMTPAuth = true;
-    $phpmailer->Username = isset($settings[UPKEEPIFY_SETTING_SMTP_USER]) ? $settings[UPKEEPIFY_SETTING_SMTP_USER] : '';
-    $phpmailer->Password = isset($settings[UPKEEPIFY_SETTING_SMTP_PASS]) ? $settings[UPKEEPIFY_SETTING_SMTP_PASS] : '';
+    $phpmailer->Username = $smtp_user;
+    $phpmailer->Password = $smtp_pass;
     $phpmailer->SMTPSecure = isset($settings[UPKEEPIFY_SETTING_SMTP_ENC]) ? $settings[UPKEEPIFY_SETTING_SMTP_ENC] : 'tls';
+
+    // Set From and FromName from settings if configured
+    $from_email = isset($settings[UPKEEPIFY_SETTING_SMTP_FROM_EMAIL]) ? $settings[UPKEEPIFY_SETTING_SMTP_FROM_EMAIL] : '';
+    $from_name = isset($settings[UPKEEPIFY_SETTING_SMTP_FROM_NAME]) ? $settings[UPKEEPIFY_SETTING_SMTP_FROM_NAME] : '';
+
+    if (!empty($from_email) && is_email($from_email)) {
+        $phpmailer->From = $from_email;
+        if (!empty($from_name)) {
+            $phpmailer->FromName = $from_name;
+        }
+    }
 }
 add_action('phpmailer_init', 'upkeepify_phpmailer_init');
 
@@ -530,10 +627,20 @@ function upkeepify_wp_mail_failed($error) {
         return;
     }
 
-    error_log('Upkeepify wp_mail failed: ' . $error->get_error_message());
+    $message = $error->get_error_message();
     $error_data = $error->get_error_data();
-    if (!empty($error_data)) {
-        error_log('Error data: ' . print_r($error_data, true));
+
+    upkeepify_log(
+        'wp_mail() failed: ' . $message,
+        'error',
+        array('email_error_data' => is_array($error_data) ? wp_json_encode($error_data) : '')
+    );
+
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+        error_log('Upkeepify wp_mail failed: ' . $message);
+        if (!empty($error_data)) {
+            error_log('Error data: ' . print_r($error_data, true));
+        }
     }
 }
 add_action('wp_mail_failed', 'upkeepify_wp_mail_failed');

@@ -310,3 +310,17 @@ define('UPKEEPIFY_SETTING_TRUSTEE_REJECT_KILLS',       'upkeepify_trustee_reject
 define('UPKEEPIFY_SETTING_TRUSTEE_REMINDER_COUNT',     'upkeepify_trustee_reminder_count');
 define('UPKEEPIFY_SETTING_TRUSTEE_REMINDER_INTERVAL',  'upkeepify_trustee_reminder_interval');
 define('UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE',      'upkeepify_trustee_approval_page');
+
+// System Log
+define('UPKEEPIFY_OPTION_SYSTEM_LOG', 'upkeepify_system_log');
+define('UPKEEPIFY_MENU_SYSTEM_LOG_PAGE', 'upkeepify_system_log');
+
+// SMTP From settings
+define('UPKEEPIFY_SETTING_SMTP_FROM_EMAIL', 'upkeepify_smtp_from_email');
+define('UPKEEPIFY_SETTING_SMTP_FROM_NAME', 'upkeepify_smtp_from_name');
+
+// Log types
+define('UPKEEPIFY_LOG_TYPE_INFO', 'info');
+define('UPKEEPIFY_LOG_TYPE_SUCCESS', 'success');
+define('UPKEEPIFY_LOG_TYPE_WARNING', 'warning');
+define('UPKEEPIFY_LOG_TYPE_ERROR', 'error');

@@ -15,13 +15,13 @@ if (!defined('WPINC')) {
  */
 function upkeepify_add_admin_menu() {
     add_submenu_page(
-        'edit.php?post_type=' . UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
-        'Upkeepify Settings',
-        'Settings',
-        'manage_options',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_settings_page'
-    );
+    'edit.php?post_type=' . UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
+    'Upkeepify Settings',
+    'Settings',
+    'manage_options',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_settings_page'
+);
 }
 add_action('admin_menu', 'upkeepify_add_admin_menu');
 
@@ -50,14 +50,14 @@ function upkeepify_render_settings_field($args) {
 
     // Append additional attributes if any
     if (isset($args['attributes']) && is_array($args['attributes'])) {
-        foreach ($args['attributes'] as $attr => $value) {
-            echo ' ' . esc_attr( $attr ) . '="' . esc_attr($value) . '"';
-        }
+    foreach ($args['attributes'] as $attr => $value) {
+        echo ' ' . esc_attr( $attr ) . '="' . esc_attr($value) . '"';
+    }
     }
 
     echo '>';
     if ( ! empty( $args['description'] ) ) {
-        echo '<p class="description">' . esc_html( $args['description'] ) . '</p>';
+    echo '<p class="description">' . esc_html( $args['description'] ) . '</p>';
     }
 }
 
@@ -77,24 +77,24 @@ function upkeepify_init_plugin_settings() {
     register_setting('upkeepify', UPKEEPIFY_OPTION_SETTINGS, 'upkeepify_settings_sanitize');
 
     add_settings_section(
-        'upkeepify_general_settings',
-        __('General Settings', 'upkeepify'),
-        null,
-        UPKEEPIFY_OPTION_SETTINGS
-    );
+    'upkeepify_general_settings',
+    __('General Settings', 'upkeepify'),
+    null,
+    UPKEEPIFY_OPTION_SETTINGS
+);
 
     // SMTP Option
-    add_settings_field(
-        UPKEEPIFY_SETTING_SMTP_OPTION,
-        __('Use Built-in SMTP Provider', 'upkeepify'),
-        'upkeepify_checkbox_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_general_settings',
-        [
-            'label_for' => UPKEEPIFY_SETTING_SMTP_OPTION,
-            'checked' => '1'
-        ]
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_SMTP_OPTION,
+    __('Use Built-in SMTP Provider', 'upkeepify'),
+    'upkeepify_checkbox_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+        'label_for' => UPKEEPIFY_SETTING_SMTP_OPTION,
+        'checked' => '1'
+    ]
+);
 
 // Add a field for SMTP Host if using built-in SMTP
 add_settings_field(
@@ -104,8 +104,8 @@ add_settings_field(
     UPKEEPIFY_OPTION_SETTINGS,
     'upkeepify_general_settings',
     [
-        'label_for' => UPKEEPIFY_SETTING_SMTP_HOST,
-        'class' => 'smtp_setting upkeepify_row'
+    'label_for' => UPKEEPIFY_SETTING_SMTP_HOST,
+    'class' => 'smtp_setting upkeepify_row'
     ]
 );
 
@@ -117,9 +117,9 @@ add_settings_field(
     UPKEEPIFY_OPTION_SETTINGS,
     'upkeepify_general_settings',
     [
-        'label_for' => UPKEEPIFY_SETTING_SMTP_PORT,
-        'class' => 'smtp_setting upkeepify_row',
-        'min' => 1
+    'label_for' => UPKEEPIFY_SETTING_SMTP_PORT,
+    'class' => 'smtp_setting upkeepify_row',
+    'min' => 1
     ]
 );
 
@@ -131,8 +131,8 @@ add_settings_field(
     UPKEEPIFY_OPTION_SETTINGS,
     'upkeepify_general_settings',
     [
-        'label_for' => UPKEEPIFY_SETTING_SMTP_USER,
-        'class' => 'smtp_setting upkeepify_row'
+    'label_for' => UPKEEPIFY_SETTING_SMTP_USER,
+    'class' => 'smtp_setting upkeepify_row'
     ]
 );
 
@@ -144,10 +144,10 @@ add_settings_field(
     UPKEEPIFY_OPTION_SETTINGS,
     'upkeepify_general_settings',
     [
-        'name' => UPKEEPIFY_SETTING_SMTP_PASS,
-        'label_for' => UPKEEPIFY_SETTING_SMTP_PASS,
-        'type' => 'password',
-        'class' => 'smtp_setting upkeepify_row'
+    'name' => UPKEEPIFY_SETTING_SMTP_PASS,
+    'label_for' => UPKEEPIFY_SETTING_SMTP_PASS,
+    'type' => 'password',
+    'class' => 'smtp_setting upkeepify_row'
     ]
 );
 
@@ -159,92 +159,119 @@ add_settings_field(
     UPKEEPIFY_OPTION_SETTINGS,
     'upkeepify_general_settings',
     [
-        'label_for' => UPKEEPIFY_SETTING_SMTP_ENC,
-        'class' => 'smtp_setting upkeepify_row',
-        'options' => [
-            '' => __('None', 'upkeepify'),
-            'ssl' => __('SSL', 'upkeepify'),
-            'tls' => __('TLS', 'upkeepify'),
-        ]
+    'label_for' => UPKEEPIFY_SETTING_SMTP_ENC,
+    'class' => 'smtp_setting upkeepify_row',
+    'options' => [
+        '' => __('None', 'upkeepify'),
+        'ssl' => __('SSL', 'upkeepify'),
+        'tls' => __('TLS', 'upkeepify'),
+    ]
     ]
 );
 
+// SMTP From Email
+add_settings_field(
+    UPKEEPIFY_SETTING_SMTP_FROM_EMAIL,
+    __('From Email Address', 'upkeepify'),
+    'upkeepify_text_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+    'label_for' => UPKEEPIFY_SETTING_SMTP_FROM_EMAIL,
+    'class' => 'smtp_setting upkeepify_row',
+    'description' => __('The email address emails appear to be sent from. Should match your SMTP username for best delivery.', 'upkeepify'),
+    ]
+);
 
-    // Notify Option
-    add_settings_field(
-        UPKEEPIFY_SETTING_NOTIFY_OPTION,
-        __('Notify on Status Change', 'upkeepify'),
-        'upkeepify_checkbox_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_general_settings',
-        [
-            'label_for' => UPKEEPIFY_SETTING_NOTIFY_OPTION,
-            'checked' => '1'
-        ]
-    );
+// SMTP From Name
+add_settings_field(
+    UPKEEPIFY_SETTING_SMTP_FROM_NAME,
+    __('From Name', 'upkeepify'),
+    'upkeepify_text_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+    'label_for' => UPKEEPIFY_SETTING_SMTP_FROM_NAME,
+    'class' => 'smtp_setting upkeepify_row',
+    'description' => __('The name that emails appear to be sent from.', 'upkeepify'),
+    ]
+);
 
-    // Provider Delete Task
-    add_settings_field(
-        UPKEEPIFY_SETTING_PROVIDER_DELETE_TASK,
-        __('Allow Service Provider to Delete Task', 'upkeepify'),
-        'upkeepify_checkbox_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_general_settings',
-        [
-            'label_for' => UPKEEPIFY_SETTING_PROVIDER_DELETE_TASK,
-            'checked' => '0'
-        ]
-    );
+// Notify Option
+add_settings_field(
+    UPKEEPIFY_SETTING_NOTIFY_OPTION,
+    __('Notify on Status Change', 'upkeepify'),
+    'upkeepify_checkbox_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+    'label_for' => UPKEEPIFY_SETTING_NOTIFY_OPTION,
+    'checked' => '1'
+    ]
+);
 
-    // Public Task Logging
-    add_settings_field(
-        UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING,
-        __('Allow Public Task Logging', 'upkeepify'),
-        'upkeepify_checkbox_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_general_settings',
-        [
-            'label_for' => UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING,
-            'checked' => '0'
-        ]
-    );
+// Provider Delete Task
+add_settings_field(
+    UPKEEPIFY_SETTING_PROVIDER_DELETE_TASK,
+    __('Allow Service Provider to Delete Task', 'upkeepify'),
+    'upkeepify_checkbox_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+    'label_for' => UPKEEPIFY_SETTING_PROVIDER_DELETE_TASK,
+    'checked' => '0'
+    ]
+);
 
-    // Override Email Address
-    add_settings_field(
-        UPKEEPIFY_SETTING_OVERRIDE_EMAIL,
-        __('Override Email Address for Notifications', 'upkeepify'),
-        'upkeepify_text_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_general_settings',
-        [
-            'label_for' => UPKEEPIFY_SETTING_OVERRIDE_EMAIL
-        ]
-    );
+// Public Task Logging
+add_settings_field(
+    UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING,
+    __('Allow Public Task Logging', 'upkeepify'),
+    'upkeepify_checkbox_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+    'label_for' => UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING,
+    'checked' => '0'
+    ]
+);
 
-    add_settings_field(
-        UPKEEPIFY_SETTING_AUDIT_EMAIL,
-        __('Audit Email Address', 'upkeepify'),
-        'upkeepify_text_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_general_settings',
-        [
-            'label_for'   => UPKEEPIFY_SETTING_AUDIT_EMAIL,
-            'description' => __('Approved quote audit packs are emailed here. Leave blank to use the notification override email or site admin email.', 'upkeepify'),
-        ]
-    );
+// Override Email Address
+add_settings_field(
+    UPKEEPIFY_SETTING_OVERRIDE_EMAIL,
+    __('Override Email Address for Notifications', 'upkeepify'),
+    'upkeepify_text_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+    'label_for' => UPKEEPIFY_SETTING_OVERRIDE_EMAIL
+    ]
+);
 
-    // Enable Token-based Status Update
-    add_settings_field(
-        UPKEEPIFY_SETTING_ENABLE_TOKEN_UPDATE,
-        __('Enable Token-based Status Update for Providers', 'upkeepify'),
-        'upkeepify_checkbox_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_general_settings',
-        [
-            'label_for' => UPKEEPIFY_SETTING_ENABLE_TOKEN_UPDATE,
-        'checked' => '0'
-        ]
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_AUDIT_EMAIL,
+    __('Audit Email Address', 'upkeepify'),
+    'upkeepify_text_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+    'label_for'   => UPKEEPIFY_SETTING_AUDIT_EMAIL,
+    'description' => __('Approved quote audit packs are emailed here. Leave blank to use the notification override email or site admin email.', 'upkeepify'),
+    ]
+);
+
+// Enable Token-based Status Update
+add_settings_field(
+    UPKEEPIFY_SETTING_ENABLE_TOKEN_UPDATE,
+    __('Enable Token-based Status Update for Providers', 'upkeepify'),
+    'upkeepify_checkbox_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_general_settings',
+    [
+    'label_for' => UPKEEPIFY_SETTING_ENABLE_TOKEN_UPDATE,
+    'checked' => '0'
+    ]
+);
 
 // Number of Units
 add_settings_field(
@@ -254,13 +281,13 @@ add_settings_field(
     UPKEEPIFY_OPTION_SETTINGS,
     'upkeepify_general_settings',
     [
-        'name' => UPKEEPIFY_SETTING_NUMBER_OF_UNITS,
-        'type' => 'number',
-        'attributes' => [
-            'min' => '1',
-            'step' => '1'
-        ],
-        'description' => __('Used to build the resident unit buttons on the maintenance request form.', 'upkeepify'),
+    'name' => UPKEEPIFY_SETTING_NUMBER_OF_UNITS,
+    'type' => 'number',
+    'attributes' => [
+        'min' => '1',
+        'step' => '1'
+    ],
+    'description' => __('Used to build the resident unit buttons on the maintenance request form.', 'upkeepify'),
     ]
 );
 
@@ -272,172 +299,172 @@ add_settings_field(
     UPKEEPIFY_OPTION_SETTINGS,
     'upkeepify_general_settings',
     [
-        'label_for' => UPKEEPIFY_SETTING_CURRENCY,
-        'description' => __('Specify the currency symbol (e.g., $, €, £).', 'upkeepify'),
+    'label_for' => UPKEEPIFY_SETTING_CURRENCY,
+    'description' => __('Specify the currency symbol (e.g., $, €, £).', 'upkeepify'),
     ]
 );
 
-    // ── Contractor Invite Settings ────────────────────────────────────────────
-    add_settings_section(
-        'upkeepify_contractor_invite_settings',
-        __('Contractor Invite Settings', 'upkeepify'),
-        'upkeepify_contractor_invite_settings_section_callback',
-        UPKEEPIFY_OPTION_SETTINGS
-    );
+// ── Contractor Invite Settings ────────────────────────────────────────────
+add_settings_section(
+    'upkeepify_contractor_invite_settings',
+    __('Contractor Invite Settings', 'upkeepify'),
+    'upkeepify_contractor_invite_settings_section_callback',
+    UPKEEPIFY_OPTION_SETTINGS
+);
 
-    add_settings_field(
-        UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE,
-        __('Contractor Response Page URL', 'upkeepify'),
-        'upkeepify_text_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_contractor_invite_settings',
-        array(
-            'label_for'   => UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE,
-            'description' => __('Full URL of the page containing the [upkeepify_provider_response_form] shortcode. Invite links sent to contractors will point here with a token appended.', 'upkeepify'),
-        )
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE,
+    __('Contractor Response Page URL', 'upkeepify'),
+    'upkeepify_text_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_contractor_invite_settings',
+    array(
+    'label_for'   => UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE,
+    'description' => __('Full URL of the page containing the [upkeepify_provider_response_form] shortcode. Invite links sent to contractors will point here with a token appended.', 'upkeepify'),
+    )
+);
 
-    add_settings_field(
-        UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE,
-        __('Resident Confirmation Page URL', 'upkeepify'),
-        'upkeepify_text_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_contractor_invite_settings',
-        array(
-            'label_for'   => UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE,
-            'description' => __('Full URL of the page containing the [upkeepify_resident_confirmation_form] shortcode. Confirmation links sent to residents will point here with a token appended.', 'upkeepify'),
-        )
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE,
+    __('Resident Confirmation Page URL', 'upkeepify'),
+    'upkeepify_text_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_contractor_invite_settings',
+    array(
+    'label_for'   => UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE,
+    'description' => __('Full URL of the page containing the [upkeepify_resident_confirmation_form] shortcode. Confirmation links sent to residents will point here with a token appended.', 'upkeepify'),
+    )
+);
 
-    add_settings_field(
-        UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE,
-        __('Notify Contractor When Resident Reports an Issue', 'upkeepify'),
-        'upkeepify_checkbox_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_contractor_invite_settings',
-        array(
-            'label_for'   => UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE,
-            'description' => __('When a resident is not satisfied after completion, email the contractor their response link so they can submit a follow-up note or photos while the trustee reviews.', 'upkeepify'),
-        )
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE,
+    __('Notify Contractor When Resident Reports an Issue', 'upkeepify'),
+    'upkeepify_checkbox_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_contractor_invite_settings',
+    array(
+    'label_for'   => UPKEEPIFY_SETTING_NOTIFY_CONTRACTOR_ON_RESIDENT_ISSUE,
+    'description' => __('When a resident is not satisfied after completion, email the contractor their response link so they can submit a follow-up note or photos while the trustee reviews.', 'upkeepify'),
+    )
+);
 
-    // ── Trustee Approval Settings ─────────────────────────────────────────────
-    add_settings_section(
-        'upkeepify_trustee_approval_settings',
-        __( 'Trustee Approval Settings', 'upkeepify' ),
-        'upkeepify_trustee_approval_settings_section_callback',
-        UPKEEPIFY_OPTION_SETTINGS
-    );
+// ── Trustee Approval Settings ─────────────────────────────────────────────
+add_settings_section(
+    'upkeepify_trustee_approval_settings',
+    __( 'Trustee Approval Settings', 'upkeepify' ),
+    'upkeepify_trustee_approval_settings_section_callback',
+    UPKEEPIFY_OPTION_SETTINGS
+);
 
-    add_settings_field(
-        UPKEEPIFY_SETTING_TRUSTEE_EMAILS,
-        __( 'Trustee Email Addresses', 'upkeepify' ),
-        'upkeepify_textarea_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_trustee_approval_settings',
-        array(
-            'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_EMAILS,
-            'description' => __( 'One email address per line (or comma-separated). These trustees will receive approval request emails for each gate.', 'upkeepify' ),
-        )
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_TRUSTEE_EMAILS,
+    __( 'Trustee Email Addresses', 'upkeepify' ),
+    'upkeepify_textarea_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_trustee_approval_settings',
+    array(
+        'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_EMAILS,
+        'description' => __( 'One email address per line (or comma-separated). These trustees will receive approval request emails for each gate.', 'upkeepify' ),
+    )
+);
 
-    add_settings_field(
-        UPKEEPIFY_SETTING_TRUSTEE_REQUIRED_APPROVALS,
-        __( 'Required Approvals', 'upkeepify' ),
-        'upkeepify_number_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_trustee_approval_settings',
-        array(
-            'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_REQUIRED_APPROVALS,
-            'min'         => 1,
-            'description' => __( 'Number of trustees that must approve before the task moves forward. Applies to all approval gates.', 'upkeepify' ),
-        )
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_TRUSTEE_REQUIRED_APPROVALS,
+    __( 'Required Approvals', 'upkeepify' ),
+    'upkeepify_number_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_trustee_approval_settings',
+    array(
+        'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_REQUIRED_APPROVALS,
+        'min'         => 1,
+        'description' => __( 'Number of trustees that must approve before the task moves forward. Applies to all approval gates.', 'upkeepify' ),
+    )
+);
 
-    add_settings_field(
-        UPKEEPIFY_SETTING_TRUSTEE_REJECT_KILLS,
-        __( 'Single Rejection Kills Task', 'upkeepify' ),
-        'upkeepify_checkbox_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_trustee_approval_settings',
-        array(
-            'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_REJECT_KILLS,
-            'description' => __( 'When enabled, a single rejection immediately places the task on hold. When disabled, the same threshold as required approvals applies to rejections.', 'upkeepify' ),
-        )
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_TRUSTEE_REJECT_KILLS,
+    __( 'Single Rejection Kills Task', 'upkeepify' ),
+    'upkeepify_checkbox_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_trustee_approval_settings',
+    array(
+        'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_REJECT_KILLS,
+        'description' => __( 'When enabled, a single rejection immediately places the task on hold. When disabled, the same threshold as required approvals applies to rejections.', 'upkeepify' ),
+    )
+);
 
-    add_settings_field(
-        UPKEEPIFY_SETTING_TRUSTEE_REMINDER_COUNT,
-        __( 'Reminder Emails (count)', 'upkeepify' ),
-        'upkeepify_number_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_trustee_approval_settings',
-        array(
-            'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_REMINDER_COUNT,
-            'min'         => 0,
-            'description' => __( 'Maximum number of reminder emails to send to trustees who have not yet responded. Set to 0 to disable reminders.', 'upkeepify' ),
-        )
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_TRUSTEE_REMINDER_COUNT,
+    __( 'Reminder Emails (count)', 'upkeepify' ),
+    'upkeepify_number_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_trustee_approval_settings',
+    array(
+        'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_REMINDER_COUNT,
+        'min'         => 0,
+        'description' => __( 'Maximum number of reminder emails to send to trustees who have not yet responded. Set to 0 to disable reminders.', 'upkeepify' ),
+    )
+);
 
-    add_settings_field(
-        UPKEEPIFY_SETTING_TRUSTEE_REMINDER_INTERVAL,
-        __( 'Reminder Interval (days)', 'upkeepify' ),
-        'upkeepify_number_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_trustee_approval_settings',
-        array(
-            'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_REMINDER_INTERVAL,
-            'min'         => 1,
-            'description' => __( 'Days between reminder emails.', 'upkeepify' ),
-        )
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_TRUSTEE_REMINDER_INTERVAL,
+    __( 'Reminder Interval (days)', 'upkeepify' ),
+    'upkeepify_number_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_trustee_approval_settings',
+    array(
+        'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_REMINDER_INTERVAL,
+        'min'         => 1,
+        'description' => __( 'Days between reminder emails.', 'upkeepify' ),
+    )
+);
 
-    add_settings_field(
-        UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE,
-        __( 'Trustee Approval Page URL', 'upkeepify' ),
-        'upkeepify_text_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_trustee_approval_settings',
-        array(
-            'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE,
-            'description' => __( 'Full URL of the page containing the [upkeepify_trustee_approval] shortcode. Approval links in trustee emails will point here.', 'upkeepify' ),
-        )
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE,
+    __( 'Trustee Approval Page URL', 'upkeepify' ),
+    'upkeepify_text_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_trustee_approval_settings',
+    array(
+        'label_for'   => UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE,
+        'description' => __( 'Full URL of the page containing the [upkeepify_trustee_approval] shortcode. Approval links in trustee emails will point here.', 'upkeepify' ),
+    )
+);
 
     // Thank You Page Setting
     add_settings_section(
-        'upkeepify_provider_thank_you_settings',
-        __('Provider Thank You Page Settings', 'upkeepify'),
-        'upkeepify_provider_thank_you_settings_section_callback',
-        UPKEEPIFY_OPTION_SETTINGS
-    );
+    'upkeepify_provider_thank_you_settings',
+    __('Provider Thank You Page Settings', 'upkeepify'),
+    'upkeepify_provider_thank_you_settings_section_callback',
+    UPKEEPIFY_OPTION_SETTINGS
+);
 
     // Checkbox for enabling custom thank you page
-    add_settings_field(
-        UPKEEPIFY_SETTING_ENABLE_THANK_YOU_PAGE,
-        __('Enable Custom Thank You Page', 'upkeepify'),
-        'upkeepify_checkbox_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_provider_thank_you_settings',
-        [
-            'label_for' => UPKEEPIFY_SETTING_ENABLE_THANK_YOU_PAGE,
-            'class' => 'upkeepify_row',
-            'upkeepify_custom_data' => 'checkbox',
-        ]
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_ENABLE_THANK_YOU_PAGE,
+    __('Enable Custom Thank You Page', 'upkeepify'),
+    'upkeepify_checkbox_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_provider_thank_you_settings',
+    [
+        'label_for' => UPKEEPIFY_SETTING_ENABLE_THANK_YOU_PAGE,
+        'class' => 'upkeepify_row',
+        'upkeepify_custom_data' => 'checkbox',
+    ]
+);
 
     // Textbox for specifying the URL of the thank you page
-    add_settings_field(
-        UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL,
-        __('Thank You Page URL', 'upkeepify'),
-        'upkeepify_text_field_callback',
-        UPKEEPIFY_OPTION_SETTINGS,
-        'upkeepify_provider_thank_you_settings',
-        [
-            'label_for' => UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL,
-            'class' => 'upkeepify_row upkeepify_thank_you_page_url',
-        ]
-    );
+add_settings_field(
+    UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL,
+    __('Thank You Page URL', 'upkeepify'),
+    'upkeepify_text_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_provider_thank_you_settings',
+    [
+        'label_for' => UPKEEPIFY_SETTING_THANK_YOU_PAGE_URL,
+        'class' => 'upkeepify_row upkeepify_thank_you_page_url',
+    ]
+);
 
 }
 
@@ -516,31 +543,31 @@ function upkeepify_settings_page() {
  */
 function upkeepify_get_default_page_definitions() {
     return array(
-        'request' => array(
-            'title'    => 'Maintenance Request',
-            'slug'     => 'maintenance-request',
-            'shortcode' => '[' . UPKEEPIFY_SHORTCODE_TASK_FORM . ']',
-            'setting'  => null,
-        ),
-        'tasks' => array(
-            'title'    => 'Maintenance Tasks',
-            'slug'     => 'maintenance-tasks',
-            'shortcode' => '[' . UPKEEPIFY_SHORTCODE_LIST_TASKS . ']',
-            'setting'  => null,
-        ),
-        'contractor_response' => array(
-            'title'    => 'Contractor Response',
-            'slug'     => 'contractor-response',
-            'shortcode' => '[' . UPKEEPIFY_SHORTCODE_PROVIDER_RESPONSE_FORM . ']',
-            'setting'  => UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE,
-        ),
-        'resident_confirmation' => array(
-            'title'    => 'Resident Confirmation',
-            'slug'     => 'resident-confirmation',
-            'shortcode' => '[' . UPKEEPIFY_SHORTCODE_RESIDENT_CONFIRMATION_FORM . ']',
-            'setting'  => UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE,
-        ),
-    );
+    'request' => array(
+        'title'    => 'Maintenance Request',
+        'slug'     => 'maintenance-request',
+        'shortcode' => '[' . UPKEEPIFY_SHORTCODE_TASK_FORM . ']',
+        'setting'  => null,
+    ),
+    'tasks' => array(
+        'title'    => 'Maintenance Tasks',
+        'slug'     => 'maintenance-tasks',
+        'shortcode' => '[' . UPKEEPIFY_SHORTCODE_LIST_TASKS . ']',
+        'setting'  => null,
+    ),
+    'contractor_response' => array(
+        'title'    => 'Contractor Response',
+        'slug'     => 'contractor-response',
+        'shortcode' => '[' . UPKEEPIFY_SHORTCODE_PROVIDER_RESPONSE_FORM . ']',
+        'setting'  => UPKEEPIFY_SETTING_PROVIDER_RESPONSE_PAGE,
+    ),
+    'resident_confirmation' => array(
+        'title'    => 'Resident Confirmation',
+        'slug'     => 'resident-confirmation',
+        'shortcode' => '[' . UPKEEPIFY_SHORTCODE_RESIDENT_CONFIRMATION_FORM . ']',
+        'setting'  => UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE,
+    ),
+);
 }
 
 /**
@@ -555,37 +582,37 @@ function upkeepify_create_or_reuse_default_page($definition) {
     $status = 'reused';
 
     if (!$page) {
-        $page_id = wp_insert_post(
-            array(
-                'post_title'     => $definition['title'],
-                'post_name'      => $definition['slug'],
-                'post_content'   => $definition['shortcode'],
-                'post_status'    => 'publish',
-                'post_type'      => 'page',
-                'post_author'    => get_current_user_id(),
-                'comment_status' => 'closed',
-                'ping_status'    => 'closed',
-            ),
-            true
-        );
+    $page_id = wp_insert_post(
+        array(
+            'post_title'     => $definition['title'],
+            'post_name'      => $definition['slug'],
+            'post_content'   => $definition['shortcode'],
+            'post_status'    => 'publish',
+            'post_type'      => 'page',
+            'post_author'    => get_current_user_id(),
+            'comment_status' => 'closed',
+            'ping_status'    => 'closed',
+        ),
+        true
+);
 
-        if (is_wp_error($page_id)) {
-            return $page_id;
-        }
+    if (is_wp_error($page_id)) {
+        return $page_id;
+    }
 
-        $status = 'created';
+    $status = 'created';
     } else {
-        $page_id = intval($page->ID);
+    $page_id = intval($page->ID);
     }
 
     return array(
-        'id'        => $page_id,
-        'title'     => $definition['title'],
-        'shortcode' => $definition['shortcode'],
-        'setting'   => $definition['setting'],
-        'status'    => $status,
-        'url'       => get_permalink($page_id),
-    );
+    'id'        => $page_id,
+    'title'     => $definition['title'],
+    'shortcode' => $definition['shortcode'],
+    'setting'   => $definition['setting'],
+    'status'    => $status,
+    'url'       => get_permalink($page_id),
+);
 }
 
 /**
@@ -599,30 +626,30 @@ function upkeepify_create_default_pages() {
     $results = array();
 
     foreach ($definitions as $key => $definition) {
-        $result = upkeepify_create_or_reuse_default_page($definition);
-        if (is_wp_error($result)) {
-            return $result;
-        }
-        $results[$key] = $result;
+    $result = upkeepify_create_or_reuse_default_page($definition);
+    if (is_wp_error($result)) {
+        return $result;
+    }
+    $results[$key] = $result;
     }
 
     $settings = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
     if (!is_array($settings)) {
-        $settings = array();
+    $settings = array();
     }
 
     $settings = array_merge(upkeepify_get_default_settings(), $settings);
     $settings[UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING] = 1;
 
     foreach ($results as $result) {
-        if (!empty($result['setting']) && !empty($result['url'])) {
-            $settings[$result['setting']] = $result['url'];
-        }
+    if (!empty($result['setting']) && !empty($result['url'])) {
+        $settings[$result['setting']] = $result['url'];
+    }
     }
 
     $validated = upkeepify_validate_settings($settings);
     if (is_wp_error($validated)) {
-        return $validated;
+    return $validated;
     }
 
     update_option(UPKEEPIFY_OPTION_SETTINGS, $validated, false);
@@ -638,22 +665,22 @@ function upkeepify_create_default_pages() {
  */
 function upkeepify_render_default_pages_setup_panel() {
     if (isset($_GET['upkeepify_pages_setup'])) {
-        $status = sanitize_key(wp_unslash($_GET['upkeepify_pages_setup']));
-        if ('success' === $status) {
-            echo '<div class="notice notice-success"><p>' . esc_html__('Default Upkeepify pages are ready.', 'upkeepify') . '</p></div>';
-        } elseif ('failed' === $status) {
-            echo '<div class="notice notice-error"><p>' . esc_html__('Default page setup could not be completed.', 'upkeepify') . '</p></div>';
-        }
+    $status = sanitize_key(wp_unslash($_GET['upkeepify_pages_setup']));
+    if ('success' === $status) {
+        echo '<div class="notice notice-success"><p>' . esc_html__('Default Upkeepify pages are ready.', 'upkeepify') . '</p></div>';
+    } elseif ('failed' === $status) {
+        echo '<div class="notice notice-error"><p>' . esc_html__('Default page setup could not be completed.', 'upkeepify') . '</p></div>';
+    }
     }
     ?>
     <div class="card">
-        <h2><?php echo esc_html__('Default Setup', 'upkeepify'); ?></h2>
-        <p><?php echo esc_html__('Create the request, task list, contractor response, and resident confirmation pages in one step.', 'upkeepify'); ?></p>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-            <input type="hidden" name="action" value="<?php echo esc_attr(UPKEEPIFY_ADMIN_ACTION_CREATE_DEFAULT_PAGES); ?>">
-            <?php wp_nonce_field(UPKEEPIFY_NONCE_ACTION_CREATE_DEFAULT_PAGES, UPKEEPIFY_NONCE_CREATE_DEFAULT_PAGES); ?>
-            <?php submit_button(__('Create Default Pages', 'upkeepify'), 'secondary', 'submit', false); ?>
-        </form>
+    <h2><?php echo esc_html__('Default Setup', 'upkeepify'); ?></h2>
+    <p><?php echo esc_html__('Create the request, task list, contractor response, and resident confirmation pages in one step.', 'upkeepify'); ?></p>
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+        <input type="hidden" name="action" value="<?php echo esc_attr(UPKEEPIFY_ADMIN_ACTION_CREATE_DEFAULT_PAGES); ?>">
+        <?php wp_nonce_field(UPKEEPIFY_NONCE_ACTION_CREATE_DEFAULT_PAGES, UPKEEPIFY_NONCE_CREATE_DEFAULT_PAGES); ?>
+        <?php submit_button(__('Create Default Pages', 'upkeepify'), 'secondary', 'submit', false); ?>
+    </form>
     </div>
     <?php
 }
@@ -665,7 +692,7 @@ function upkeepify_render_default_pages_setup_panel() {
  */
 function upkeepify_admin_post_create_default_pages() {
     if (!current_user_can('manage_options')) {
-        wp_die('Insufficient permissions');
+    wp_die('Insufficient permissions');
     }
 
     check_admin_referer(UPKEEPIFY_NONCE_ACTION_CREATE_DEFAULT_PAGES, UPKEEPIFY_NONCE_CREATE_DEFAULT_PAGES);
@@ -697,12 +724,12 @@ function upkeepify_checkbox_field_callback($args) {
     $options = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
     $defaults = function_exists( 'upkeepify_get_default_settings' ) ? upkeepify_get_default_settings() : array();
     $checked = isset($options[$args['label_for']])
-        ? (bool) $options[$args['label_for']]
-        : ( ! empty( $defaults[ $args['label_for'] ] ) );
+    ? (bool) $options[$args['label_for']]
+    : ( ! empty( $defaults[ $args['label_for'] ] ) );
     echo '<input type="hidden" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']" value="0">';
     echo '<input id="' . esc_attr($args['label_for']) . '" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']" type="checkbox" value="1" ' . checked($checked, true, false) . '>';
     if ( ! empty( $args['description'] ) ) {
-        echo '<p class="description">' . esc_html( $args['description'] ) . '</p>';
+    echo '<p class="description">' . esc_html( $args['description'] ) . '</p>';
     }
 }
 
@@ -724,7 +751,7 @@ function upkeepify_text_field_callback($args) {
     $value = isset($options[$args['label_for']]) ? $options[$args['label_for']] : '';
     echo '<input id="' . esc_attr($args['label_for']) . '" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']" type="text" value="' . esc_attr($value) . '">';
     if ( ! empty( $args['description'] ) ) {
-        echo '<p class="description">' . esc_html( $args['description'] ) . '</p>';
+    echo '<p class="description">' . esc_html( $args['description'] ) . '</p>';
     }
 }
 
@@ -741,18 +768,18 @@ function upkeepify_select_field_callback($args) {
     echo '<select id="' . esc_attr($args['label_for']) . '" name="upkeepify_settings[' . esc_attr($args['label_for']) . ']"';
     
     if (isset($args['class'])) {
-        echo ' class="' . esc_attr($args['class']) . '"';
+    echo ' class="' . esc_attr($args['class']) . '"';
     }
     
     echo '>';
     if (isset($args['options']) && is_array($args['options'])) {
-        foreach ($args['options'] as $opt_value => $opt_label) {
-            echo '<option value="' . esc_attr($opt_value) . '" ' . selected($value, $opt_value, false) . '>' . esc_html($opt_label) . '</option>';
-        }
+    foreach ($args['options'] as $opt_value => $opt_label) {
+        echo '<option value="' . esc_attr($opt_value) . '" ' . selected($value, $opt_value, false) . '>' . esc_html($opt_label) . '</option>';
+    }
     }
     echo '</select>';
     if (!empty($args['description'])) {
-        echo '<p class="description">' . esc_html($args['description']) . '</p>';
+    echo '<p class="description">' . esc_html($args['description']) . '</p>';
     }
 }
 
@@ -772,14 +799,14 @@ function upkeepify_settings_sanitize($input) {
     $validated = upkeepify_validate_settings(is_array($input) ? $input : array());
 
     if (is_wp_error($validated)) {
-        add_settings_error(
-            'upkeepify',
-            'upkeepify_settings_validation',
-            $validated->get_error_message(),
-            'error'
-        );
+    add_settings_error(
+        'upkeepify',
+        'upkeepify_settings_validation',
+        $validated->get_error_message(),
+        'error'
+);
 
-        return upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
+    return upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
     }
 
     return $validated;
@@ -816,8 +843,8 @@ add_action('update_option_' . UPKEEPIFY_OPTION_SETTINGS, 'upkeepify_settings_upd
 function upkeepify_enqueue_admin_scripts($hook_suffix) {
     // Check if on the Upkeepify settings page
     if ('maintenance_tasks_page_upkeepify_settings' !== $hook_suffix) {
-        //echo "<script>console.log('Not our page, current hook_suffix: " . $hook_suffix . "');</script>";
-        return; // Not our settings page, do not enqueue the script
+    //echo "<script>console.log('Not our page, current hook_suffix: " . $hook_suffix . "');</script>";
+    return; // Not our settings page, do not enqueue the script
     }
 
     $js_dir = plugin_dir_url(dirname(__FILE__)) . 'js/';
@@ -825,30 +852,30 @@ function upkeepify_enqueue_admin_scripts($hook_suffix) {
 
     // Enqueue utils.js first (required by other scripts)
     wp_enqueue_script(
-        'upkeepify-utils-js',
-        $js_dir . 'utils' . $suffix . '.js',
-        array('jquery'),
-        UPKEEPIFY_VERSION,
-        true
-    );
+    'upkeepify-utils-js',
+    $js_dir . 'utils' . $suffix . '.js',
+    array('jquery'),
+    UPKEEPIFY_VERSION,
+    true
+);
 
     // Enqueue notifications.js
     wp_enqueue_script(
-        'upkeepify-notifications-js',
-        $js_dir . 'notifications' . $suffix . '.js',
-        array('jquery', 'upkeepify-utils-js'),
-        UPKEEPIFY_VERSION,
-        true
-    );
+    'upkeepify-notifications-js',
+    $js_dir . 'notifications' . $suffix . '.js',
+    array('jquery', 'upkeepify-utils-js'),
+    UPKEEPIFY_VERSION,
+    true
+);
 
     // Enqueue admin-settings.js
     wp_enqueue_script(
-        'upkeepify-admin-settings-js',
-        $js_dir . 'admin-settings' . $suffix . '.js',
-        array('jquery', 'upkeepify-utils-js', 'upkeepify-notifications-js'),
-        UPKEEPIFY_VERSION,
-        true
-    );
+    'upkeepify-admin-settings-js',
+    $js_dir . 'admin-settings' . $suffix . '.js',
+    array('jquery', 'upkeepify-utils-js', 'upkeepify-notifications-js'),
+    UPKEEPIFY_VERSION,
+    true
+);
 }
 add_action('admin_enqueue_scripts', 'upkeepify_enqueue_admin_scripts');
 
@@ -867,31 +894,31 @@ function upkeepify_enqueue_frontend_scripts() {
     global $post;
 
     if ( ! $post instanceof WP_Post ) {
-        return;
+    return;
     }
 
     $shortcodes = array(
-        UPKEEPIFY_SHORTCODE_MAINTENANCE_TASKS,
-        UPKEEPIFY_SHORTCODE_LIST_TASKS,
-        UPKEEPIFY_SHORTCODE_TASK_FORM,
-        UPKEEPIFY_SHORTCODE_PROVIDER_RESPONSE_FORM,
-        UPKEEPIFY_SHORTCODE_TASKS_BY_CATEGORY,
-        UPKEEPIFY_SHORTCODE_TASKS_BY_PROVIDER,
-        UPKEEPIFY_SHORTCODE_TASKS_BY_STATUS,
-        UPKEEPIFY_SHORTCODE_TASK_SUMMARY,
-        UPKEEPIFY_SHORTCODE_TASK_CALENDAR,
-    );
+    UPKEEPIFY_SHORTCODE_MAINTENANCE_TASKS,
+    UPKEEPIFY_SHORTCODE_LIST_TASKS,
+    UPKEEPIFY_SHORTCODE_TASK_FORM,
+    UPKEEPIFY_SHORTCODE_PROVIDER_RESPONSE_FORM,
+    UPKEEPIFY_SHORTCODE_TASKS_BY_CATEGORY,
+    UPKEEPIFY_SHORTCODE_TASKS_BY_PROVIDER,
+    UPKEEPIFY_SHORTCODE_TASKS_BY_STATUS,
+    UPKEEPIFY_SHORTCODE_TASK_SUMMARY,
+    UPKEEPIFY_SHORTCODE_TASK_CALENDAR,
+);
 
     $has_shortcode = false;
     foreach ( $shortcodes as $shortcode ) {
-        if ( has_shortcode( $post->post_content, $shortcode ) ) {
-            $has_shortcode = true;
-            break;
-        }
+    if ( has_shortcode( $post->post_content, $shortcode ) ) {
+        $has_shortcode = true;
+        break;
+    }
     }
 
     if ( ! $has_shortcode ) {
-        return;
+    return;
     }
 
     $js_dir  = plugin_dir_url( dirname( __FILE__ ) ) . 'js/';
@@ -900,65 +927,65 @@ function upkeepify_enqueue_frontend_scripts() {
 
     // Enqueue utils.js
     wp_enqueue_script(
-        'upkeepify-utils-js',
-        $js_dir . 'utils' . $suffix . '.js',
-        array('jquery'),
-        UPKEEPIFY_VERSION,
-        true
-    );
+    'upkeepify-utils-js',
+    $js_dir . 'utils' . $suffix . '.js',
+    array('jquery'),
+    UPKEEPIFY_VERSION,
+    true
+);
 
     // Enqueue notifications.js
     wp_enqueue_script(
-        'upkeepify-notifications-js',
-        $js_dir . 'notifications' . $suffix . '.js',
-        array('jquery', 'upkeepify-utils-js'),
-        UPKEEPIFY_VERSION,
-        true
-    );
+    'upkeepify-notifications-js',
+    $js_dir . 'notifications' . $suffix . '.js',
+    array('jquery', 'upkeepify-utils-js'),
+    UPKEEPIFY_VERSION,
+    true
+);
 
     // Enqueue form-validation.js
     wp_enqueue_script(
-        'upkeepify-form-validation-js',
-        $js_dir . 'form-validation' . $suffix . '.js',
-        array('jquery', 'upkeepify-utils-js'),
-        UPKEEPIFY_VERSION,
-        true
-    );
+    'upkeepify-form-validation-js',
+    $js_dir . 'form-validation' . $suffix . '.js',
+    array('jquery', 'upkeepify-utils-js'),
+    UPKEEPIFY_VERSION,
+    true
+);
 
     // Enqueue upload-handler.js
     wp_enqueue_script(
-        'upkeepify-upload-handler-js',
-        $js_dir . 'upload-handler' . $suffix . '.js',
-        array('jquery', 'upkeepify-utils-js'),
-        UPKEEPIFY_VERSION,
-        true
-    );
+    'upkeepify-upload-handler-js',
+    $js_dir . 'upload-handler' . $suffix . '.js',
+    array('jquery', 'upkeepify-utils-js'),
+    UPKEEPIFY_VERSION,
+    true
+);
 
     // Enqueue task-filters.js
     wp_enqueue_script(
-        'upkeepify-task-filters-js',
-        $js_dir . 'task-filters' . $suffix . '.js',
-        array('jquery', 'upkeepify-utils-js'),
-        UPKEEPIFY_VERSION,
-        true
-    );
+    'upkeepify-task-filters-js',
+    $js_dir . 'task-filters' . $suffix . '.js',
+    array('jquery', 'upkeepify-utils-js'),
+    UPKEEPIFY_VERSION,
+    true
+);
 
     // Enqueue calendar-interactions.js
     wp_enqueue_script(
-        'upkeepify-calendar-interactions-js',
-        $js_dir . 'calendar-interactions' . $suffix . '.js',
-        array('jquery', 'upkeepify-utils-js'),
-        UPKEEPIFY_VERSION,
-        true
-    );
+    'upkeepify-calendar-interactions-js',
+    $js_dir . 'calendar-interactions' . $suffix . '.js',
+    array('jquery', 'upkeepify-utils-js'),
+    UPKEEPIFY_VERSION,
+    true
+);
 
     // Enqueue enhanced styles
     wp_enqueue_style(
-        'upkeepify-enhanced-styles',
-        $css_dir . 'upkeepify-styles.css',
-        array(),
-        UPKEEPIFY_VERSION
-    );
+    'upkeepify-enhanced-styles',
+    $css_dir . 'upkeepify-styles.css',
+    array(),
+    UPKEEPIFY_VERSION
+);
 }
 add_action('wp_enqueue_scripts', 'upkeepify_enqueue_frontend_scripts');
 
@@ -982,8 +1009,8 @@ function upkeepify_get_cached_option($option_name) {
     $cached_value = wp_cache_get($cache_key, 'upkeepify');
 
     if ($cached_value === false) {
-        $cached_value = get_option($option_name);
-        wp_cache_set($cache_key, $cached_value, UPKEEPIFY_CACHE_GROUP, 3600); // Cache for 1 hour
+    $cached_value = get_option($option_name);
+    wp_cache_set($cache_key, $cached_value, UPKEEPIFY_CACHE_GROUP, 3600); // Cache for 1 hour
     }
 
     return $cached_value;
@@ -1018,13 +1045,13 @@ function upkeepify_update_cached_option($option_name, $option_value) {
  */
 function upkeepify_setup_wizard() {
     add_submenu_page(
-        'edit.php?post_type=' . UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
-        'Upkeepify Setup Wizard',
-        'Setup Wizard',
-        'manage_options',
-        UPKEEPIFY_MENU_SETUP_WIZARD_PAGE,
-        'upkeepify_setup_wizard_page'
-    );
+    'edit.php?post_type=' . UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
+    'Upkeepify Setup Wizard',
+    'Setup Wizard',
+    'manage_options',
+    UPKEEPIFY_MENU_SETUP_WIZARD_PAGE,
+    'upkeepify_setup_wizard_page'
+);
 }
 
 /**
@@ -1056,3 +1083,108 @@ function upkeepify_setup_wizard_page() {
 }
 
 add_action('admin_menu', UPKEEPIFY_MENU_SETUP_WIZARD_PAGE);
+
+/**
+ * Register System Log menu page.
+ *
+ * Adds a submenu page under Maintenance Tasks for viewing the persistent system log.
+ *
+ * @since 1.4.0
+ */
+function upkeepify_add_system_log_menu() {
+    add_submenu_page(
+        'edit.php?post_type=' . UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS,
+        'System Log',
+        'System Log',
+        'manage_options',
+        UPKEEPIFY_MENU_SYSTEM_LOG_PAGE,
+        'upkeepify_system_log_page'
+    );
+}
+add_action('admin_menu', 'upkeepify_add_system_log_menu');
+
+/**
+ * Render the System Log page.
+ *
+ * Displays a table of log entries with timestamp, type, message, and context.
+ * Includes a Clear Log button for administrators.
+ *
+ * @since 1.4.0
+ */
+function upkeepify_system_log_page() {
+    // Handle clear log action
+    if (isset($_POST['upkeepify_clear_log']) && current_user_can('manage_options')) {
+        check_admin_referer('upkeepify_clear_log');
+        upkeepify_clear_log();
+        echo '<div class="notice notice-success"><p>' . esc_html__('System log cleared.', 'upkeepify') . '</p></div>';
+    }
+
+    $entries = upkeepify_get_log_entries();
+    $count = count($entries);
+
+    ?>
+    <div class="wrap">
+        <h1><?php echo esc_html__('Upkeepify System Log', 'upkeepify'); ?></h1>
+
+        <p>
+            <?php
+            printf(
+                /* translators: %d: number of log entries */
+                esc_html(_n('%d log entry', '%d log entries', $count, 'upkeepify')),
+                $count
+            );
+            ?>
+        </p>
+
+        <?php if ($count > 0) : ?>
+            <form method="post" onsubmit="return confirm('<?php echo esc_attr__('Are you sure you want to clear all log entries?', 'upkeepify'); ?>');">
+                <?php wp_nonce_field('upkeepify_clear_log'); ?>
+                <input type="submit" name="upkeepify_clear_log" class="button" value="<?php esc_attr_e('Clear Log', 'upkeepify'); ?>">
+            </form>
+
+            <table class="widefat striped" style="margin-top: 15px;">
+                <thead>
+                    <tr>
+                        <th style="width: 160px;"><?php esc_html_e('Timestamp', 'upkeepify'); ?></th>
+                        <th style="width: 100px;"><?php esc_html_e('Type', 'upkeepify'); ?></th>
+                        <th><?php esc_html_e('Message', 'upkeepify'); ?></th>
+                        <th style="width: 200px;"><?php esc_html_e('Context', 'upkeepify'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    // Display newest entries first
+                    $reversed = array_reverse($entries);
+                    foreach ($reversed as $entry) :
+                        $type_class = '';
+                        $type_label = isset($entry['type']) ? $entry['type'] : 'info';
+                        switch ($type_label) {
+                            case 'error':
+                                $type_class = 'color: #d63638; font-weight: 600;';
+                                break;
+                            case 'warning':
+                                $type_class = 'color: #d68d14; font-weight: 600;';
+                                break;
+                            case 'success':
+                                $type_class = 'color: #00a32a; font-weight: 600;';
+                                break;
+                            default:
+                                $type_class = '';
+                        }
+                        $context = isset($entry['context']) && is_array($entry['context']) ? wp_json_encode($entry['context']) : '';
+                        ?>
+                        <tr>
+                            <td><?php echo esc_html(isset($entry['timestamp']) ? $entry['timestamp'] : ''); ?></td>
+                            <td style="<?php echo esc_attr($type_class); ?>"><?php echo esc_html($type_label); ?></td>
+                            <td><?php echo esc_html(isset($entry['message']) ? $entry['message'] : ''); ?></td>
+                            <td><code><?php echo esc_html($context); ?></code></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php else : ?>
+            <p><?php esc_html_e('No log entries yet.', 'upkeepify'); ?></p>
+        <?php endif; ?>
+    </div>
+    <?php
+}
