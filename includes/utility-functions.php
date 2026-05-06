@@ -58,6 +58,15 @@ function upkeepify_send_status_change_email($task_id, $new_status) {
         $sent = wp_mail($to, $subject, $message);
         
         if (!$sent) {
+            upkeepify_log(
+                'Task status change email failed',
+                'error',
+                array(
+                    'recipient' => $to,
+                    'task_id' => $task_id,
+                    'new_status' => $new_status,
+                )
+            );
             error_log('Upkeepify Status Change Error: wp_mail() failed to ' . $to . ' for task ID ' . $task_id . ' with subject: ' . $subject);
         } elseif (WP_DEBUG) {
             error_log('Upkeepify Status Change Success: Sent to ' . $to . ' for task ID ' . $task_id . ' with subject: ' . $subject);
@@ -137,4 +146,14 @@ function upkeepify_log_security_event($event_type, $description, $user_id = null
     );
 
     error_log($log_entry);
+
+    upkeepify_log(
+        'Security event: ' . $event_type,
+        'warning',
+        array(
+            'user' => $user_info,
+            'ip' => $client_ip,
+            'description' => $description,
+        )
+    );
 }

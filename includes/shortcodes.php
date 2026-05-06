@@ -520,11 +520,13 @@ function upkeepify_handle_task_form_submission() {
     // Enforce the Allow Public Task Logging setting.
     $settings = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
     if ( empty( $settings[ UPKEEPIFY_SETTING_PUBLIC_TASK_LOGGING ] ) ) {
+        upkeepify_log('Public task submission attempt while disabled', 'warning');
         upkeepify_redirect_task_form_status( 'error', 'public_disabled' );
     }
 
     $task_submit_nonce = isset($_POST[UPKEEPIFY_NONCE_TASK_SUBMIT]) ? sanitize_text_field( wp_unslash( $_POST[UPKEEPIFY_NONCE_TASK_SUBMIT] ) ) : '';
     if ( ! $task_submit_nonce || ! wp_verify_nonce($task_submit_nonce, UPKEEPIFY_NONCE_ACTION_TASK_SUBMIT)) {
+        upkeepify_log('Task submission security check failed', 'warning');
         upkeepify_redirect_task_form_status( 'error', 'security_failed' );
     }
 
@@ -534,6 +536,7 @@ function upkeepify_handle_task_form_submission() {
 
     $user_answer = isset($_POST['math']) ? sanitize_text_field( wp_unslash( $_POST['math'] ) ) : '';
     if (!isset($_SESSION[UPKEEPIFY_SESSION_MATH_RESULT]) || intval($user_answer) !== intval($_SESSION[UPKEEPIFY_SESSION_MATH_RESULT])) {
+        upkeepify_log('Task submission CAPTCHA failed', 'warning', array('expected' => $_SESSION[UPKEEPIFY_SESSION_MATH_RESULT] ?? 'unknown', 'received' => $user_answer));
         upkeepify_redirect_task_form_status( 'error', 'captcha_failed' );
     }
 
@@ -584,6 +587,7 @@ function upkeepify_handle_task_form_submission() {
         // Validate upload using scoped validation
         $validation = upkeepify_validate_upload($task_photo);
         if (is_wp_error($validation)) {
+            upkeepify_log('Task submission photo validation failed', 'warning', array('error' => $validation->get_error_message()));
             if (WP_DEBUG) {
                 error_log('Upkeepify Upload Validation Error: ' . $validation->get_error_message());
             }
@@ -1311,6 +1315,15 @@ function upkeepify_admin_post_provider_response_submit() {
 
     update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_DECISION, $decision );
 
+    upkeepify_log(
+        'Contractor responded to job invitation',
+        'info',
+        array(
+            'response_id' => $response_id,
+            'decision' => $decision,
+        )
+    );
+
     if ( $decision === 'decline' ) {
         // Record the decline and close; no estimate data needed.
         wp_update_post( array(
@@ -1405,7 +1418,10 @@ function upkeepify_admin_post_provider_response_submit() {
             $body .= '<p><a href="' . esc_url( $review_url ) . '">' . esc_html__( 'Review estimate', 'upkeepify' ) . '</a></p>';
             $body .= '</div>';
 
-            wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+            $sent = wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+            if (!$sent) {
+                upkeepify_log('Estimate notification email failed', 'error', array('recipient' => $recipient, 'response_id' => $response_id));
+            }
         }
     }
 
@@ -1555,6 +1571,15 @@ function upkeepify_admin_post_provider_quote_submit() {
     }
 
     update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, $quote );
+
+    upkeepify_log(
+        'Contractor submitted formal quote',
+        'info',
+        array(
+            'response_id' => $response_id,
+            'quote_amount' => $quote,
+        )
+    );
     if ( ! empty( $quote_attachment_ids ) ) {
         update_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_QUOTE_ATTACHMENTS, $quote_attachment_ids );
     }
@@ -1603,7 +1628,10 @@ function upkeepify_admin_post_provider_quote_submit() {
             $body .= '<p>' . esc_html__( 'Review this quote in the WordPress admin.', 'upkeepify' ) . '</p>';
             $body .= '</div>';
 
-            wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+            $sent = wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+            if (!$sent) {
+                upkeepify_log('Quote notification email failed', 'error', array('recipient' => $recipient, 'response_id' => $response_id));
+            }
         }
     }
 
@@ -1751,6 +1779,15 @@ function upkeepify_admin_post_provider_completion_submit() {
     }
 
     update_post_meta( $response_id, $completed_meta_key, time() );
+
+    upkeepify_log(
+        $is_followup_completion ? 'Contractor submitted follow-up' : 'Contractor marked job as complete',
+        'info',
+        array(
+            'task_id' => $task_id,
+            'response_id' => $response_id,
+        )
+    );
     if ( $is_followup_completion ) {
         update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_FOLLOWUP_STATUS, UPKEEPIFY_RESIDENT_FOLLOWUP_STATUS_SUBMITTED );
     }
@@ -1809,7 +1846,10 @@ function upkeepify_admin_post_provider_completion_submit() {
             $body .= '</div>';
         }
 
-        wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+        $sent = wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+        if (!$sent) {
+            upkeepify_log('Job completion notification email failed', 'error', array('recipient' => $recipient, 'response_id' => $response_id));
+        }
 
         if ( ! $is_followup_completion ) {
             // Auto-send resident confirmation email if we have their address and token.
@@ -1953,6 +1993,8 @@ function upkeepify_send_contractor_resident_issue_email( $task_id, $task_post, $
     $sent = wp_mail( $provider_email, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
     if ( $sent ) {
         update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_ISSUE_CONTRACTOR_NOTIFIED_AT, time() );
+    } else {
+        upkeepify_log('Contractor resident issue email failed', 'error', array('task_id' => $task_id, 'provider_email' => $provider_email));
     }
 
     return $sent;
@@ -2064,6 +2106,10 @@ function upkeepify_send_resident_confirmation_email( $task_id, $task_post ) {
     $body .= '</div>';
 
     $sent = wp_mail( $resident_email, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+
+    if (!$sent) {
+        upkeepify_log('Resident confirmation email failed', 'error', array('task_id' => $task_id, 'resident_email' => $resident_email));
+    }
 
     if ( WP_DEBUG ) {
         error_log( 'Upkeepify Step 4: Resident confirmation email ' . ( $sent ? 'sent' : 'FAILED' ) . ' to ' . $resident_email . ' for task ID ' . $task_id );
@@ -2280,6 +2326,15 @@ function upkeepify_admin_post_resident_confirm_submit() {
 
     update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED,    $satisfied );
     update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRMED_AT, time() );
+
+    upkeepify_log(
+        'Resident submitted feedback',
+        'info',
+        array(
+            'task_id' => $task_id,
+            'satisfied' => $satisfied,
+        )
+    );
     if ( $note !== '' ) {
         update_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_RESIDENT_CONFIRM_NOTE, substr( $note, 0, 500 ) );
     }
@@ -2329,7 +2384,10 @@ function upkeepify_admin_post_resident_confirm_submit() {
     }
     $body .= '</div>';
 
-    wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+    $sent = wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+    if (!$sent) {
+        upkeepify_log('Resident feedback notification email failed', 'error', array('task_id' => $task_id, 'recipient' => $recipient));
+    }
 
     // Redirect back to the confirmation page with a success flag.
     $confirmation_page = isset( $settings[ UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE ] )

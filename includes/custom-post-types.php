@@ -550,6 +550,15 @@ function upkeepify_send_regenerated_provider_token_email($task_id, $response_id,
     $sent = wp_mail($provider_email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
     
     if (!$sent) {
+        upkeepify_log(
+            'Regenerated provider token email failed',
+            'error',
+            array(
+                'task_id' => $task_id,
+                'provider_email' => $provider_email,
+                'response_id' => $response_id,
+            )
+        );
         error_log('Upkeepify Regenerated Token Error: wp_mail() failed to ' . $provider_email . ' with subject: ' . $subject);
     } elseif (WP_DEBUG) {
         error_log('Upkeepify Regenerated Token Success: Sent to ' . $provider_email . ' with subject: ' . $subject);
@@ -1022,6 +1031,15 @@ function upkeepify_set_task_status_by_name($task_id, $status_name) {
     $term = get_term_by('name', $status_name, UPKEEPIFY_TAXONOMY_TASK_STATUS);
     if ($term && !is_wp_error($term)) {
         wp_set_object_terms($task_id, array(intval($term->term_id)), UPKEEPIFY_TAXONOMY_TASK_STATUS);
+        
+        upkeepify_log(
+            'Task status updated',
+            'info',
+            array(
+                'task_id' => $task_id,
+                'new_status' => $status_name,
+            )
+        );
     }
 }
 
@@ -1166,6 +1184,16 @@ function upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id,
     $sent = wp_mail($provider_email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
 
     if (!$sent) {
+        upkeepify_log(
+            'Trustee lifecycle approval email failed',
+            'error',
+            array(
+                'task_id' => $task_id,
+                'response_id' => $response_id,
+                'provider_email' => $provider_email,
+                'approval_type' => $approval,
+            )
+        );
         error_log('Upkeepify Lifecycle Approval Error: wp_mail() failed to ' . $provider_email . ' for response ID ' . $response_id . ' with subject: ' . $subject);
     } elseif (WP_DEBUG) {
         error_log('Upkeepify Lifecycle Approval Success: Sent to ' . $provider_email . ' for response ID ' . $response_id . ' with subject: ' . $subject);
@@ -1272,6 +1300,15 @@ function upkeepify_send_quote_audit_email($task_id, $response_id, $recipient = n
     $sent = wp_mail($recipient, $subject, $body, array('Content-Type: text/html; charset=UTF-8'), $attachments);
 
     if (!$sent) {
+        upkeepify_log(
+            'Quote audit email failed',
+            'error',
+            array(
+                'task_id' => $task_id,
+                'recipient' => $recipient,
+                'response_id' => $response_id,
+            )
+        );
         error_log('Upkeepify Quote Audit Error: wp_mail() failed to ' . $recipient . ' for task ID ' . $task_id . ' with subject: ' . $subject);
     } elseif (WP_DEBUG) {
         error_log('Upkeepify Quote Audit Success: Sent to ' . $recipient . ' for task ID ' . $task_id . ' with subject: ' . $subject);
@@ -1326,6 +1363,16 @@ function upkeepify_admin_post_trustee_lifecycle_approval() {
         update_post_meta($task_id, UPKEEPIFY_META_KEY_ASSIGNED_SERVICE_PROVIDER, intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true)));
         upkeepify_sync_task_lifecycle_status($task_id);
         upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id, 'estimate');
+        
+        upkeepify_log(
+            'Estimate approved by trustee',
+            'success',
+            array(
+                'task_id' => $task_id,
+                'response_id' => $response_id,
+            )
+        );
+
         $redirect_status = 'estimate_approved';
     } elseif ($approval_type === 'quote') {
         $formal_quote = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true);
@@ -1345,6 +1392,16 @@ function upkeepify_admin_post_trustee_lifecycle_approval() {
         upkeepify_sync_task_lifecycle_status($task_id);
         upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id, 'quote');
         upkeepify_send_quote_audit_email($task_id, $response_id);
+
+        upkeepify_log(
+            'Quote approved by trustee',
+            'success',
+            array(
+                'task_id' => $task_id,
+                'response_id' => $response_id,
+            )
+        );
+
         $redirect_status = 'quote_approved';
     } else {
         wp_die(esc_html__('Unknown lifecycle approval type.', 'upkeepify'));
@@ -1395,6 +1452,16 @@ function upkeepify_admin_post_trustee_lifecycle_followup() {
     $redirect_status = '';
     if ($followup_action === 'resolve') {
         upkeepify_resolve_resident_issue($task_id, $resolution_note);
+
+        upkeepify_log(
+            'Resident issue resolved by trustee',
+            'success',
+            array(
+                'task_id' => $task_id,
+                'resolution_note' => $resolution_note,
+            )
+        );
+
         $redirect_status = 'resident_issue_resolved';
     } elseif ($followup_action === 'rerequest') {
         $resident_email = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_SUBMITTER_EMAIL, true);
@@ -1405,6 +1472,15 @@ function upkeepify_admin_post_trustee_lifecycle_followup() {
         if (!upkeepify_rerequest_resident_confirmation($task_id, $task)) {
             wp_die(esc_html__('Resident confirmation email could not be sent.', 'upkeepify'));
         }
+
+        upkeepify_log(
+            'Resident confirmation re-requested by trustee',
+            'info',
+            array(
+                'task_id' => $task_id,
+            )
+        );
+
         $redirect_status = 'resident_confirmation_requested';
     } else {
         wp_die(esc_html__('Unknown lifecycle follow-up action.', 'upkeepify'));
@@ -1452,6 +1528,16 @@ function upkeepify_admin_post_trustee_manual_close() {
 
     upkeepify_manual_close_task_lifecycle($task_id, $mode, $note);
 
+    upkeepify_log(
+        'Task lifecycle manually closed by trustee',
+        'warning',
+        array(
+            'task_id' => $task_id,
+            'mode' => $mode,
+            'note' => $note,
+        )
+    );
+
     $redirect = add_query_arg(
         array(
             'post'                => $task_id,
@@ -1496,10 +1582,30 @@ function upkeepify_admin_post_provider_token_manage() {
 
     if ($token_action === 'revoke') {
         upkeepify_revoke_provider_response_token($response_id);
+        
+        upkeepify_log(
+            'Contractor response token revoked',
+            'warning',
+            array(
+                'task_id' => $task_id,
+                'response_id' => $response_id,
+            )
+        );
+
         $redirect_status = 'token_revoked';
     } elseif ($token_action === 'regenerate') {
         $token = upkeepify_regenerate_provider_response_token($response_id);
         upkeepify_send_regenerated_provider_token_email($task_id, $response_id, $token);
+
+        upkeepify_log(
+            'Contractor response token regenerated',
+            'info',
+            array(
+                'task_id' => $task_id,
+                'response_id' => $response_id,
+            )
+        );
+
         $redirect_status = 'token_regenerated';
     } else {
         wp_die(esc_html__('Unknown contractor link action.', 'upkeepify'));
