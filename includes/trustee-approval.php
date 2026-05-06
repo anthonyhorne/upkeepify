@@ -253,6 +253,16 @@ function upkeepify_process_trustee_approval( $task_id, $step, $email ) {
     $approvals[ $step ][ $email ] = time();
     update_post_meta( $task_id, UPKEEPIFY_META_KEY_TRUSTEE_APPROVALS, $approvals );
 
+    upkeepify_log(
+        'Trustee approval recorded',
+        'info',
+        array(
+            'task_id' => $task_id,
+            'step' => $step,
+            'trustee_email' => $email,
+        )
+    );
+
     if ( count( $approvals[ $step ] ) >= upkeepify_get_trustee_required_approvals() ) {
         upkeepify_trigger_step_completion( $task_id, $step );
     }
@@ -283,6 +293,26 @@ function upkeepify_process_trustee_rejection( $task_id, $step, $email ) {
             'ID'          => $task_id,
             'post_status' => 'draft',
         ) );
+
+        upkeepify_log(
+            'Trustee rejection placed task on hold',
+            'warning',
+            array(
+                'task_id' => $task_id,
+                'step' => $step,
+                'trustee_email' => $email,
+            )
+        );
+    } else {
+        upkeepify_log(
+            'Trustee rejection recorded',
+            'info',
+            array(
+                'task_id' => $task_id,
+                'step' => $step,
+                'trustee_email' => $email,
+            )
+        );
     }
 }
 
