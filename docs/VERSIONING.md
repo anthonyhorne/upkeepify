@@ -36,6 +36,30 @@ npm run package:release
 The `version:*` commands update plugin metadata files automatically. The `package:release`
 command builds a slim WordPress-ready plugin archive from the runtime file list.
 
+Use `npm run version:check` before publishing if you only want to verify that
+`package.json`, `package-lock.json`, `upkeepify.php`, and `readme.txt` agree.
+
+## Automated GitHub Releases
+
+Use **Actions → Release → Run workflow** on the `main` branch and choose `patch`,
+`minor`, or `major`.
+
+The workflow:
+
+1. Installs PHP and Node dependencies.
+2. Runs PHPUnit, PHP syntax checks, Composer audit, and the JS build.
+3. Bumps the chosen semantic version.
+4. Verifies all plugin version metadata is aligned.
+5. Commits the version bump back to `main`.
+6. Creates an immutable release tag such as `v1.3.1`.
+7. Moves the floating major tag such as `v1` to the latest release in that major line.
+8. Moves the floating `latest` tag to the newest release.
+9. Builds the slim WordPress plugin zip.
+10. Publishes a GitHub Release marked as latest with the zip attached.
+
+Use exact tags like `v1.3.1` when you need a reproducible release. Use major tags
+like `v1` when you want the newest compatible release in that major line.
+
 ## Release Checklist
 
 1. Choose the correct bump type: `patch`, `minor`, or `major`.
