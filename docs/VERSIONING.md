@@ -44,6 +44,10 @@ Use `npm run version:check` before publishing if you only want to verify that
 Use **Actions → Release → Run workflow** on the `main` branch and choose `patch`,
 `minor`, or `major`.
 
+The release workflow also runs automatically every Monday at 08:00 SAST. Scheduled
+runs publish a `patch` release only when plugin runtime files have changed since
+the latest exact release tag.
+
 The workflow:
 
 1. Installs PHP and Node dependencies.

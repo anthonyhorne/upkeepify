@@ -1,6 +1,9 @@
 name: Release
 
 on:
+  schedule:
+    # Mondays at 08:00 Africa/Johannesburg / 06:00 UTC.
+    - cron: '0 6 * * 1'
   workflow_dispatch:
     inputs:
       release_type:
@@ -31,41 +34,84 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Resolve release scope
+        id: scope
+        env:
+          REQUESTED_RELEASE_TYPE: ${{ github.event.inputs.release_type || 'patch' }}
+        run: |
+          SHOULD_RELEASE=true
+          LAST_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)"
+
+          if [ "${{ github.event_name }}" = "schedule" ] && [ -n "${LAST_TAG}" ]; then
+            if git diff --quiet "${LAST_TAG}..HEAD" -- \
+              upkeepify.php \
+              uninstall.php \
+              readme.txt \
+              LICENSE.md \
+              upkeepify-styles.css \
+              favicon.png \
+              icon-192x192.png \
+              icon-512x512.png \
+              includes \
+              js \
+              languages; then
+              SHOULD_RELEASE=false
+            fi
+          fi
+
+          echo "should_release=${SHOULD_RELEASE}" >> "$GITHUB_OUTPUT"
+          echo "release_type=${REQUESTED_RELEASE_TYPE}" >> "$GITHUB_OUTPUT"
+
+      - name: Skip unchanged scheduled release
+        if: steps.scope.outputs.should_release != 'true'
+        run: echo "No plugin runtime changes since the latest release tag. Skipping release."
+
       - uses: shivammathur/setup-php@v2
+        if: steps.scope.outputs.should_release == 'true'
         with:
           php-version: '8.3'
           tools: composer
 
       - uses: actions/setup-node@v4
+        if: steps.scope.outputs.should_release == 'true'
         with:
           node-version: '18'
           cache: 'npm'
 
       - name: Install Composer dependencies
+        if: steps.scope.outputs.should_release == 'true'
         run: composer install --prefer-dist --no-progress
 
       - name: Install npm dependencies
+        if: steps.scope.outputs.should_release == 'true'
         run: npm ci
 
       - name: Run PHPUnit tests
+        if: steps.scope.outputs.should_release == 'true'
         run: ./vendor/bin/phpunit
 
       - name: Check PHP syntax
+        if: steps.scope.outputs.should_release == 'true'
         run: find . -name "*.php" -not -path "./vendor/*" -not -path "./node_modules/*" | xargs -n1 php -l
 
       - name: Audit Composer dependencies
+        if: steps.scope.outputs.should_release == 'true'
         run: composer audit
 
       - name: Build JS assets
+        if: steps.scope.outputs.should_release == 'true'
         run: npm run build
 
       - name: Bump version
-        run: npm run version:${{ inputs.release_type }}
+        if: steps.scope.outputs.should_release == 'true'
+        run: npm run version:${{ steps.scope.outputs.release_type }}
 
       - name: Verify version metadata
+        if: steps.scope.outputs.should_release == 'true'
         run: npm run version:check
 
       - name: Read release version
+        if: steps.scope.outputs.should_release == 'true'
         id: version
         run: |
           VERSION="$(node -p "require('./package.json').version")"
@@ -75,6 +121,7 @@ jobs:
           echo "major_tag=v${MAJOR}" >> "$GITHUB_OUTPUT"
 
       - name: Commit version bump
+        if: steps.scope.outputs.should_release == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -82,21 +129,25 @@ jobs:
           git commit -m "Release v${{ steps.version.outputs.version }}"
 
       - name: Create tags
+        if: steps.scope.outputs.should_release == 'true'
         run: |
           git tag "${{ steps.version.outputs.tag }}"
           git tag -f "${{ steps.version.outputs.major_tag }}"
           git tag -f latest
 
       - name: Build release archive
+        if: steps.scope.outputs.should_release == 'true'
         run: npm run package:release
 
       - name: Locate release archive
+        if: steps.scope.outputs.should_release == 'true'
         id: archive
         run: |
           ARCHIVE="$(ls "upkeepify-${{ steps.version.outputs.version }}"-*-slim.zip | head -n 1)"
           echo "path=${ARCHIVE}" >> "$GITHUB_OUTPUT"
 
       - name: Push release commit and tags
+        if: steps.scope.outputs.should_release == 'true'
         run: |
           git push origin HEAD:main
           git push origin "${{ steps.version.outputs.tag }}"
@@ -104,6 +155,7 @@ jobs:
           git push --force origin latest
 
       - name: Publish GitHub release
+        if: steps.scope.outputs.should_release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
