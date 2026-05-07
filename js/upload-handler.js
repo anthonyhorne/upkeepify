@@ -20,6 +20,17 @@
             this.setupDragAndDrop();
             this.setupUploadProgress();
             this.bindRemoveButtons();
+            this.setupGalleryButton();
+        },
+
+        /**
+         * Setup gallery button click handler
+         */
+        setupGalleryButton: function() {
+            $(document).on('click', '.upkeepify-gallery-button', function(e) {
+                e.preventDefault();
+                $(this).siblings('.upkeepify-gallery-input').click();
+            });
         },
 
         /**
@@ -31,13 +42,40 @@
             $('input[type="file"]').each(function() {
                 var $input = $(this);
                 
+                // If it's a gallery input, don't create a separate preview container
+                if ($input.hasClass('upkeepify-gallery-input')) {
+                    $input.on('change', function(e) {
+                        var $cameraInput = $input.siblings('.upkeepify-camera-input');
+                        var $previewContainer = $input.closest('.upkeepify-photo-options').next('.upkeepify-upload-preview');
+                        
+                        if (this.files && this.files.length) {
+                            if (UpkeepifyUtils.setInputFiles($cameraInput[0], Array.prototype.slice.call(this.files))) {
+                                $cameraInput.trigger('change');
+                                $(this).val('');
+                                return;
+                            }
+                        }
+                        self.handleFileSelect($(this), $previewContainer);
+                    });
+                    return;
+                }
+                
                 // Create preview container after input
                 var $previewContainer = self.createPreviewContainer($input);
-                $input.after($previewContainer);
+                
+                if ($input.closest('.upkeepify-photo-options').length) {
+                    $input.closest('.upkeepify-photo-options').after($previewContainer);
+                } else {
+                    $input.after($previewContainer);
+                }
                 
                 // Handle file selection
                 $input.on('change', function(e) {
                     self.handleFileSelect($(this), $previewContainer);
+                    
+                    if ($input.hasClass('upkeepify-camera-input')) {
+                        $input.siblings('.upkeepify-gallery-input').val('');
+                    }
                 });
             });
         },
@@ -103,16 +141,26 @@
                 
                 var files = e.originalEvent.dataTransfer.files;
                 if (files.length > 0) {
-                    var $input = $(this).closest('.upkeepify-upload-preview').prev('input[type="file"]');
-                    $input[0].files = files;
-                    $input.trigger('change');
+                    var $container = $(this).closest('.upkeepify-upload-preview');
+                    var $prev = $container.prev();
+                    var $input = $prev.is('input[type="file"]') ? $prev : $prev.find('.upkeepify-camera-input');
+                    
+                    if ($input.length) {
+                        $input[0].files = files;
+                        $input.trigger('change');
+                    }
                 }
             });
             
             // Click on drop zone triggers file input
             $(document).on('click', '.upkeepify-drop-zone', function(e) {
-                var $input = $(this).closest('.upkeepify-upload-preview').prev('input[type="file"]');
-                $input.click();
+                var $container = $(this).closest('.upkeepify-upload-preview');
+                var $prev = $container.prev();
+                var $input = $prev.is('input[type="file"]') ? $prev : $prev.find('.upkeepify-camera-input');
+                
+                if ($input.length) {
+                    $input.click();
+                }
             });
         },
 
@@ -401,6 +449,9 @@
             $removeBtn.on('click', function(e) {
                 e.preventDefault();
                 $input.val('');
+                if ($input.closest('.upkeepify-photo-options').length) {
+                    $input.closest('.upkeepify-photo-options').find('input[type="file"]').val('');
+                }
                 self.clearPreview($container);
                 self.notifyValidation($input);
             });
@@ -415,8 +466,14 @@
             $(document).on('click', '.upkeepify-remove-file', function(e) {
                 e.preventDefault();
                 var $container = $(this).closest('.upkeepify-upload-preview');
-                var $input = $container.prev('input[type="file"]');
+                var $prev = $container.prev();
+                var $input = $prev.is('input[type="file"]') ? $prev : $prev.find('.upkeepify-camera-input');
+                
                 $input.val('');
+                if ($prev.hasClass('upkeepify-photo-options')) {
+                    $prev.find('input[type="file"]').val('');
+                }
+                
                 self.clearPreview($container);
                 self.notifyValidation($input);
             });

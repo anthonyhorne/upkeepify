@@ -473,7 +473,11 @@ function upkeepify_task_form_shortcode() {
 
     echo '<div class="upkeepify-field upkeepify-photo-field">';
     echo '<label for="task_photo">' . esc_html__('Add a photo', 'upkeepify') . '</label>';
-    echo '<input type="file" id="task_photo" name="task_photo" accept="image/jpeg,image/png,image/gif,image/webp" capture="environment" class="upkeepify-file-input">';
+    echo '<div class="upkeepify-photo-options">';
+    echo '<input type="file" id="task_photo_gallery" name="task_photo" accept="image/*" class="upkeepify-file-input upkeepify-gallery-input" style="display:none;">';
+    echo '<input type="file" id="task_photo" name="task_photo" accept="image/jpeg,image/png,image/gif,image/webp" capture="environment" class="upkeepify-file-input upkeepify-camera-input">';
+    echo '<button type="button" class="upkeepify-gallery-button">' . esc_html__('Choose from gallery', 'upkeepify') . '</button>';
+    echo '</div>';
     echo '</div>';
 
     echo '<div class="upkeepify-field upkeepify-geo-field">';

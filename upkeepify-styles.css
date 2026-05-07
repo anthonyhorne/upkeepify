@@ -426,6 +426,38 @@
     background: #ffffff;
 }
 
+.upkeepify-photo-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.upkeepify-gallery-button {
+    min-height: 42px;
+    padding: 12px;
+    border: 1px solid #cbd5df;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #1f2933;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.upkeepify-gallery-button:hover {
+    border-color: #0f766e;
+    background: #eef7f2;
+}
+
+.upkeepify-gallery-button:active {
+    background-color: #d1d5db;
+    transform: translateY(1px);
+}
+
 .upkeepify-request-form .upkeepify-textarea {
     min-height: 132px;
     resize: vertical;
