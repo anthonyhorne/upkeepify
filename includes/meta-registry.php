@@ -316,6 +316,45 @@ function upkeepify_get_meta_field_registry() {
             'used_by' => array('upkeepify_regenerate_provider_response_token()'),
             'validation' => 'Positive WordPress user ID',
         ),
+        UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_DURATION => array(
+            'constant' => 'UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_DURATION',
+            'type' => 'integer',
+            'default' => 0,
+            'description' => 'Contractor-supplied estimated job duration in days. Optional on estimate (Step 2) and formal quote (Step 3) forms.',
+            'examples' => array(3, 7, 14),
+            'used_by' => array(
+                'upkeepify_admin_post_provider_response_submit()',
+                'upkeepify_admin_post_provider_quote_submit()',
+                'upkeepify_trustee_approval_shortcode()',
+            ),
+            'validation' => 'Positive integer (days)',
+        ),
+        UPKEEPIFY_META_KEY_RESPONSE_ESTIMATED_START_DATE => array(
+            'constant' => 'UPKEEPIFY_META_KEY_RESPONSE_ESTIMATED_START_DATE',
+            'type' => 'string',
+            'default' => '',
+            'description' => 'Contractor-supplied estimated possible start date (Y-m-d). Optional on estimate (Step 2) and formal quote (Step 3) forms.',
+            'examples' => array('2025-03-01'),
+            'used_by' => array(
+                'upkeepify_admin_post_provider_response_submit()',
+                'upkeepify_admin_post_provider_quote_submit()',
+                'upkeepify_trustee_approval_shortcode()',
+            ),
+            'validation' => 'Y-m-d date string',
+        ),
+        UPKEEPIFY_META_KEY_RESPONSE_ESTIMATED_END_DATE => array(
+            'constant' => 'UPKEEPIFY_META_KEY_RESPONSE_ESTIMATED_END_DATE',
+            'type' => 'string',
+            'default' => '',
+            'description' => 'Contractor-supplied estimated end date (Y-m-d). Optional on estimate (Step 2) and formal quote (Step 3) forms.',
+            'examples' => array('2025-03-15'),
+            'used_by' => array(
+                'upkeepify_admin_post_provider_response_submit()',
+                'upkeepify_admin_post_provider_quote_submit()',
+                'upkeepify_trustee_approval_shortcode()',
+            ),
+            'validation' => 'Y-m-d date string',
+        ),
     );
 }
 
