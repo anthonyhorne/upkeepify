@@ -533,6 +533,19 @@ function upkeepify_trustee_approval_shortcode( $atts ) {
             echo '<p><strong>' . esc_html__( 'Earliest Availability:', 'upkeepify' ) . '</strong> ' . esc_html( $availability ) . '</p>';
         }
 
+        $duration   = intval( get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_DURATION, true ) );
+        $start_date = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATED_START_DATE, true );
+        $end_date   = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATED_END_DATE, true );
+        if ( $duration ) {
+            echo '<p><strong>' . esc_html__( 'Estimated Duration:', 'upkeepify' ) . '</strong> ' . esc_html( $duration ) . ' ' . esc_html__( 'days', 'upkeepify' ) . '</p>';
+        }
+        if ( $start_date ) {
+            echo '<p><strong>' . esc_html__( 'Estimated Start Date:', 'upkeepify' ) . '</strong> ' . esc_html( $start_date ) . '</p>';
+        }
+        if ( $end_date ) {
+            echo '<p><strong>' . esc_html__( 'Estimated End Date:', 'upkeepify' ) . '</strong> ' . esc_html( $end_date ) . '</p>';
+        }
+
         if ( $step === UPKEEPIFY_TRUSTEE_STEP_ESTIMATE ) {
             $estimate    = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE, true );
             $est_low     = get_post_meta( $response_id, UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_LOW, true );

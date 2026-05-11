@@ -77,6 +77,9 @@ define('UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_HIGH',       'response_estimate_hig
 define('UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_CONFIDENCE', 'response_estimate_confidence'); // 'low'|'medium'|'high'
 define('UPKEEPIFY_META_KEY_RESPONSE_AVAILABILITY',        'response_availability');        // Y-m-d earliest date
 define('UPKEEPIFY_META_KEY_RESPONSE_NOTE',                'response_note');                // short note ≤500 chars
+define('UPKEEPIFY_META_KEY_RESPONSE_ESTIMATE_DURATION',  'response_estimate_duration');    // int days
+define('UPKEEPIFY_META_KEY_RESPONSE_ESTIMATED_START_DATE', 'response_estimated_start_date'); // Y-m-d
+define('UPKEEPIFY_META_KEY_RESPONSE_ESTIMATED_END_DATE', 'response_estimated_end_date');  // Y-m-d
 
 // Formal quote + completion meta keys (set in Step 3 form)
 define('UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE',        'response_formal_quote');        // numeric formal quote
