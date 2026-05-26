@@ -58,6 +58,24 @@ function upkeepify_get_trustee_approval_url( $task_id, $step, $token ) {
     );
 }
 
+/**
+ * Build a one-click approve URL that resolves via admin-post.php without login.
+ * The token is the auth mechanism; no nonce is used for GET-based handlers.
+ *
+ * @return string
+ */
+function upkeepify_get_trustee_direct_approve_url( $task_id, $step, $token ) {
+	return add_query_arg(
+		array(
+			'action'        => UPKEEPIFY_ADMIN_ACTION_TRUSTEE_DIRECT_APPROVE,
+			'task_id'       => $task_id,
+			'step'          => $step,
+			'trustee_token' => rawurlencode( $token ),
+		),
+		admin_url( 'admin-post.php' )
+	);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Meta accessors
 // ─────────────────────────────────────────────────────────────────────────────
@@ -150,9 +168,10 @@ function upkeepify_initiate_trustee_task_approval( $task_id ) {
 
     $task = get_post( $task_id );
     foreach ( $tokens as $email => $token ) {
-        $url = upkeepify_get_trustee_approval_url( $task_id, $step, $token );
+        $url         = upkeepify_get_trustee_approval_url( $task_id, $step, $token );
+        $approve_url = upkeepify_get_trustee_direct_approve_url( $task_id, $step, $token );
         if ( $url ) {
-            upkeepify_send_trustee_approval_request( $email, $task, $step, $url );
+            upkeepify_send_trustee_approval_request( $email, $task, $step, $url, 0, false, $approve_url );
         }
     }
 
@@ -176,9 +195,10 @@ function upkeepify_initiate_trustee_estimate_approval( $task_id, $response_id ) 
 
     $task = get_post( $task_id );
     foreach ( $tokens as $email => $token ) {
-        $url = upkeepify_get_trustee_approval_url( $task_id, $step, $token );
+        $url         = upkeepify_get_trustee_approval_url( $task_id, $step, $token );
+        $approve_url = upkeepify_get_trustee_direct_approve_url( $task_id, $step, $token );
         if ( $url ) {
-            upkeepify_send_trustee_approval_request( $email, $task, $step, $url, $response_id );
+            upkeepify_send_trustee_approval_request( $email, $task, $step, $url, $response_id, false, $approve_url );
         }
     }
 
@@ -202,9 +222,10 @@ function upkeepify_initiate_trustee_quote_approval( $task_id, $response_id ) {
 
     $task = get_post( $task_id );
     foreach ( $tokens as $email => $token ) {
-        $url = upkeepify_get_trustee_approval_url( $task_id, $step, $token );
+        $url         = upkeepify_get_trustee_approval_url( $task_id, $step, $token );
+        $approve_url = upkeepify_get_trustee_direct_approve_url( $task_id, $step, $token );
         if ( $url ) {
-            upkeepify_send_trustee_approval_request( $email, $task, $step, $url, $response_id );
+            upkeepify_send_trustee_approval_request( $email, $task, $step, $url, $response_id, false, $approve_url );
         }
     }
 
@@ -414,6 +435,44 @@ function upkeepify_admin_post_trustee_approval_submit() {
 }
 add_action( 'admin_post_' . UPKEEPIFY_ADMIN_ACTION_TRUSTEE_APPROVAL_SUBMIT,        'upkeepify_admin_post_trustee_approval_submit' );
 add_action( 'admin_post_nopriv_' . UPKEEPIFY_ADMIN_ACTION_TRUSTEE_APPROVAL_SUBMIT, 'upkeepify_admin_post_trustee_approval_submit' );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HTTP handler — one-click approve (GET, no login required)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function upkeepify_admin_post_trustee_direct_approve() {
+	$task_id = isset( $_GET['task_id'] )       ? absint( wp_unslash( $_GET['task_id'] ) )                     : 0;
+	$step    = isset( $_GET['step'] )           ? sanitize_key( wp_unslash( $_GET['step'] ) )                  : '';
+	$token   = isset( $_GET['trustee_token'] )  ? sanitize_text_field( wp_unslash( $_GET['trustee_token'] ) ) : '';
+
+	$valid_steps = array( UPKEEPIFY_TRUSTEE_STEP_TASK, UPKEEPIFY_TRUSTEE_STEP_ESTIMATE, UPKEEPIFY_TRUSTEE_STEP_QUOTE );
+
+	if ( ! $task_id || ! in_array( $step, $valid_steps, true ) || empty( $token ) ) {
+		wp_die( esc_html__( 'Invalid approval request.', 'upkeepify' ) );
+	}
+
+	$task = get_post( $task_id );
+	if ( ! $task || $task->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS ) {
+		wp_die( esc_html__( 'Task not found.', 'upkeepify' ) );
+	}
+
+	$email = upkeepify_validate_trustee_token( $task_id, $step, $token );
+	if ( ! $email ) {
+		wp_die( esc_html__( 'This approval link is invalid or has already been used.', 'upkeepify' ) );
+	}
+
+	upkeepify_process_trustee_approval( $task_id, $step, $email );
+
+	$settings = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+	$page     = isset( $settings[ UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE ] )
+		? $settings[ UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE ]
+		: home_url();
+
+	wp_safe_redirect( add_query_arg( 'trustee_result', 'approved', $page ) );
+	exit;
+}
+add_action( 'admin_post_' . UPKEEPIFY_ADMIN_ACTION_TRUSTEE_DIRECT_APPROVE,        'upkeepify_admin_post_trustee_direct_approve' );
+add_action( 'admin_post_nopriv_' . UPKEEPIFY_ADMIN_ACTION_TRUSTEE_DIRECT_APPROVE, 'upkeepify_admin_post_trustee_direct_approve' );
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Lifecycle helper
@@ -759,9 +818,10 @@ function upkeepify_maybe_send_trustee_reminders( $task_id, $step, $max_reminders
         if ( isset( $approvals[ $step ][ $email ] ) || isset( $rejections[ $step ][ $email ] ) ) {
             continue;
         }
-        $url = upkeepify_get_trustee_approval_url( $task_id, $step, $token );
+        $url         = upkeepify_get_trustee_approval_url( $task_id, $step, $token );
+        $approve_url = upkeepify_get_trustee_direct_approve_url( $task_id, $step, $token );
         if ( $url ) {
-            upkeepify_send_trustee_approval_request( $email, $task, $step, $url, $response_id, true );
+            upkeepify_send_trustee_approval_request( $email, $task, $step, $url, $response_id, true, $approve_url );
         }
     }
 

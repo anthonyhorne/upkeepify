@@ -567,6 +567,12 @@ function upkeepify_get_default_page_definitions() {
         'shortcode' => '[' . UPKEEPIFY_SHORTCODE_RESIDENT_CONFIRMATION_FORM . ']',
         'setting'  => UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE,
     ),
+    'trustee_approval' => array(
+        'title'    => 'Trustee Approval',
+        'slug'     => 'trustee-approval',
+        'shortcode' => '[' . UPKEEPIFY_SHORTCODE_TRUSTEE_APPROVAL_FORM . ']',
+        'setting'  => UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE,
+    ),
 );
 }
 
@@ -599,6 +605,9 @@ function upkeepify_create_or_reuse_default_page($definition) {
     if (is_wp_error($page_id)) {
         return $page_id;
     }
+
+    // Hide from Appearance > Menus panel — these are system pages, not navigation items.
+    update_post_meta($page_id, '_upkeepify_system_page', '1');
 
     $status = 'created';
     } else {
@@ -705,6 +714,28 @@ function upkeepify_admin_post_create_default_pages() {
     exit;
 }
 add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_CREATE_DEFAULT_PAGES, 'upkeepify_admin_post_create_default_pages');
+
+/**
+ * Exclude system pages from the Appearance > Menus "Pages" picker.
+ * Pages marked with _upkeepify_system_page are internal shortcode containers.
+ */
+function upkeepify_exclude_system_pages_from_nav_args($args) {
+    $system_ids = get_posts(array(
+        'post_type'      => 'page',
+        'post_status'    => 'publish',
+        'meta_key'       => '_upkeepify_system_page', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+        'meta_value'     => '1', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+        'posts_per_page' => 20,
+        'fields'         => 'ids',
+        'no_found_rows'  => true,
+    ));
+    if (!empty($system_ids)) {
+        $existing        = isset($args['exclude']) ? (array) $args['exclude'] : array();
+        $args['exclude'] = array_unique(array_merge($existing, $system_ids));
+    }
+    return $args;
+}
+add_filter('nav_menu_items_page_args', 'upkeepify_exclude_system_pages_from_nav_args');
 
 /**
  * Callback to render checkbox settings fields.

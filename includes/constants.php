@@ -22,7 +22,7 @@ if (!defined('WPINC')) {
  *
  * @since 1.0
  */
-define('UPKEEPIFY_DB_VERSION', 2);
+define('UPKEEPIFY_DB_VERSION', 3);
 
 // Migration/Schema Option Names
 define('UPKEEPIFY_OPTION_DB_VERSION', 'upkeepify_db_version');
@@ -298,7 +298,8 @@ define('UPKEEPIFY_META_KEY_TASK_APPROVED_TASK_BY',        '_upkeepify_approved_t
 
 // Trustee approval query var / action / shortcode / nonce
 define('UPKEEPIFY_QUERY_VAR_TRUSTEE_TOKEN',          'upkeepify_trustee_token');
-define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_APPROVAL_SUBMIT', 'upkeepify_trustee_approval_submit');
+define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_APPROVAL_SUBMIT',  'upkeepify_trustee_approval_submit');
+define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_DIRECT_APPROVE',   'upkeepify_trustee_direct_approve');
 define('UPKEEPIFY_SHORTCODE_TRUSTEE_APPROVAL_FORM',  'upkeepify_trustee_approval');
 define('UPKEEPIFY_NONCE_TRUSTEE_APPROVAL',           'upkeepify_trustee_approval_nonce');
 define('UPKEEPIFY_NONCE_ACTION_TRUSTEE_APPROVAL',    'upkeepify_trustee_approval_action');

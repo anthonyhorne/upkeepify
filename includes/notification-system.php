@@ -368,7 +368,7 @@ function upkeepify_send_contractor_invite( $provider_email, $provider_name, $tas
  * @param bool         $is_reminder   True when this is a follow-up reminder.
  * @return bool
  */
-function upkeepify_send_trustee_approval_request( $trustee_email, $task, $step, $approval_url, $response_id = 0, $is_reminder = false ) {
+function upkeepify_send_trustee_approval_request( $trustee_email, $task, $step, $approval_url, $response_id = 0, $is_reminder = false, $approve_url = '' ) {
     if ( ! is_email( $trustee_email ) || ! $task ) {
         return false;
     }
@@ -519,17 +519,28 @@ function upkeepify_send_trustee_approval_request( $trustee_email, $task, $step, 
         }
     }
 
-    // CTA button
+    // CTA buttons
     $body .= '<div style="margin:24px 0;">';
+    if ( $approve_url ) {
+        $body .= '<a href="' . esc_url( $approve_url ) . '" style="background:#28a745;color:#fff;padding:14px 28px;text-decoration:none;border-radius:4px;display:inline-block;font-size:16px;margin-right:12px;">';
+        $body .= esc_html__( 'Approve', 'upkeepify' );
+        $body .= '</a>';
+    }
     $body .= '<a href="' . esc_url( $approval_url ) . '" style="background:#0073aa;color:#fff;padding:14px 28px;text-decoration:none;border-radius:4px;display:inline-block;font-size:16px;">';
-    $body .= esc_html__( 'Review &amp; Approve / Reject', 'upkeepify' );
+    $body .= esc_html__( 'Review Details', 'upkeepify' );
     $body .= '</a>';
     $body .= '</div>';
+    if ( $approve_url ) {
+        $body .= '<p style="color:#666;font-size:13px;">';
+        $body .= '<a href="' . esc_url( $approval_url ) . '" style="color:#c0392b;">' . esc_html__( 'Reject this request', 'upkeepify' ) . '</a>';
+        $body .= ' &mdash; ' . esc_html__( 'opens the review page where you can confirm the rejection.', 'upkeepify' );
+        $body .= '</p>';
+    }
 
-    $body .= '<p style="color:#999;font-size:12px;">' . esc_html__( 'Or copy this link:', 'upkeepify' ) . '<br>';
+    $body .= '<p style="color:#999;font-size:12px;">' . esc_html__( 'Or copy the review link:', 'upkeepify' ) . '<br>';
     $body .= '<code style="word-break:break-all;">' . esc_url( $approval_url ) . '</code></p>';
     $body .= '<p style="color:#999;font-size:12px;">'
-          . esc_html__( 'This link is unique to you. Do not forward it.', 'upkeepify' )
+          . esc_html__( 'These links are unique to you. Do not forward them.', 'upkeepify' )
           . '</p>';
     $body .= '</div>';
 

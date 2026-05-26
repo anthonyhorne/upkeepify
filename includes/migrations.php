@@ -585,6 +585,76 @@ function upkeepify_rollback_v2_to_v1() {
 }
 
 /**
+ * Create any required pages whose setting URLs are not yet stored.
+ *
+ * Only touches setting keys that have a matching page definition and are
+ * currently empty. Does NOT enable public task logging or change other settings.
+ *
+ * @since 2.1
+ * @return bool True if any pages were created/saved, false if nothing changed.
+ */
+function upkeepify_ensure_required_pages() {
+    if (!function_exists('upkeepify_get_default_page_definitions')) {
+        return false;
+    }
+
+    $definitions = upkeepify_get_default_page_definitions();
+    $settings    = get_option(UPKEEPIFY_OPTION_SETTINGS, array());
+    if (!is_array($settings)) {
+        $settings = array();
+    }
+
+    $changed = false;
+    foreach ($definitions as $definition) {
+        if (empty($definition['setting'])) {
+            continue; // no URL to store, skip
+        }
+        if (!empty($settings[$definition['setting']])) {
+            continue; // already configured
+        }
+        $result = upkeepify_create_or_reuse_default_page($definition);
+        if (is_wp_error($result) || empty($result['url'])) {
+            continue;
+        }
+        $settings[$definition['setting']] = $result['url'];
+        $changed = true;
+    }
+
+    if ($changed) {
+        update_option(UPKEEPIFY_OPTION_SETTINGS, $settings, false);
+        upkeepify_invalidate_cache_group('settings');
+    }
+
+    return $changed;
+}
+
+/**
+ * Migration v2 -> v3
+ *
+ * Creates the Trustee Approval page and any other required pages that are
+ * not yet configured.
+ *
+ * @since 2.1
+ * @return true|WP_Error
+ */
+function upkeepify_migrate_v2_to_v3() {
+    upkeepify_ensure_required_pages();
+    return true;
+}
+
+/**
+ * Rollback v3 -> v2
+ *
+ * Intentionally minimal — does not delete pages created during migration.
+ *
+ * @since 2.1
+ * @return true
+ */
+function upkeepify_rollback_v3_to_v2() {
+    return true;
+}
+
+/**
  * Export settings as JSON.
  *
  * @since 1.0
@@ -953,8 +1023,21 @@ function upkeepify_admin_notice_pending_migrations() {
         return;
     }
 
-    $current = upkeepify_get_current_db_version();
-    if ($current >= UPKEEPIFY_DB_VERSION) {
+    $current          = upkeepify_get_current_db_version();
+    $version_outdated = $current < UPKEEPIFY_DB_VERSION;
+
+    $pages_missing = false;
+    if (function_exists('upkeepify_get_default_page_definitions')) {
+        $settings = upkeepify_get_setting_cached(UPKEEPIFY_OPTION_SETTINGS, array());
+        foreach (upkeepify_get_default_page_definitions() as $def) {
+            if (!empty($def['setting']) && empty($settings[$def['setting']])) {
+                $pages_missing = true;
+                break;
+            }
+        }
+    }
+
+    if (!$version_outdated && !$pages_missing) {
         return;
     }
 
@@ -964,10 +1047,17 @@ function upkeepify_admin_notice_pending_migrations() {
         UPKEEPIFY_NONCE_RUN_MIGRATIONS
     );
 
+    $parts = array();
+    if ($version_outdated) {
+        $parts[] = sprintf('Upkeepify database schema is out of date (current: v%d, required: v%d).', $current, UPKEEPIFY_DB_VERSION);
+    }
+    if ($pages_missing) {
+        $parts[] = 'One or more required Upkeepify pages are missing.';
+    }
+
     echo '<div class="notice notice-warning"><p>';
-    echo esc_html(sprintf('Upkeepify database schema is out of date (current: v%d, required: v%d).', $current, UPKEEPIFY_DB_VERSION));
-    echo ' ';
-    echo '<a class="button button-primary" href="' . esc_url($url) . '">Run Migrations</a>';
+    echo esc_html(implode(' ', $parts));
+    echo ' <a class="button button-primary" href="' . esc_url($url) . '">Upgrade Database</a>';
     echo '</p></div>';
 }
 add_action('admin_notices', 'upkeepify_admin_notice_pending_migrations');
@@ -1298,6 +1388,7 @@ function upkeepify_admin_post_run_migrations() {
 
     upkeepify_setup_database();
     $result = upkeepify_run_migrations();
+    upkeepify_ensure_required_pages();
 
     $redirect = add_query_arg(
         array(
