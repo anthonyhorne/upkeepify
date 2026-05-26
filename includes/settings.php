@@ -1085,8 +1085,52 @@ function upkeepify_setup_wizard_page() {
 add_action('admin_menu', UPKEEPIFY_MENU_SETUP_WIZARD_PAGE);
 
 /**
- * Register System Log menu page.
+ * Handle log CSV download before any output is sent.
  *
+ * Triggered when the System Log page is visited with upkeepify_download_log=1.
+ *
+ * @since 2.0.1
+ */
+function upkeepify_handle_log_download() {
+	if ( ! isset( $_GET['upkeepify_download_log'] ) ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'You do not have permission to download logs.', 'upkeepify' ) );
+	}
+
+	check_admin_referer( 'upkeepify_download_log' );
+
+	$entries  = upkeepify_get_log_entries();
+	$filename = 'upkeepify-log-' . gmdate( 'Y-m-d' ) . '.csv';
+
+	header( 'Content-Type: text/csv; charset=UTF-8' );
+	header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+	header( 'Pragma: no-cache' );
+	header( 'Expires: 0' );
+
+	$output = fopen( 'php://output', 'w' );
+	fputcsv( $output, array( 'Timestamp', 'Type', 'Message', 'Context' ) );
+
+	foreach ( array_reverse( $entries ) as $entry ) {
+		$context = isset( $entry['context'] ) && is_array( $entry['context'] ) && ! empty( $entry['context'] )
+			? wp_json_encode( $entry['context'] )
+			: '';
+		fputcsv( $output, array(
+			isset( $entry['timestamp'] ) ? $entry['timestamp'] : '',
+			isset( $entry['type'] )      ? $entry['type']      : '',
+			isset( $entry['message'] )   ? $entry['message']   : '',
+			$context,
+		) );
+	}
+
+	fclose( $output );
+	exit;
+}
+add_action( 'admin_init', 'upkeepify_handle_log_download' );
+
+/**
  * Adds a submenu page under Maintenance Tasks for viewing the persistent system log.
  *
  * @since 1.4.0
@@ -1137,10 +1181,15 @@ function upkeepify_system_log_page() {
         </p>
 
         <?php if ($count > 0) : ?>
-            <form method="post" onsubmit="return confirm('<?php echo esc_attr__('Are you sure you want to clear all log entries?', 'upkeepify'); ?>');">
-                <?php wp_nonce_field('upkeepify_clear_log'); ?>
-                <input type="submit" name="upkeepify_clear_log" class="button" value="<?php esc_attr_e('Clear Log', 'upkeepify'); ?>">
-            </form>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=' . UPKEEPIFY_MENU_SYSTEM_LOG_PAGE . '&upkeepify_download_log=1' ), 'upkeepify_download_log' ) ); ?>" class="button">
+                    <?php esc_html_e( 'Download CSV', 'upkeepify' ); ?>
+                </a>
+                <form method="post" onsubmit="return confirm('<?php echo esc_attr__('Are you sure you want to clear all log entries?', 'upkeepify'); ?>');">
+                    <?php wp_nonce_field('upkeepify_clear_log'); ?>
+                    <input type="submit" name="upkeepify_clear_log" class="button" value="<?php esc_attr_e('Clear Log', 'upkeepify'); ?>">
+                </form>
+            </div>
 
             <table class="widefat striped" style="margin-top: 15px;">
                 <thead>
