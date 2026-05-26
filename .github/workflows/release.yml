@@ -164,3 +164,34 @@ jobs:
             --title "Upkeepify v${{ steps.version.outputs.version }}" \
             --generate-notes \
             --latest
+
+      - name: Prune old releases
+        if: steps.scope.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Keep last 2 major version lines, last 3 releases per major; delete the rest.
+          RELEASES=$(gh release list --limit 200 \
+            --json tagName,isDraft,isPrerelease \
+            --jq '.[] | select(.isDraft == false and .isPrerelease == false) | .tagName' | \
+            grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -rV)
+
+          declare -A major_count
+          majors_seen=0
+
+          while IFS= read -r tag; do
+            [[ -z "$tag" ]] && continue
+            major="${tag%%.*}"
+
+            if [[ -z "${major_count[$major]+_}" ]]; then
+              major_count[$major]=0
+              majors_seen=$((majors_seen + 1))
+            fi
+
+            major_count[$major]=$((major_count[$major] + 1))
+
+            if [[ $majors_seen -gt 2 || ${major_count[$major]} -gt 3 ]]; then
+              echo "Pruning $tag"
+              gh release delete "$tag" --yes --cleanup-tag || true
+            fi
+          done <<< "$RELEASES"
