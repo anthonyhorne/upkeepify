@@ -86,7 +86,7 @@ function upkeepify_init_plugin_settings() {
     // SMTP Option
 add_settings_field(
     UPKEEPIFY_SETTING_SMTP_OPTION,
-    __('Use Built-in SMTP Provider', 'upkeepify'),
+    __('Configure Custom SMTP', 'upkeepify'),
     'upkeepify_checkbox_field_callback',
     UPKEEPIFY_OPTION_SETTINGS,
     'upkeepify_general_settings',

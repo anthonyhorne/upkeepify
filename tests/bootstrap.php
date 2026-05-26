@@ -748,5 +748,7 @@ require_once $plugin_dir . 'data-validation.php';
 require_once $plugin_dir . 'utility-functions.php';
 require_once $plugin_dir . 'upload-handlers.php';
 require_once $plugin_dir . 'caching.php';
+require_once $plugin_dir . 'logging.php';
+require_once $plugin_dir . 'trustee-approval.php';
 require_once $plugin_dir . 'notification-system.php';
 require_once $plugin_dir . 'migrations.php';

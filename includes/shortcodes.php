@@ -580,7 +580,9 @@ function upkeepify_handle_task_form_submission() {
         $task_photo     = array(
             'name'     => isset( $task_photo_raw['name'] ) ? sanitize_file_name( $task_photo_raw['name'] ) : '',
             'type'     => isset( $task_photo_raw['type'] ) ? sanitize_mime_type( $task_photo_raw['type'] ) : '',
-            'tmp_name' => isset( $task_photo_raw['tmp_name'] ) ? sanitize_text_field( $task_photo_raw['tmp_name'] ) : '',
+            // tmp_name is a PHP-generated server path — do not run sanitize_text_field on it.
+            // Sanitizing the path breaks is_uploaded_file() checks inside wp_handle_upload.
+            'tmp_name' => isset( $task_photo_raw['tmp_name'] ) ? (string) $task_photo_raw['tmp_name'] : '',
             'error'    => isset( $task_photo_raw['error'] ) ? intval( $task_photo_raw['error'] ) : UPLOAD_ERR_NO_FILE,
             'size'     => isset( $task_photo_raw['size'] ) ? absint( $task_photo_raw['size'] ) : 0,
         );
@@ -588,18 +590,14 @@ function upkeepify_handle_task_form_submission() {
         // Validate upload using scoped validation
         $validation = upkeepify_validate_upload($task_photo);
         if (is_wp_error($validation)) {
-            if (WP_DEBUG) {
-                error_log('Upkeepify Upload Validation Error: ' . $validation->get_error_message());
-            }
+            upkeepify_log( 'Upload validation failed: ' . $validation->get_error_message(), 'error', array( 'file' => $task_photo['name'] ) );
             upkeepify_redirect_task_form_status( 'error', 'upload_invalid' );
         }
 
         // Handle the upload
         $upload_result = wp_handle_upload($task_photo, array('test_form' => false));
         if (isset($upload_result['error'])) {
-            if (WP_DEBUG) {
-                error_log('Upkeepify Upload Error: ' . $upload_result['error']);
-            }
+            upkeepify_log( 'wp_handle_upload failed: ' . $upload_result['error'], 'error', array( 'file' => $task_photo['name'] ) );
             upkeepify_redirect_task_form_status( 'error', 'upload_invalid' );
         }
 
