@@ -1,6 +1,6 @@
 {
   "name": "upkeepify",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Build tooling for Upkeepify WordPress plugin",
   "private": true,
   "scripts": {
