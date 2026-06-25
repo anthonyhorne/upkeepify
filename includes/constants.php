@@ -127,6 +127,17 @@ define('UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_BY', '_upkeepify_approved_esti
 define('UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_RESPONSE_ID', '_upkeepify_approved_quote_response_id'); // provider response approved for work/completion
 define('UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_AT', '_upkeepify_approved_quote_at'); // Unix timestamp of quote approval
 define('UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_BY', '_upkeepify_approved_quote_by'); // WP user ID that approved quote
+
+// Manual lifecycle override (trustee puts a whole task On Hold or Cancels it).
+define('UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS',      '_upkeepify_manual_status');      // on-hold|rejected (empty when active)
+define('UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_AT',   '_upkeepify_manual_status_at');   // Unix timestamp the override was applied
+define('UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_BY',   '_upkeepify_manual_status_by');   // WP user ID that applied the override
+define('UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_NOTE', '_upkeepify_manual_status_note'); // optional trustee note (≤500 chars)
+
+// Manual override values.
+define('UPKEEPIFY_MANUAL_STATUS_ON_HOLD',   'on-hold');
+define('UPKEEPIFY_MANUAL_STATUS_CANCELLED', 'rejected');
+
 define('UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE',  'upkeepify_resident_confirmation_page');
 define('UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN',            'upkeepify_resident_token');
 define('UPKEEPIFY_SHORTCODE_RESIDENT_CONFIRMATION_FORM', 'upkeepify_resident_confirmation_form');
@@ -250,6 +261,7 @@ define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_APPROVAL', 'upkeepify_trustee_l
 define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_FOLLOWUP', 'upkeepify_trustee_lifecycle_followup');
 define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_TOKEN_MANAGE', 'upkeepify_provider_token_manage');
 define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_MANUAL_CLOSE', 'upkeepify_trustee_manual_close');
+define('UPKEEPIFY_ADMIN_ACTION_TASK_MANUAL_STATUS', 'upkeepify_task_manual_status');
 define('UPKEEPIFY_ADMIN_ACTION_RUN_MIGRATIONS', 'upkeepify_run_migrations');
 define('UPKEEPIFY_ADMIN_ACTION_REPAIR_SCHEMA', 'upkeepify_repair_schema');
 define('UPKEEPIFY_ADMIN_ACTION_RESET_DATABASE', 'upkeepify_reset_database');

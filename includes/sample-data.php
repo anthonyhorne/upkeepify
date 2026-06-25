@@ -56,6 +56,7 @@ function upkeepify_insert_sample_data() {
 
         // Insert Sample Statuses
         $statuses = array(
+            UPKEEPIFY_TASK_STATUS_PENDING_TASK_APPROVAL,
             UPKEEPIFY_TASK_STATUS_OPEN,
             UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL,
             UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL,
@@ -64,6 +65,7 @@ function upkeepify_insert_sample_data() {
             UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW,
             UPKEEPIFY_TASK_STATUS_COMPLETED,
             UPKEEPIFY_TASK_STATUS_ON_HOLD,
+            UPKEEPIFY_TASK_STATUS_REJECTED,
         );
         foreach ($statuses as $status) {
             if (!term_exists($status, UPKEEPIFY_TAXONOMY_TASK_STATUS)) {
