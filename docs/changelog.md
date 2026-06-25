@@ -4,6 +4,18 @@ All notable changes to Upkeepify are documented here.
 
 ---
 
+## 2.1.0 — 2026-06-25
+
+### Added
+- Trustee task status controls to put a whole task **On Hold** or **Cancel** it (and resume it later); the manual override wins over the automatic lifecycle status so parked/cancelled jobs don't get lost
+- **Job sharing** between two complexes/HOAs: a task can be flagged as shared with a partner complex whose trustees then receive informational progress emails (share, estimate approval, quote approval, completion), plus Shared Complex Name and Shared Complex Trustee Emails settings
+- Colour-coded **status key** (green = on track/done, orange = waiting/on hold, red = needs attention/cancelled) with status badges and a legend in the wp-admin Lifecycle column and the `[upkeepify_list_tasks]` table
+- `[upkeepify_status_key]` shortcode to render the status legend on its own
+
+### Changed
+- Lifecycle status options now include Open, Completed, and On Hold so the admin status filter covers held and cancelled tasks
+- Lifecycle status terms are seeded on demand so On Hold / Rejected always apply
+
 ## 1.2.0 — 2026-04-21
 
 ### Added
