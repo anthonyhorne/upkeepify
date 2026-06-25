@@ -138,6 +138,9 @@ define('UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_NOTE', '_upkeepify_manual_status_n
 define('UPKEEPIFY_MANUAL_STATUS_ON_HOLD',   'on-hold');
 define('UPKEEPIFY_MANUAL_STATUS_CANCELLED', 'rejected');
 
+// Shared job (two complexes/HOAs collaborating on one task).
+define('UPKEEPIFY_META_KEY_TASK_SHARED', '_upkeepify_shared_job'); // '1' when the task is shared with the partner complex
+
 define('UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE',  'upkeepify_resident_confirmation_page');
 define('UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN',            'upkeepify_resident_token');
 define('UPKEEPIFY_SHORTCODE_RESIDENT_CONFIRMATION_FORM', 'upkeepify_resident_confirmation_form');
@@ -262,6 +265,7 @@ define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_FOLLOWUP', 'upkeepify_trustee_l
 define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_TOKEN_MANAGE', 'upkeepify_provider_token_manage');
 define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_MANUAL_CLOSE', 'upkeepify_trustee_manual_close');
 define('UPKEEPIFY_ADMIN_ACTION_TASK_MANUAL_STATUS', 'upkeepify_task_manual_status');
+define('UPKEEPIFY_ADMIN_ACTION_TASK_SHARE_TOGGLE', 'upkeepify_task_share_toggle');
 define('UPKEEPIFY_ADMIN_ACTION_RUN_MIGRATIONS', 'upkeepify_run_migrations');
 define('UPKEEPIFY_ADMIN_ACTION_REPAIR_SCHEMA', 'upkeepify_repair_schema');
 define('UPKEEPIFY_ADMIN_ACTION_RESET_DATABASE', 'upkeepify_reset_database');
@@ -326,6 +330,10 @@ define('UPKEEPIFY_SETTING_TRUSTEE_REJECT_KILLS',       'upkeepify_trustee_reject
 define('UPKEEPIFY_SETTING_TRUSTEE_REMINDER_COUNT',     'upkeepify_trustee_reminder_count');
 define('UPKEEPIFY_SETTING_TRUSTEE_REMINDER_INTERVAL',  'upkeepify_trustee_reminder_interval');
 define('UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE',      'upkeepify_trustee_approval_page');
+
+// Shared-job (partner complex) settings.
+define('UPKEEPIFY_SETTING_SHARED_COMPLEX_NAME',   'upkeepify_shared_complex_name');   // label for the partner HOA/complex
+define('UPKEEPIFY_SETTING_SHARED_TRUSTEE_EMAILS', 'upkeepify_shared_trustee_emails'); // partner complex trustee emails (one per line / comma-separated)
 
 // System Log
 define('UPKEEPIFY_OPTION_SYSTEM_LOG', 'upkeepify_system_log');

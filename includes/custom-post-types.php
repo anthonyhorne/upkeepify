@@ -977,6 +977,31 @@ function upkeepify_render_task_status_control_panel($task_id) {
         echo '</form>';
     }
 
+    // Shared-job toggle (notifies the partner complex's trustees).
+    if (function_exists('upkeepify_get_shared_trustee_emails')) {
+        $shared         = upkeepify_task_is_shared($task_id);
+        $partner_name   = upkeepify_get_shared_complex_name();
+        $partner_emails = upkeepify_get_shared_trustee_emails();
+
+        echo '<hr style="margin:12px 0;border:none;border-top:1px solid #f0f0f1;">';
+        if (empty($partner_emails)) {
+            echo '<p style="color:#646970;">' . esc_html__('Job sharing is unavailable until partner-complex trustee emails are set under Settings → Trustee Approval Settings.', 'upkeepify') . '</p>';
+        } else {
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+            echo '<input type="hidden" name="action" value="' . esc_attr(UPKEEPIFY_ADMIN_ACTION_TASK_SHARE_TOGGLE) . '">';
+            echo '<input type="hidden" name="task_id" value="' . esc_attr($task_id) . '">';
+            wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+            if ($shared) {
+                echo '<p>' . sprintf(esc_html__('This job is shared with %s. Their trustees are notified of progress.', 'upkeepify'), '<strong>' . esc_html($partner_name) . '</strong>') . '</p>';
+                echo '<button type="submit" name="share_action" value="unshare" class="button">' . esc_html__('Stop sharing this job', 'upkeepify') . '</button>';
+            } else {
+                echo '<p>' . sprintf(esc_html__('Share this job with %s so both complexes are kept informed.', 'upkeepify'), '<strong>' . esc_html($partner_name) . '</strong>') . '</p>';
+                echo '<button type="submit" name="share_action" value="share" class="button">' . esc_html__('Share this job', 'upkeepify') . '</button>';
+            }
+            echo '</form>';
+        }
+    }
+
     echo '</div>';
 }
 
@@ -1019,6 +1044,10 @@ function upkeepify_trustee_lifecycle_meta_box_callback($post) {
             echo '<div class="notice notice-success inline"><p>' . esc_html__('Task cancelled.', 'upkeepify') . '</p></div>';
         } elseif ($notice === 'task_resumed') {
             echo '<div class="notice notice-success inline"><p>' . esc_html__('Task resumed.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'job_shared') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Job shared with the partner complex.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'job_unshared') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Job sharing stopped.', 'upkeepify') . '</p></div>';
         }
     }
 
@@ -1451,6 +1480,9 @@ function upkeepify_admin_post_trustee_lifecycle_approval() {
         update_post_meta($task_id, UPKEEPIFY_META_KEY_ASSIGNED_SERVICE_PROVIDER, intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true)));
         upkeepify_sync_task_lifecycle_status($task_id);
         upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id, 'estimate');
+        if (function_exists('upkeepify_notify_shared_trustees')) {
+            upkeepify_notify_shared_trustees($task_id, __('Estimate approved on a shared job', 'upkeepify'));
+        }
         $redirect_status = 'estimate_approved';
     } elseif ($approval_type === 'quote') {
         $formal_quote = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true);
@@ -1470,6 +1502,9 @@ function upkeepify_admin_post_trustee_lifecycle_approval() {
         upkeepify_sync_task_lifecycle_status($task_id);
         upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id, 'quote');
         upkeepify_send_quote_audit_email($task_id, $response_id);
+        if (function_exists('upkeepify_notify_shared_trustees')) {
+            upkeepify_notify_shared_trustees($task_id, __('Quote approved on a shared job', 'upkeepify'));
+        }
         $redirect_status = 'quote_approved';
     } else {
         wp_die(esc_html__('Unknown lifecycle approval type.', 'upkeepify'));
@@ -1639,6 +1674,54 @@ function upkeepify_admin_post_task_manual_status() {
     exit;
 }
 add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_TASK_MANUAL_STATUS, 'upkeepify_admin_post_task_manual_status');
+
+/**
+ * Handle the shared-job toggle from the lifecycle panel.
+ *
+ * @since 2.1
+ * @hook admin_post_{UPKEEPIFY_ADMIN_ACTION_TASK_SHARE_TOGGLE}
+ */
+function upkeepify_admin_post_task_share_toggle() {
+    $task_id      = isset($_POST['task_id']) ? absint(wp_unslash($_POST['task_id'])) : 0;
+    $share_action = isset($_POST['share_action']) ? sanitize_key(wp_unslash($_POST['share_action'])) : '';
+
+    if (!$task_id || !current_user_can('edit_post', $task_id)) {
+        wp_die(esc_html__('Insufficient permissions.', 'upkeepify'));
+    }
+
+    check_admin_referer(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+
+    $task = get_post($task_id);
+    if (!$task || $task->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS) {
+        wp_die(esc_html__('Invalid shared-job request.', 'upkeepify'));
+    }
+
+    if ($share_action === 'share') {
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_SHARED, '1');
+        if (function_exists('upkeepify_notify_shared_trustees')) {
+            upkeepify_notify_shared_trustees($task_id, __('A job has been shared with your complex', 'upkeepify'));
+        }
+        $redirect_status = 'job_shared';
+    } elseif ($share_action === 'unshare') {
+        delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_SHARED);
+        $redirect_status = 'job_unshared';
+    } else {
+        wp_die(esc_html__('Unknown shared-job action.', 'upkeepify'));
+    }
+
+    $redirect = add_query_arg(
+        array(
+            'post'                => $task_id,
+            'action'              => 'edit',
+            'upkeepify_lifecycle' => $redirect_status,
+        ),
+        admin_url('post.php')
+    );
+
+    wp_safe_redirect($redirect);
+    exit;
+}
+add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_TASK_SHARE_TOGGLE, 'upkeepify_admin_post_task_share_toggle');
 
 /**
  * Handle contractor response token revoke/regenerate actions.

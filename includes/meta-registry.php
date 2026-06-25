@@ -272,6 +272,19 @@ function upkeepify_get_meta_field_registry() {
             ),
             'validation' => 'Plain text up to 500 characters',
         ),
+        UPKEEPIFY_META_KEY_TASK_SHARED => array(
+            'constant' => 'UPKEEPIFY_META_KEY_TASK_SHARED',
+            'type' => 'string',
+            'default' => '',
+            'description' => "'1' when the task is shared with the partner complex so its trustees receive progress updates.",
+            'examples' => array('1'),
+            'used_by' => array(
+                'upkeepify_task_is_shared()',
+                'upkeepify_notify_shared_trustees()',
+                'upkeepify_render_task_status_control_panel()',
+            ),
+            'validation' => "'1' or empty",
+        ),
         UPKEEPIFY_META_KEY_RESPONSE_QUOTE_ATTACHMENTS => array(
             'constant' => 'UPKEEPIFY_META_KEY_RESPONSE_QUOTE_ATTACHMENTS',
             'type' => 'integer[]',

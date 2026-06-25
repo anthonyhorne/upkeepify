@@ -1816,6 +1816,10 @@ function upkeepify_admin_post_provider_completion_submit() {
         upkeepify_sync_task_lifecycle_status( $task_id );
     }
 
+    if ( $task_id && function_exists( 'upkeepify_notify_shared_trustees' ) ) {
+        upkeepify_notify_shared_trustees( $task_id, __( 'Work completed on a shared job', 'upkeepify' ) );
+    }
+
     // Notify trustee — resident confirmation (Step 4) will be triggered from admin.
     $task_post = $task_id ? get_post( $task_id ) : null;
     if ( $task_post ) {
