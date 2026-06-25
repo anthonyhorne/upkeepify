@@ -1178,13 +1178,107 @@ function upkeepify_set_task_status_by_name($task_id, $status_name) {
 function upkeepify_get_lifecycle_status_options() {
     return array(
         UPKEEPIFY_TASK_STATUS_SLUG_PENDING_TASK_APPROVAL           => UPKEEPIFY_TASK_STATUS_PENDING_TASK_APPROVAL,
+        UPKEEPIFY_TASK_STATUS_SLUG_OPEN                            => UPKEEPIFY_TASK_STATUS_OPEN,
         UPKEEPIFY_TASK_STATUS_SLUG_PENDING_ESTIMATE_APPROVAL       => UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL,
         UPKEEPIFY_TASK_STATUS_SLUG_PENDING_QUOTE_APPROVAL          => UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL,
         UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_COMPLETION             => UPKEEPIFY_TASK_STATUS_AWAITING_COMPLETION,
         UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_RESIDENT_CONFIRMATION  => UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION,
         UPKEEPIFY_TASK_STATUS_SLUG_NEEDS_REVIEW                    => UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW,
+        UPKEEPIFY_TASK_STATUS_SLUG_COMPLETED                       => UPKEEPIFY_TASK_STATUS_COMPLETED,
+        UPKEEPIFY_TASK_STATUS_SLUG_ON_HOLD                         => UPKEEPIFY_TASK_STATUS_ON_HOLD,
         UPKEEPIFY_TASK_STATUS_SLUG_REJECTED                        => UPKEEPIFY_TASK_STATUS_REJECTED,
     );
+}
+
+/**
+ * Map every lifecycle status to a traffic-light bucket and colour.
+ *
+ * Buckets:
+ *  - green  : on track / done (open, awaiting completion, completed)
+ *  - orange : waiting on someone / parked (approvals pending, awaiting resident, on hold)
+ *  - red    : needs attention / stalled / cancelled (needs review, rejected)
+ *
+ * @since 2.1
+ * @return array<string,array{color:string,bucket:string}> Keyed by status name.
+ */
+function upkeepify_get_status_colour_map() {
+    $green  = '#46b450';
+    $orange = '#f0a000';
+    $red    = '#dc3232';
+
+    return array(
+        UPKEEPIFY_TASK_STATUS_OPEN                          => array('color' => $green,  'bucket' => 'green'),
+        UPKEEPIFY_TASK_STATUS_AWAITING_COMPLETION           => array('color' => $green,  'bucket' => 'green'),
+        UPKEEPIFY_TASK_STATUS_COMPLETED                     => array('color' => $green,  'bucket' => 'green'),
+        UPKEEPIFY_TASK_STATUS_PENDING_TASK_APPROVAL         => array('color' => $orange, 'bucket' => 'orange'),
+        UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL     => array('color' => $orange, 'bucket' => 'orange'),
+        UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL        => array('color' => $orange, 'bucket' => 'orange'),
+        UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION => array('color' => $orange, 'bucket' => 'orange'),
+        UPKEEPIFY_TASK_STATUS_ON_HOLD                       => array('color' => $orange, 'bucket' => 'orange'),
+        UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW                  => array('color' => $red,    'bucket' => 'red'),
+        UPKEEPIFY_TASK_STATUS_REJECTED                      => array('color' => $red,    'bucket' => 'red'),
+    );
+}
+
+/**
+ * Resolve the traffic-light colour for a status name.
+ *
+ * @since 2.1
+ * @param string $status_name Lifecycle status display name.
+ * @return string Hex colour; neutral grey when the status is unknown.
+ */
+function upkeepify_get_status_colour($status_name) {
+    $map = upkeepify_get_status_colour_map();
+    return isset($map[$status_name]) ? $map[$status_name]['color'] : '#8a8a8a';
+}
+
+/**
+ * Render a colour-coded status badge (self-contained inline styles so it works
+ * identically in wp-admin lists and on the front-end).
+ *
+ * @since 2.1
+ * @param string $status_name Lifecycle status display name.
+ * @return string Badge HTML, or an em dash when empty.
+ */
+function upkeepify_render_status_badge($status_name) {
+    $status_name = (string) $status_name;
+    if ($status_name === '') {
+        return '&mdash;';
+    }
+
+    $color = upkeepify_get_status_colour($status_name);
+
+    return '<span class="upkeepify-status-badge" style="display:inline-block;padding:2px 10px;border-radius:10px;'
+        . 'font-size:12px;font-weight:600;line-height:1.6;color:#fff;background:' . esc_attr($color) . ';">'
+        . esc_html($status_name) . '</span>';
+}
+
+/**
+ * Render the colour key/legend explaining the status badges.
+ *
+ * @since 2.1
+ * @return string Legend HTML.
+ */
+function upkeepify_render_status_legend() {
+    $buckets = array(
+        'green'  => __('On track / done', 'upkeepify'),
+        'orange' => __('Waiting / on hold', 'upkeepify'),
+        'red'    => __('Needs attention / cancelled', 'upkeepify'),
+    );
+
+    $colors = array('green' => '#46b450', 'orange' => '#f0a000', 'red' => '#dc3232');
+
+    $out  = '<div class="upkeepify-status-legend" style="margin:8px 0;font-size:12px;line-height:2;">';
+    $out .= '<strong style="margin-right:10px;">' . esc_html__('Status key:', 'upkeepify') . '</strong>';
+    foreach ($buckets as $bucket => $label) {
+        $out .= '<span style="display:inline-block;margin-right:16px;white-space:nowrap;">';
+        $out .= '<span style="width:12px;height:12px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:6px;background:' . esc_attr($colors[$bucket]) . ';"></span>';
+        $out .= esc_html($label);
+        $out .= '</span>';
+    }
+    $out .= '</div>';
+
+    return $out;
 }
 
 /**
