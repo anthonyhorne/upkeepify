@@ -256,6 +256,62 @@ function upkeepify_send_email_notification($message, $type, $data = array()) {
 }
 
 /**
+ * Send an informational update to the partner complex's trustees for a shared job.
+ *
+ * Used so both HOAs/complexes are kept in the loop on a shared task. These are
+ * FYI emails only — the partner trustees do not act via these messages.
+ *
+ * @since 2.1
+ * @param int    $task_id     Maintenance task post ID.
+ * @param string $event_label Short description of what happened.
+ * @return bool True when at least one email was sent.
+ */
+function upkeepify_notify_shared_trustees($task_id, $event_label) {
+    if (!function_exists('upkeepify_task_is_shared') || !upkeepify_task_is_shared($task_id)) {
+        return false;
+    }
+
+    $recipients = upkeepify_get_shared_trustee_emails();
+    if (empty($recipients)) {
+        return false;
+    }
+
+    $task = get_post($task_id);
+    if (!$task || $task->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS) {
+        return false;
+    }
+
+    $status    = function_exists('upkeepify_get_task_lifecycle_status_name')
+        ? upkeepify_get_task_lifecycle_status_name($task_id)
+        : '';
+    $site_name = get_bloginfo('name');
+    $admin_url = admin_url('post.php?post=' . intval($task_id) . '&action=edit');
+
+    $subject = sprintf(__('[%1$s] Shared job update: %2$s', 'upkeepify'), $site_name, $task->post_title);
+
+    $body  = '<div style="font-family:Arial,sans-serif;max-width:600px;">';
+    $body .= '<h2>' . esc_html__('Shared Job Update', 'upkeepify') . '</h2>';
+    $body .= '<p>' . esc_html($event_label) . '.</p>';
+    $body .= '<p><strong>' . esc_html__('Job:', 'upkeepify') . '</strong> ' . esc_html($task->post_title) . '</p>';
+    if ($status !== '') {
+        $body .= '<p><strong>' . esc_html__('Current status:', 'upkeepify') . '</strong> ' . esc_html($status) . '</p>';
+    }
+    $body .= '<p>' . sprintf(esc_html__('Shared from %s.', 'upkeepify'), esc_html($site_name)) . '</p>';
+    $body .= '<p><a href="' . esc_url($admin_url) . '">' . esc_html__('View the job record', 'upkeepify') . '</a></p>';
+    $body .= '</div>';
+
+    $sent = wp_mail($recipients, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
+
+    if (!$sent) {
+        error_log('Upkeepify Shared Job Notice Error: wp_mail() failed for task ID ' . $task_id . ' with subject: ' . $subject);
+    } elseif (WP_DEBUG) {
+        error_log('Upkeepify Shared Job Notice Success: Sent to ' . implode(', ', $recipients) . ' for task ID ' . $task_id);
+    }
+
+    return $sent;
+}
+
+/**
  * Send a tokenized job invitation email to a contractor.
  *
  * Called when a maintenance task is published and a matching provider response

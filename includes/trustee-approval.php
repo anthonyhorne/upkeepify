@@ -32,6 +32,42 @@ function upkeepify_trustee_approval_enabled() {
     return ! empty( upkeepify_get_trustee_emails() );
 }
 
+/**
+ * Trustee emails for the partner complex/HOA a job can be shared with.
+ *
+ * @since 2.1
+ * @return string[] Valid partner trustee email addresses.
+ */
+function upkeepify_get_shared_trustee_emails() {
+    $settings = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+    $raw      = isset( $settings[ UPKEEPIFY_SETTING_SHARED_TRUSTEE_EMAILS ] ) ? $settings[ UPKEEPIFY_SETTING_SHARED_TRUSTEE_EMAILS ] : '';
+    $emails   = array_filter( array_map( 'trim', preg_split( '/[\r\n,]+/', $raw ) ), 'is_email' );
+    return array_values( $emails );
+}
+
+/**
+ * Display name for the partner complex (falls back to a generic label).
+ *
+ * @since 2.1
+ * @return string
+ */
+function upkeepify_get_shared_complex_name() {
+    $settings = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
+    $name     = isset( $settings[ UPKEEPIFY_SETTING_SHARED_COMPLEX_NAME ] ) ? trim( (string) $settings[ UPKEEPIFY_SETTING_SHARED_COMPLEX_NAME ] ) : '';
+    return $name !== '' ? $name : __( 'the partner complex', 'upkeepify' );
+}
+
+/**
+ * Whether a task is flagged as shared with the partner complex.
+ *
+ * @since 2.1
+ * @param int $task_id Maintenance task post ID.
+ * @return bool
+ */
+function upkeepify_task_is_shared( $task_id ) {
+    return get_post_meta( $task_id, UPKEEPIFY_META_KEY_TASK_SHARED, true ) === '1';
+}
+
 function upkeepify_get_trustee_required_approvals() {
     $settings = upkeepify_get_setting_cached( UPKEEPIFY_OPTION_SETTINGS, array() );
     $count    = isset( $settings[ UPKEEPIFY_SETTING_TRUSTEE_REQUIRED_APPROVALS ] )

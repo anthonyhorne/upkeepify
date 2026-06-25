@@ -249,7 +249,12 @@ function upkeepify_validate_settings($settings) {
                 break;
 
             case UPKEEPIFY_SETTING_TRUSTEE_EMAILS:
+            case UPKEEPIFY_SETTING_SHARED_TRUSTEE_EMAILS:
                 $sanitized[$key] = sanitize_textarea_field((string) $value);
+                break;
+
+            case UPKEEPIFY_SETTING_SHARED_COMPLEX_NAME:
+                $sanitized[$key] = sanitize_text_field((string) $value);
                 break;
 
             case UPKEEPIFY_SETTING_TRUSTEE_REQUIRED_APPROVALS:
