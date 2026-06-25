@@ -4,7 +4,7 @@ Tags: maintenance, task-management, facility-management, HOA, property-managemen
 Requires at least: 5.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 2.0.3
+Stable tag: 2.1.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -103,6 +103,12 @@ Yes. Administrators can export all data via **Maintenance Tasks → Database Hea
 7. **Database Health Dashboard** — Backup, restore, and manage plugin data
 
 == Changelog ==
+
+= 2.1.0 - June 2026 =
+* Added trustee controls to put a whole task On Hold or Cancel it, and resume it later
+* Added the ability to share a job with a partner complex/HOA so both estates are notified of progress
+* Added a colour-coded status key (green/orange/red) with badges and a legend in the admin and front-end task lists
+* Added the [upkeepify_status_key] shortcode for the standalone status legend
 
 = 1.2.0 - April 2026 =
 * Added a visible plugin version label on the public task logging form
