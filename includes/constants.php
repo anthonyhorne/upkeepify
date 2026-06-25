@@ -191,6 +191,7 @@ define('UPKEEPIFY_SHORTCODE_TASKS_BY_PROVIDER', 'upkeepify_tasks_by_provider');
 define('UPKEEPIFY_SHORTCODE_TASKS_BY_STATUS', 'upkeepify_tasks_by_status');
 define('UPKEEPIFY_SHORTCODE_TASK_SUMMARY', 'upkeepify_task_summary');
 define('UPKEEPIFY_SHORTCODE_TASK_CALENDAR', 'upkeepify_task_calendar');
+define('UPKEEPIFY_SHORTCODE_STATUS_KEY', 'upkeepify_status_key');
 
 // Nonce Names
 define('UPKEEPIFY_NONCE_NEAREST_UNIT', 'upkeepify_nearest_unit_nonce');
@@ -237,11 +238,14 @@ define('UPKEEPIFY_TASK_STATUS_COMPLETED', 'Completed');
 define('UPKEEPIFY_TASK_STATUS_ON_HOLD', 'On Hold');
 define('UPKEEPIFY_TASK_STATUS_REJECTED', 'Rejected');
 define('UPKEEPIFY_TASK_STATUS_SLUG_PENDING_TASK_APPROVAL', 'pending-task-approval');
+define('UPKEEPIFY_TASK_STATUS_SLUG_OPEN', 'open');
 define('UPKEEPIFY_TASK_STATUS_SLUG_PENDING_ESTIMATE_APPROVAL', 'pending-estimate-approval');
 define('UPKEEPIFY_TASK_STATUS_SLUG_PENDING_QUOTE_APPROVAL', 'pending-quote-approval');
 define('UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_COMPLETION', 'awaiting-completion');
 define('UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_RESIDENT_CONFIRMATION', 'awaiting-resident-confirmation');
 define('UPKEEPIFY_TASK_STATUS_SLUG_NEEDS_REVIEW', 'needs-review');
+define('UPKEEPIFY_TASK_STATUS_SLUG_COMPLETED', 'completed');
+define('UPKEEPIFY_TASK_STATUS_SLUG_ON_HOLD', 'on-hold');
 define('UPKEEPIFY_TASK_STATUS_SLUG_REJECTED', 'rejected');
 
 // Form Field Names

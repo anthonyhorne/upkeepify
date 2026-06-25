@@ -962,6 +962,7 @@ function upkeepify_enqueue_frontend_scripts() {
     UPKEEPIFY_SHORTCODE_TASKS_BY_STATUS,
     UPKEEPIFY_SHORTCODE_TASK_SUMMARY,
     UPKEEPIFY_SHORTCODE_TASK_CALENDAR,
+    UPKEEPIFY_SHORTCODE_STATUS_KEY,
 );
 
     $has_shortcode = false;
