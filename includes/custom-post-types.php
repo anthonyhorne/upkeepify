@@ -883,6 +883,129 @@ function upkeepify_render_manual_close_panel($task_id) {
 }
 
 /**
+ * Apply a manual lifecycle override (On Hold or Cancelled) to a whole task.
+ *
+ * @since 2.1
+ * @param int    $task_id Maintenance task post ID.
+ * @param string $status  One of UPKEEPIFY_MANUAL_STATUS_ON_HOLD|UPKEEPIFY_MANUAL_STATUS_CANCELLED.
+ * @param string $note    Optional trustee note.
+ * @return void
+ */
+function upkeepify_set_task_manual_status($task_id, $status, $note = '') {
+    if (!in_array($status, array(UPKEEPIFY_MANUAL_STATUS_ON_HOLD, UPKEEPIFY_MANUAL_STATUS_CANCELLED), true)) {
+        return;
+    }
+
+    update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS, $status);
+    update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_AT, time());
+    update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_BY, get_current_user_id());
+
+    $note = sanitize_textarea_field($note);
+    if ($note !== '') {
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_NOTE, substr($note, 0, 500));
+    } else {
+        delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_NOTE);
+    }
+
+    upkeepify_sync_task_lifecycle_status($task_id);
+}
+
+/**
+ * Clear a manual lifecycle override so the task resumes its automatic status.
+ *
+ * @since 2.1
+ * @param int $task_id Maintenance task post ID.
+ * @return void
+ */
+function upkeepify_clear_task_manual_status($task_id) {
+    delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS);
+    delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_AT);
+    delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_BY);
+    delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_NOTE);
+
+    upkeepify_sync_task_lifecycle_status($task_id);
+}
+
+/**
+ * Render trustee controls to hold/cancel/resume a task.
+ *
+ * @since 2.1
+ * @param int $task_id Maintenance task post ID.
+ * @return void
+ */
+function upkeepify_render_task_status_control_panel($task_id) {
+    $manual_status = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS, true);
+    $manual_at     = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_AT, true);
+    $manual_note   = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_NOTE, true);
+
+    echo '<div class="upkeepify-task-status-controls" style="margin:12px 0;padding:12px;border:1px solid #dcdcde;border-radius:4px;">';
+    echo '<p style="margin-top:0;"><strong>' . esc_html__('Task status controls', 'upkeepify') . '</strong></p>';
+
+    if ($manual_status === UPKEEPIFY_MANUAL_STATUS_ON_HOLD || $manual_status === UPKEEPIFY_MANUAL_STATUS_CANCELLED) {
+        $state_label = $manual_status === UPKEEPIFY_MANUAL_STATUS_ON_HOLD
+            ? __('This task is currently On Hold.', 'upkeepify')
+            : __('This task is currently Cancelled.', 'upkeepify');
+
+        echo '<div class="notice notice-warning inline"><p>' . esc_html($state_label) . '</p>';
+        if ($manual_at) {
+            echo '<p><strong>' . esc_html__('Since:', 'upkeepify') . '</strong> ' . wp_kses_post(upkeepify_format_lifecycle_timestamp($manual_at)) . '</p>';
+        }
+        if ($manual_note) {
+            echo '<p><strong>' . esc_html__('Trustee note:', 'upkeepify') . '</strong><br>' . nl2br(esc_html($manual_note)) . '</p>';
+        }
+        echo '</div>';
+
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        echo '<input type="hidden" name="action" value="' . esc_attr(UPKEEPIFY_ADMIN_ACTION_TASK_MANUAL_STATUS) . '">';
+        echo '<input type="hidden" name="task_id" value="' . esc_attr($task_id) . '">';
+        wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+        echo '<button type="submit" name="status_action" value="resume" class="button button-primary">' . esc_html__('Resume task', 'upkeepify') . '</button>';
+        echo '<span style="margin-left:8px;color:#646970;">' . esc_html__('Returns the task to its automatic lifecycle status.', 'upkeepify') . '</span>';
+        echo '</form>';
+    } else {
+        echo '<p>' . esc_html__('Park this task (On Hold) or cancel it so it does not get lost. You can resume it later.', 'upkeepify') . '</p>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        echo '<input type="hidden" name="action" value="' . esc_attr(UPKEEPIFY_ADMIN_ACTION_TASK_MANUAL_STATUS) . '">';
+        echo '<input type="hidden" name="task_id" value="' . esc_attr($task_id) . '">';
+        wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+        echo '<p><label for="upkeepify_manual_status_note"><strong>' . esc_html__('Reason / note (optional)', 'upkeepify') . '</strong></label><br>';
+        echo '<textarea id="upkeepify_manual_status_note" name="status_note" rows="2" maxlength="500" style="width:100%;max-width:720px;"></textarea></p>';
+        echo '<p>';
+        echo '<button type="submit" name="status_action" value="hold" class="button">' . esc_html__('Put on hold', 'upkeepify') . '</button> ';
+        echo '<button type="submit" name="status_action" value="cancel" class="button button-link-delete">' . esc_html__('Cancel task', 'upkeepify') . '</button>';
+        echo '</p>';
+        echo '</form>';
+    }
+
+    // Shared-job toggle (notifies the partner complex's trustees).
+    if (function_exists('upkeepify_get_shared_trustee_emails')) {
+        $shared         = upkeepify_task_is_shared($task_id);
+        $partner_name   = upkeepify_get_shared_complex_name();
+        $partner_emails = upkeepify_get_shared_trustee_emails();
+
+        echo '<hr style="margin:12px 0;border:none;border-top:1px solid #f0f0f1;">';
+        if (empty($partner_emails)) {
+            echo '<p style="color:#646970;">' . esc_html__('Job sharing is unavailable until partner-complex trustee emails are set under Settings → Trustee Approval Settings.', 'upkeepify') . '</p>';
+        } else {
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+            echo '<input type="hidden" name="action" value="' . esc_attr(UPKEEPIFY_ADMIN_ACTION_TASK_SHARE_TOGGLE) . '">';
+            echo '<input type="hidden" name="task_id" value="' . esc_attr($task_id) . '">';
+            wp_nonce_field(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+            if ($shared) {
+                echo '<p>' . sprintf(esc_html__('This job is shared with %s. Their trustees are notified of progress.', 'upkeepify'), '<strong>' . esc_html($partner_name) . '</strong>') . '</p>';
+                echo '<button type="submit" name="share_action" value="unshare" class="button">' . esc_html__('Stop sharing this job', 'upkeepify') . '</button>';
+            } else {
+                echo '<p>' . sprintf(esc_html__('Share this job with %s so both complexes are kept informed.', 'upkeepify'), '<strong>' . esc_html($partner_name) . '</strong>') . '</p>';
+                echo '<button type="submit" name="share_action" value="share" class="button">' . esc_html__('Share this job', 'upkeepify') . '</button>';
+            }
+            echo '</form>';
+        }
+    }
+
+    echo '</div>';
+}
+
+/**
  * Render the trustee-facing response lifecycle panel.
  *
  * @since 1.1
@@ -915,11 +1038,22 @@ function upkeepify_trustee_lifecycle_meta_box_callback($post) {
             echo '<div class="notice notice-success inline"><p>' . esc_html__('Contractor response link regenerated and emailed when a provider email was available.', 'upkeepify') . '</p></div>';
         } elseif ($notice === 'manual_closed') {
             echo '<div class="notice notice-success inline"><p>' . esc_html__('Lifecycle closed manually.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'task_held') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Task put on hold.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'task_cancelled') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Task cancelled.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'task_resumed') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Task resumed.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'job_shared') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Job shared with the partner complex.', 'upkeepify') . '</p></div>';
+        } elseif ($notice === 'job_unshared') {
+            echo '<div class="notice notice-success inline"><p>' . esc_html__('Job sharing stopped.', 'upkeepify') . '</p></div>';
         }
     }
 
     echo '<p>' . esc_html__('Approve an estimate before asking for a formal quote, then approve the formal quote before the contractor can mark the job complete.', 'upkeepify') . '</p>';
 
+    upkeepify_render_task_status_control_panel($post->ID);
     upkeepify_render_resident_issue_review_panel($post->ID);
     upkeepify_render_manual_close_panel($post->ID);
 
@@ -1020,6 +1154,16 @@ function upkeepify_trustee_lifecycle_meta_box_callback($post) {
  */
 function upkeepify_set_task_status_by_name($task_id, $status_name) {
     $term = get_term_by('name', $status_name, UPKEEPIFY_TAXONOMY_TASK_STATUS);
+    if ((!$term || is_wp_error($term)) && function_exists('wp_insert_term')) {
+        // Seed lifecycle terms on demand so every computed status (e.g. On Hold,
+        // Rejected) can be applied even when sample data was never inserted.
+        $created = wp_insert_term($status_name, UPKEEPIFY_TAXONOMY_TASK_STATUS);
+        if (is_wp_error($created)) {
+            return;
+        }
+        $term = get_term($created['term_id'], UPKEEPIFY_TAXONOMY_TASK_STATUS);
+    }
+
     if ($term && !is_wp_error($term)) {
         wp_set_object_terms($task_id, array(intval($term->term_id)), UPKEEPIFY_TAXONOMY_TASK_STATUS);
     }
@@ -1034,13 +1178,107 @@ function upkeepify_set_task_status_by_name($task_id, $status_name) {
 function upkeepify_get_lifecycle_status_options() {
     return array(
         UPKEEPIFY_TASK_STATUS_SLUG_PENDING_TASK_APPROVAL           => UPKEEPIFY_TASK_STATUS_PENDING_TASK_APPROVAL,
+        UPKEEPIFY_TASK_STATUS_SLUG_OPEN                            => UPKEEPIFY_TASK_STATUS_OPEN,
         UPKEEPIFY_TASK_STATUS_SLUG_PENDING_ESTIMATE_APPROVAL       => UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL,
         UPKEEPIFY_TASK_STATUS_SLUG_PENDING_QUOTE_APPROVAL          => UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL,
         UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_COMPLETION             => UPKEEPIFY_TASK_STATUS_AWAITING_COMPLETION,
         UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_RESIDENT_CONFIRMATION  => UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION,
         UPKEEPIFY_TASK_STATUS_SLUG_NEEDS_REVIEW                    => UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW,
+        UPKEEPIFY_TASK_STATUS_SLUG_COMPLETED                       => UPKEEPIFY_TASK_STATUS_COMPLETED,
+        UPKEEPIFY_TASK_STATUS_SLUG_ON_HOLD                         => UPKEEPIFY_TASK_STATUS_ON_HOLD,
         UPKEEPIFY_TASK_STATUS_SLUG_REJECTED                        => UPKEEPIFY_TASK_STATUS_REJECTED,
     );
+}
+
+/**
+ * Map every lifecycle status to a traffic-light bucket and colour.
+ *
+ * Buckets:
+ *  - green  : on track / done (open, awaiting completion, completed)
+ *  - orange : waiting on someone / parked (approvals pending, awaiting resident, on hold)
+ *  - red    : needs attention / stalled / cancelled (needs review, rejected)
+ *
+ * @since 2.1
+ * @return array<string,array{color:string,bucket:string}> Keyed by status name.
+ */
+function upkeepify_get_status_colour_map() {
+    $green  = '#46b450';
+    $orange = '#f0a000';
+    $red    = '#dc3232';
+
+    return array(
+        UPKEEPIFY_TASK_STATUS_OPEN                          => array('color' => $green,  'bucket' => 'green'),
+        UPKEEPIFY_TASK_STATUS_AWAITING_COMPLETION           => array('color' => $green,  'bucket' => 'green'),
+        UPKEEPIFY_TASK_STATUS_COMPLETED                     => array('color' => $green,  'bucket' => 'green'),
+        UPKEEPIFY_TASK_STATUS_PENDING_TASK_APPROVAL         => array('color' => $orange, 'bucket' => 'orange'),
+        UPKEEPIFY_TASK_STATUS_PENDING_ESTIMATE_APPROVAL     => array('color' => $orange, 'bucket' => 'orange'),
+        UPKEEPIFY_TASK_STATUS_PENDING_QUOTE_APPROVAL        => array('color' => $orange, 'bucket' => 'orange'),
+        UPKEEPIFY_TASK_STATUS_AWAITING_RESIDENT_CONFIRMATION => array('color' => $orange, 'bucket' => 'orange'),
+        UPKEEPIFY_TASK_STATUS_ON_HOLD                       => array('color' => $orange, 'bucket' => 'orange'),
+        UPKEEPIFY_TASK_STATUS_NEEDS_REVIEW                  => array('color' => $red,    'bucket' => 'red'),
+        UPKEEPIFY_TASK_STATUS_REJECTED                      => array('color' => $red,    'bucket' => 'red'),
+    );
+}
+
+/**
+ * Resolve the traffic-light colour for a status name.
+ *
+ * @since 2.1
+ * @param string $status_name Lifecycle status display name.
+ * @return string Hex colour; neutral grey when the status is unknown.
+ */
+function upkeepify_get_status_colour($status_name) {
+    $map = upkeepify_get_status_colour_map();
+    return isset($map[$status_name]) ? $map[$status_name]['color'] : '#8a8a8a';
+}
+
+/**
+ * Render a colour-coded status badge (self-contained inline styles so it works
+ * identically in wp-admin lists and on the front-end).
+ *
+ * @since 2.1
+ * @param string $status_name Lifecycle status display name.
+ * @return string Badge HTML, or an em dash when empty.
+ */
+function upkeepify_render_status_badge($status_name) {
+    $status_name = (string) $status_name;
+    if ($status_name === '') {
+        return '&mdash;';
+    }
+
+    $color = upkeepify_get_status_colour($status_name);
+
+    return '<span class="upkeepify-status-badge" style="display:inline-block;padding:2px 10px;border-radius:10px;'
+        . 'font-size:12px;font-weight:600;line-height:1.6;color:#fff;background:' . esc_attr($color) . ';">'
+        . esc_html($status_name) . '</span>';
+}
+
+/**
+ * Render the colour key/legend explaining the status badges.
+ *
+ * @since 2.1
+ * @return string Legend HTML.
+ */
+function upkeepify_render_status_legend() {
+    $buckets = array(
+        'green'  => __('On track / done', 'upkeepify'),
+        'orange' => __('Waiting / on hold', 'upkeepify'),
+        'red'    => __('Needs attention / cancelled', 'upkeepify'),
+    );
+
+    $colors = array('green' => '#46b450', 'orange' => '#f0a000', 'red' => '#dc3232');
+
+    $out  = '<div class="upkeepify-status-legend" style="margin:8px 0;font-size:12px;line-height:2;">';
+    $out .= '<strong style="margin-right:10px;">' . esc_html__('Status key:', 'upkeepify') . '</strong>';
+    foreach ($buckets as $bucket => $label) {
+        $out .= '<span style="display:inline-block;margin-right:16px;white-space:nowrap;">';
+        $out .= '<span style="width:12px;height:12px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:6px;background:' . esc_attr($colors[$bucket]) . ';"></span>';
+        $out .= esc_html($label);
+        $out .= '</span>';
+    }
+    $out .= '</div>';
+
+    return $out;
 }
 
 /**
@@ -1051,6 +1289,16 @@ function upkeepify_get_lifecycle_status_options() {
  * @return string Task status term name.
  */
 function upkeepify_get_task_lifecycle_status_name($task_id) {
+    // Manual trustee override (On Hold / Cancelled) wins over every computed state
+    // so a parked or cancelled job cannot silently fall back to an automatic status.
+    $manual_status = get_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS, true);
+    if ($manual_status === UPKEEPIFY_MANUAL_STATUS_ON_HOLD) {
+        return UPKEEPIFY_TASK_STATUS_ON_HOLD;
+    }
+    if ($manual_status === UPKEEPIFY_MANUAL_STATUS_CANCELLED) {
+        return UPKEEPIFY_TASK_STATUS_REJECTED;
+    }
+
     // Earliest gate: task awaiting trustee sign-off before contractors are invited.
     if ( function_exists( 'upkeepify_get_pending_task_approval_status' ) ) {
         $pending = upkeepify_get_pending_task_approval_status( $task_id );
@@ -1326,6 +1574,9 @@ function upkeepify_admin_post_trustee_lifecycle_approval() {
         update_post_meta($task_id, UPKEEPIFY_META_KEY_ASSIGNED_SERVICE_PROVIDER, intval(get_post_meta($response_id, UPKEEPIFY_META_KEY_PROVIDER_ID, true)));
         upkeepify_sync_task_lifecycle_status($task_id);
         upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id, 'estimate');
+        if (function_exists('upkeepify_notify_shared_trustees')) {
+            upkeepify_notify_shared_trustees($task_id, __('Estimate approved on a shared job', 'upkeepify'));
+        }
         $redirect_status = 'estimate_approved';
     } elseif ($approval_type === 'quote') {
         $formal_quote = get_post_meta($response_id, UPKEEPIFY_META_KEY_RESPONSE_FORMAL_QUOTE, true);
@@ -1345,6 +1596,9 @@ function upkeepify_admin_post_trustee_lifecycle_approval() {
         upkeepify_sync_task_lifecycle_status($task_id);
         upkeepify_send_trustee_lifecycle_approval_email($task_id, $response_id, 'quote');
         upkeepify_send_quote_audit_email($task_id, $response_id);
+        if (function_exists('upkeepify_notify_shared_trustees')) {
+            upkeepify_notify_shared_trustees($task_id, __('Quote approved on a shared job', 'upkeepify'));
+        }
         $redirect_status = 'quote_approved';
     } else {
         wp_die(esc_html__('Unknown lifecycle approval type.', 'upkeepify'));
@@ -1465,6 +1719,103 @@ function upkeepify_admin_post_trustee_manual_close() {
     exit;
 }
 add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_TRUSTEE_MANUAL_CLOSE, 'upkeepify_admin_post_trustee_manual_close');
+
+/**
+ * Handle trustee hold/cancel/resume actions from the lifecycle panel.
+ *
+ * @since 2.1
+ * @hook admin_post_{UPKEEPIFY_ADMIN_ACTION_TASK_MANUAL_STATUS}
+ */
+function upkeepify_admin_post_task_manual_status() {
+    $task_id       = isset($_POST['task_id']) ? absint(wp_unslash($_POST['task_id'])) : 0;
+    $status_action = isset($_POST['status_action']) ? sanitize_key(wp_unslash($_POST['status_action'])) : '';
+    $note          = isset($_POST['status_note']) ? sanitize_textarea_field(wp_unslash($_POST['status_note'])) : '';
+
+    if (!$task_id || !current_user_can('edit_post', $task_id)) {
+        wp_die(esc_html__('Insufficient permissions.', 'upkeepify'));
+    }
+
+    check_admin_referer(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+
+    $task = get_post($task_id);
+    if (!$task || $task->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS) {
+        wp_die(esc_html__('Invalid task status request.', 'upkeepify'));
+    }
+
+    if ($status_action === 'hold') {
+        upkeepify_set_task_manual_status($task_id, UPKEEPIFY_MANUAL_STATUS_ON_HOLD, $note);
+        $redirect_status = 'task_held';
+    } elseif ($status_action === 'cancel') {
+        upkeepify_set_task_manual_status($task_id, UPKEEPIFY_MANUAL_STATUS_CANCELLED, $note);
+        $redirect_status = 'task_cancelled';
+    } elseif ($status_action === 'resume') {
+        upkeepify_clear_task_manual_status($task_id);
+        $redirect_status = 'task_resumed';
+    } else {
+        wp_die(esc_html__('Unknown task status action.', 'upkeepify'));
+    }
+
+    $redirect = add_query_arg(
+        array(
+            'post'                => $task_id,
+            'action'              => 'edit',
+            'upkeepify_lifecycle' => $redirect_status,
+        ),
+        admin_url('post.php')
+    );
+
+    wp_safe_redirect($redirect);
+    exit;
+}
+add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_TASK_MANUAL_STATUS, 'upkeepify_admin_post_task_manual_status');
+
+/**
+ * Handle the shared-job toggle from the lifecycle panel.
+ *
+ * @since 2.1
+ * @hook admin_post_{UPKEEPIFY_ADMIN_ACTION_TASK_SHARE_TOGGLE}
+ */
+function upkeepify_admin_post_task_share_toggle() {
+    $task_id      = isset($_POST['task_id']) ? absint(wp_unslash($_POST['task_id'])) : 0;
+    $share_action = isset($_POST['share_action']) ? sanitize_key(wp_unslash($_POST['share_action'])) : '';
+
+    if (!$task_id || !current_user_can('edit_post', $task_id)) {
+        wp_die(esc_html__('Insufficient permissions.', 'upkeepify'));
+    }
+
+    check_admin_referer(UPKEEPIFY_NONCE_ACTION_TRUSTEE_LIFECYCLE, UPKEEPIFY_NONCE_TRUSTEE_LIFECYCLE);
+
+    $task = get_post($task_id);
+    if (!$task || $task->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS) {
+        wp_die(esc_html__('Invalid shared-job request.', 'upkeepify'));
+    }
+
+    if ($share_action === 'share') {
+        update_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_SHARED, '1');
+        if (function_exists('upkeepify_notify_shared_trustees')) {
+            upkeepify_notify_shared_trustees($task_id, __('A job has been shared with your complex', 'upkeepify'));
+        }
+        $redirect_status = 'job_shared';
+    } elseif ($share_action === 'unshare') {
+        delete_post_meta($task_id, UPKEEPIFY_META_KEY_TASK_SHARED);
+        $redirect_status = 'job_unshared';
+    } else {
+        wp_die(esc_html__('Unknown shared-job action.', 'upkeepify'));
+    }
+
+    $redirect = add_query_arg(
+        array(
+            'post'                => $task_id,
+            'action'              => 'edit',
+            'upkeepify_lifecycle' => $redirect_status,
+        ),
+        admin_url('post.php')
+    );
+
+    wp_safe_redirect($redirect);
+    exit;
+}
+add_action('admin_post_' . UPKEEPIFY_ADMIN_ACTION_TASK_SHARE_TOGGLE, 'upkeepify_admin_post_task_share_toggle');
 
 /**
  * Handle contractor response token revoke/regenerate actions.

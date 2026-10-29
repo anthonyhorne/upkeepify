@@ -127,6 +127,20 @@ define('UPKEEPIFY_META_KEY_TASK_APPROVED_ESTIMATE_BY', '_upkeepify_approved_esti
 define('UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_RESPONSE_ID', '_upkeepify_approved_quote_response_id'); // provider response approved for work/completion
 define('UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_AT', '_upkeepify_approved_quote_at'); // Unix timestamp of quote approval
 define('UPKEEPIFY_META_KEY_TASK_APPROVED_QUOTE_BY', '_upkeepify_approved_quote_by'); // WP user ID that approved quote
+
+// Manual lifecycle override (trustee puts a whole task On Hold or Cancels it).
+define('UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS',      '_upkeepify_manual_status');      // on-hold|rejected (empty when active)
+define('UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_AT',   '_upkeepify_manual_status_at');   // Unix timestamp the override was applied
+define('UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_BY',   '_upkeepify_manual_status_by');   // WP user ID that applied the override
+define('UPKEEPIFY_META_KEY_TASK_MANUAL_STATUS_NOTE', '_upkeepify_manual_status_note'); // optional trustee note (≤500 chars)
+
+// Manual override values.
+define('UPKEEPIFY_MANUAL_STATUS_ON_HOLD',   'on-hold');
+define('UPKEEPIFY_MANUAL_STATUS_CANCELLED', 'rejected');
+
+// Shared job (two complexes/HOAs collaborating on one task).
+define('UPKEEPIFY_META_KEY_TASK_SHARED', '_upkeepify_shared_job'); // '1' when the task is shared with the partner complex
+
 define('UPKEEPIFY_SETTING_RESIDENT_CONFIRMATION_PAGE',  'upkeepify_resident_confirmation_page');
 define('UPKEEPIFY_QUERY_VAR_RESIDENT_TOKEN',            'upkeepify_resident_token');
 define('UPKEEPIFY_SHORTCODE_RESIDENT_CONFIRMATION_FORM', 'upkeepify_resident_confirmation_form');
@@ -177,6 +191,7 @@ define('UPKEEPIFY_SHORTCODE_TASKS_BY_PROVIDER', 'upkeepify_tasks_by_provider');
 define('UPKEEPIFY_SHORTCODE_TASKS_BY_STATUS', 'upkeepify_tasks_by_status');
 define('UPKEEPIFY_SHORTCODE_TASK_SUMMARY', 'upkeepify_task_summary');
 define('UPKEEPIFY_SHORTCODE_TASK_CALENDAR', 'upkeepify_task_calendar');
+define('UPKEEPIFY_SHORTCODE_STATUS_KEY', 'upkeepify_status_key');
 
 // Nonce Names
 define('UPKEEPIFY_NONCE_NEAREST_UNIT', 'upkeepify_nearest_unit_nonce');
@@ -223,11 +238,14 @@ define('UPKEEPIFY_TASK_STATUS_COMPLETED', 'Completed');
 define('UPKEEPIFY_TASK_STATUS_ON_HOLD', 'On Hold');
 define('UPKEEPIFY_TASK_STATUS_REJECTED', 'Rejected');
 define('UPKEEPIFY_TASK_STATUS_SLUG_PENDING_TASK_APPROVAL', 'pending-task-approval');
+define('UPKEEPIFY_TASK_STATUS_SLUG_OPEN', 'open');
 define('UPKEEPIFY_TASK_STATUS_SLUG_PENDING_ESTIMATE_APPROVAL', 'pending-estimate-approval');
 define('UPKEEPIFY_TASK_STATUS_SLUG_PENDING_QUOTE_APPROVAL', 'pending-quote-approval');
 define('UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_COMPLETION', 'awaiting-completion');
 define('UPKEEPIFY_TASK_STATUS_SLUG_AWAITING_RESIDENT_CONFIRMATION', 'awaiting-resident-confirmation');
 define('UPKEEPIFY_TASK_STATUS_SLUG_NEEDS_REVIEW', 'needs-review');
+define('UPKEEPIFY_TASK_STATUS_SLUG_COMPLETED', 'completed');
+define('UPKEEPIFY_TASK_STATUS_SLUG_ON_HOLD', 'on-hold');
 define('UPKEEPIFY_TASK_STATUS_SLUG_REJECTED', 'rejected');
 
 // Form Field Names
@@ -250,6 +268,8 @@ define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_APPROVAL', 'upkeepify_trustee_l
 define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_LIFECYCLE_FOLLOWUP', 'upkeepify_trustee_lifecycle_followup');
 define('UPKEEPIFY_ADMIN_ACTION_PROVIDER_TOKEN_MANAGE', 'upkeepify_provider_token_manage');
 define('UPKEEPIFY_ADMIN_ACTION_TRUSTEE_MANUAL_CLOSE', 'upkeepify_trustee_manual_close');
+define('UPKEEPIFY_ADMIN_ACTION_TASK_MANUAL_STATUS', 'upkeepify_task_manual_status');
+define('UPKEEPIFY_ADMIN_ACTION_TASK_SHARE_TOGGLE', 'upkeepify_task_share_toggle');
 define('UPKEEPIFY_ADMIN_ACTION_RUN_MIGRATIONS', 'upkeepify_run_migrations');
 define('UPKEEPIFY_ADMIN_ACTION_REPAIR_SCHEMA', 'upkeepify_repair_schema');
 define('UPKEEPIFY_ADMIN_ACTION_RESET_DATABASE', 'upkeepify_reset_database');
@@ -314,6 +334,10 @@ define('UPKEEPIFY_SETTING_TRUSTEE_REJECT_KILLS',       'upkeepify_trustee_reject
 define('UPKEEPIFY_SETTING_TRUSTEE_REMINDER_COUNT',     'upkeepify_trustee_reminder_count');
 define('UPKEEPIFY_SETTING_TRUSTEE_REMINDER_INTERVAL',  'upkeepify_trustee_reminder_interval');
 define('UPKEEPIFY_SETTING_TRUSTEE_APPROVAL_PAGE',      'upkeepify_trustee_approval_page');
+
+// Shared-job (partner complex) settings.
+define('UPKEEPIFY_SETTING_SHARED_COMPLEX_NAME',   'upkeepify_shared_complex_name');   // label for the partner HOA/complex
+define('UPKEEPIFY_SETTING_SHARED_TRUSTEE_EMAILS', 'upkeepify_shared_trustee_emails'); // partner complex trustee emails (one per line / comma-separated)
 
 // System Log
 define('UPKEEPIFY_OPTION_SYSTEM_LOG', 'upkeepify_system_log');

@@ -431,6 +431,30 @@ add_settings_field(
     )
 );
 
+add_settings_field(
+    UPKEEPIFY_SETTING_SHARED_COMPLEX_NAME,
+    __( 'Shared Complex Name', 'upkeepify' ),
+    'upkeepify_text_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_trustee_approval_settings',
+    array(
+        'label_for'   => UPKEEPIFY_SETTING_SHARED_COMPLEX_NAME,
+        'description' => __( 'Name of the partner HOA/complex/estate you collaborate with. Shown when sharing a job.', 'upkeepify' ),
+    )
+);
+
+add_settings_field(
+    UPKEEPIFY_SETTING_SHARED_TRUSTEE_EMAILS,
+    __( 'Shared Complex Trustee Emails', 'upkeepify' ),
+    'upkeepify_textarea_field_callback',
+    UPKEEPIFY_OPTION_SETTINGS,
+    'upkeepify_trustee_approval_settings',
+    array(
+        'label_for'   => UPKEEPIFY_SETTING_SHARED_TRUSTEE_EMAILS,
+        'description' => __( 'One email per line (or comma-separated). When a job is marked as shared, these trustees receive progress updates. Leave blank to disable job sharing.', 'upkeepify' ),
+    )
+);
+
     // Thank You Page Setting
     add_settings_section(
     'upkeepify_provider_thank_you_settings',
@@ -938,6 +962,7 @@ function upkeepify_enqueue_frontend_scripts() {
     UPKEEPIFY_SHORTCODE_TASKS_BY_STATUS,
     UPKEEPIFY_SHORTCODE_TASK_SUMMARY,
     UPKEEPIFY_SHORTCODE_TASK_CALENDAR,
+    UPKEEPIFY_SHORTCODE_STATUS_KEY,
 );
 
     $has_shortcode = false;

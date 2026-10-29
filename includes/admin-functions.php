@@ -98,7 +98,12 @@ function upkeepify_render_lifecycle_admin_column($column, $post_id) {
         ? upkeepify_get_task_lifecycle_status_name($post_id)
         : '';
 
-    echo $status ? esc_html($status) : '&mdash;';
+    if ($status && function_exists('upkeepify_render_status_badge')) {
+        // Badge HTML uses a fixed inline-styled span; safe to output as markup.
+        echo wp_kses_post(upkeepify_render_status_badge($status));
+    } else {
+        echo $status ? esc_html($status) : '&mdash;';
+    }
 }
 add_action('manage_' . UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS . '_posts_custom_column', 'upkeepify_render_lifecycle_admin_column', 10, 2);
 
@@ -126,5 +131,25 @@ function upkeepify_render_lifecycle_status_filter($post_type) {
     echo '</select>';
 }
 add_action('restrict_manage_posts', 'upkeepify_render_lifecycle_status_filter');
+
+/**
+ * Show the colour-coded status key above the maintenance task admin list.
+ *
+ * @since 2.1
+ * @return void
+ */
+function upkeepify_render_lifecycle_admin_legend() {
+    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+    if (!$screen || $screen->base !== 'edit' || $screen->post_type !== UPKEEPIFY_POST_TYPE_MAINTENANCE_TASKS) {
+        return;
+    }
+    if (!function_exists('upkeepify_render_status_legend')) {
+        return;
+    }
+
+    // Legend HTML is built from fixed inline-styled markup.
+    echo wp_kses_post(upkeepify_render_status_legend());
+}
+add_action('all_admin_notices', 'upkeepify_render_lifecycle_admin_legend');
 
 // More PHP code or closing PHP tag if it's the end

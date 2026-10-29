@@ -21,6 +21,7 @@ function upkeepify_register_shortcodes() {
     add_shortcode(UPKEEPIFY_SHORTCODE_TASKS_BY_STATUS, 'upkeepify_tasks_by_status_shortcode');
     add_shortcode(UPKEEPIFY_SHORTCODE_TASK_SUMMARY, 'upkeepify_task_summary_shortcode');
     add_shortcode(UPKEEPIFY_SHORTCODE_TASK_CALENDAR, 'upkeepify_task_calendar_shortcode');
+    add_shortcode(UPKEEPIFY_SHORTCODE_STATUS_KEY, 'upkeepify_status_key_shortcode');
 }
 add_action('init', 'upkeepify_register_shortcodes');
 
@@ -111,6 +112,9 @@ function upkeepify_list_tasks_shortcode() {
             ob_start();
 
             if ($query->have_posts()) {
+                if (function_exists('upkeepify_render_status_legend')) {
+                    echo upkeepify_render_status_legend(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed inline-styled legend markup, dynamic parts escaped within.
+                }
                 echo '<table class="upkeepify-tasks-table">';
                 echo '<thead><tr>';
                 echo '<th>' . esc_html__('Task Title', 'upkeepify') . '</th>';
@@ -136,7 +140,11 @@ function upkeepify_list_tasks_shortcode() {
                     echo '<td>' . esc_html($currency_symbol) . esc_html($rough_estimate) . '</td>';
                     echo '<td>' . (!empty($category) ? esc_html($category[0]) : '') . '</td>';
                     echo '<td>' . (!empty($type) ? esc_html($type[0]) : '') . '</td>';
-                    echo '<td>' . (!empty($status) ? esc_html($status[0]) : '') . '</td>';
+                    if (!empty($status) && function_exists('upkeepify_render_status_badge')) {
+                        echo '<td>' . upkeepify_render_status_badge($status[0]) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed inline-styled badge markup, status name escaped within.
+                    } else {
+                        echo '<td>' . (!empty($status) ? esc_html($status[0]) : '') . '</td>';
+                    }
                     echo '</tr>';
                 }
 
@@ -1274,6 +1282,19 @@ function upkeepify_task_calendar_shortcode() {
 }
 
 /**
+ * Status key shortcode — renders the colour-coded legend on its own.
+ *
+ * @since 2.1
+ * @return string
+ */
+function upkeepify_status_key_shortcode() {
+    if (!function_exists('upkeepify_render_status_legend')) {
+        return '';
+    }
+    return upkeepify_render_status_legend();
+}
+
+/**
  * Admin-post handler: submit provider response.
  *
  * Processes provider response form submissions with CSRF protection via nonce verification.
@@ -1814,6 +1835,10 @@ function upkeepify_admin_post_provider_completion_submit() {
     }
     if ( $task_id && function_exists( 'upkeepify_sync_task_lifecycle_status' ) ) {
         upkeepify_sync_task_lifecycle_status( $task_id );
+    }
+
+    if ( $task_id && function_exists( 'upkeepify_notify_shared_trustees' ) ) {
+        upkeepify_notify_shared_trustees( $task_id, __( 'Work completed on a shared job', 'upkeepify' ) );
     }
 
     // Notify trustee — resident confirmation (Step 4) will be triggered from admin.
